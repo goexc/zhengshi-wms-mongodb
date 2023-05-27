@@ -1,0 +1,16 @@
+syntax = "v1"
+
+
+info(
+    title: "基础数据结构"
+    desc: "基础数据结构"
+    author: "董咚懂咚"
+    email: "1024071953@qq.com"
+    version: "1.0.1"
+)
+
+type BaseResponse {
+    Code int `json:"code"`
+    Msg string `json:"msg"`
+}
+

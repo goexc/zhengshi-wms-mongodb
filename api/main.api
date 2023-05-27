@@ -1,0 +1,121 @@
+syntax = "v1"
+
+info(
+	title: "商城管理后台api"
+	desc: "商城管理后台api"
+	author: "董咚懂咚"
+	email: "1024071953@qq.com"
+	version: "v1.0.1"
+)
+
+import (
+	"apis/base.api"
+	"apis/auth.api"
+	"apis/menu.api"
+	"apis/role.api"
+	"apis/department.api"
+)
+
+//身份验证
+@server (
+	group: auth
+	prefix: auth
+)
+
+service main{
+	@doc "注册"
+	@handler register
+	post /register(RegisterRequest) returns(BaseResponse)
+	
+	@doc "登录"
+	@handler login
+	post /login(LoginRequest) returns(LoginResponse)
+}
+
+// 菜单管理
+@server(
+	jwt: Auth
+	group: menu
+	prefix: menu
+)
+
+service main {
+	@doc "菜单分页"
+	@handler list
+	get / returns (MenusResponse)
+	
+	@doc "添加菜单"
+	@handler add
+	post / (MenuRequest) returns (BaseResponse)
+	
+	@doc "修改菜单"
+	@handler update
+	put / (MenuRequest) returns (BaseResponse)
+	
+	@doc "删除菜单"
+	@handler remove
+	delete / (MenuRemoveRequest) returns (BaseResponse)
+}
+
+// 角色管理
+@server(
+	jwt: Auth
+	group: role
+	prefix: role
+)
+
+service main {
+	@doc "角色分页"
+	@handler list
+	get / (RoleListRequest) returns (RoleListResponse)
+	
+	@doc "添加角色"
+	@handler add
+	post / (RoleRequest) returns (BaseResponse)
+	
+	@doc "修改角色"
+	@handler update
+	put / (RoleRequest) returns (BaseResponse)
+	
+	@doc "删除角色"
+	@handler remove
+	delete / (RoleRemoveRequest) returns (BaseResponse)
+	
+	@doc "更改角色状态"
+	@handler status
+	patch /status (RoleStatusRequest) returns (BaseResponse)
+	
+	@doc "角色的全部菜单"
+	@handler menus
+	get /menus (RoleRemoveRequest) returns (RoleMenusResponse)
+	
+	@doc "分配角色菜单"
+	@handler menuDistribute
+	put /menus (RoleMenusRequest) returns (BaseResponse)
+	
+}
+
+// 部门管理
+@server(
+	jwt: Auth
+	group: department
+	prefix: department
+)
+
+service main {
+	@doc "部门列表"
+	@handler list
+	get / returns (DepartmentsResponse)
+	
+	@doc "添加部门"
+	@handler add
+	post / (DepartmentRequest) returns (BaseResponse)
+	
+	@doc "修改部门"
+	@handler update
+	put / (DepartmentRequest) returns (BaseResponse)
+	
+	@doc "删除部门"
+	@handler remove
+	delete / (DepartmentRemoveRequest) returns (BaseResponse)
+}

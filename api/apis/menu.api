@@ -1,0 +1,64 @@
+syntax = "v1"
+
+info(
+    title: "菜单数据结构"
+    desc: "菜单数据结构"
+    author: "董咚懂咚"
+    email: "1024071953@qq.com"
+    version: "1.0.1"
+)
+
+//路由信息
+type MenuRemoveRequest {
+    Id string `form:"id":"id"`
+}
+
+//添加、更新路由
+type MenuRequest {
+    Id string `json:"id,optional"`
+    Type int64 `json:"type,options=1|2"`                                     //路由类型：1.菜单，2.按钮
+    Uri string `json:"uri,optional"`                                         //路由uri
+    SortId int64 `json:"sort_id"`                                            //排序
+    ParentId string `json:"parent_id"`                                       //父路由id
+    Path string `json:"path,optional"`                                       //路由路径
+    Name string `json:"name,optional"`                                       //路由名称：如，System
+    Component string `json:"component,optional"`                             //路由组件
+    Icon string `json:"icon"`                                                //图标
+    Transition string `json:"transition"`                                    //过渡动画
+    Hidden bool `json:"hidden"`                                              //是否隐藏
+    Fixed bool `json:"fixed"`                                                //是否固定
+    Perms string `json:"perms,optional"`                                     //权限标识
+    Remark string `json:"remark"`                                            //备注
+}
+
+type MenusResponse {
+    Code int `json:"code"`
+    Msg string `json:"msg"`
+    Data []Menu `json:"data"`
+}
+
+type Menu {
+    Id string `json:"id"`
+    Type int64 `json:"type"`                                                 //路由类型：1.菜单，2.按钮
+    Uri string `json:"uri,optional"`                                         //路由uri
+    SortId int64 `json:"sort_id"`                                            //排序
+    ParentId string `json:"parent_id"`                             //父路由id
+    Path string `json:"path,optional"`                                       //路由路径
+    Name string `json:"name,optional"`                                       //路由名称
+    Component string `json:"component,optional"`                             //路由组件
+    Icon string `json:"icon"`                                                //元信息：图标
+    Transition string `json:"transition"`                                    //元信息：过渡动画
+    Hidden bool `json:"hidden"`                                              //元信息：是否隐藏
+    Fixed bool `json:"fixed"`                                                //元信息：是否固定
+    Perms string `json:"perms,optional"`                                     //权限标识
+    Remark string `json:"remark"`                                            //备注
+    Children []Menu `json:"children,optional"`
+}
+
+//type Meta {
+//    Icon string `json:"icon"`                                       //图标
+//    Transition string `json:"transition"`                           //过渡动画
+//    Hidden bool `json:"hidden"`                                     //是否隐藏
+//    Fixed bool `json:"fixed"`                                       //是否固定
+//    Perms string `json:"perms,optional"`                            //权限标识
+//}

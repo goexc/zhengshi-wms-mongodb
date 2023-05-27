@@ -1,0 +1,29 @@
+Name: main
+Host: 0.0.0.0
+Port: 8080
+
+#
+Auth:
+  AccessSecret: ''
+  AccessExpire: 3600
+  
+Salt: ''
+
+# 头像
+Avatar: ''
+
+CacheRedis:
+  - Host: 127.0.0.1:6379
+    Pass: ''
+    Type: node
+
+Casbin:
+  Redis: 127.0.0.1:6379
+  Pass: ''
+  Conf: etc/rbac_model.conf
+
+MongoDB:
+  URI: ''
+  UserName: admin
+  Password: '12345'
+  Database: mall

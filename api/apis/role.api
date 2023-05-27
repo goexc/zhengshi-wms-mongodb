@@ -1,0 +1,72 @@
+syntax = "v1"
+
+info(
+    title: "角色数据结构"
+    desc: "角色数据结构"
+    author: "董咚懂咚"
+    email: "1024@qq.com"
+    version: "1.0.1"
+)
+
+//角色信息[删除]
+type RoleRemoveRequest {
+    Id string `form:"id"`
+}
+
+//添加角色
+type RoleRequest {
+    Id string `json:"id,optional"`
+    ParentId string `json:"parent_id"`          //上级角色id
+    SortId int64 `json:"sort_id,range=[0:]"`    //排序
+    Status int64 `json:"status,range=(0:]"`     //状态：10.停用，20.在用
+    Name string `json:"name"`                   //角色名称
+    Remark string `json:"remark"`               //备注
+}
+
+type RoleListRequest {
+    Page int64 `form:"page,range=[1:]"`
+    Size int64 `form:"size,range=[1:]"`
+    Name string `form:"name,optional"` //角色名称
+}
+
+//角色分页
+type RoleListResponse {
+    Code int `json:"code"`
+    Msg string `json:"msg"`
+    Data RolePaginate `json:"data"`
+}
+
+type RolePaginate {
+    Total int64 `json:"total,optional"` //用于返回全部角色时，不可用
+    List []Role `json:"list"`           //角色分页
+}
+
+type Role {
+    Id string `json:"id"`
+    ParentId string `json:"parent_id"`          //上级角色id
+    SortId int64 `json:"sort_id,range=[0:]"`    //排序
+    Status int64 `json:"status,range=(0:]"`     //状态：10.停用，20.在用
+    Name string `json:"name"`                   //角色名称
+    Remark string `json:"remark"`               //备注
+    CreatedAt int64 `json:"created_at"`
+    UpdatedAt int64 `json:"updated_at"`
+}
+
+//角色状态请求
+type RoleStatusRequest {
+    Id string `json:"id"`
+    Status int64 `json:"status,range=(0:]"`    //状态：10.停用，20.在用
+}
+
+//分配角色菜单
+type RoleMenusRequest {
+    RoleId string `json:"role_id"`     //角色id
+    MenusId []int64 `json:"menus_id"`  //菜单id
+}
+
+//角色菜单分页
+type RoleMenusResponse {
+    Code int `json:"code"`
+    Msg string `json:"msg"`
+    Data []int64 `json:"data"`
+}

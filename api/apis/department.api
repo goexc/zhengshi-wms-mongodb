@@ -1,0 +1,57 @@
+syntax = "v1"
+
+info(
+    title: "部门数据结构"
+    desc: "部门数据结构"
+    author: "董咚懂咚"
+    email: "1024071953@qq.com"
+    version: "1.0.1"
+)
+
+//部门信息
+type DepartmentRemoveRequest {
+    Id string `form:"id"`
+}
+
+
+type DepartmentResponse {
+    Code int `json:"code"`
+    Msg string `json:"msg"`
+    Data Department `json:"data,optional"`
+}
+
+type Department {
+    Id string `json:"id,optional" path:"id"`
+    Type int64 `json:"type"`                                     //部门类型：20.小组，40.部门，60.子公司，80.公司
+    SortId int64 `json:"sort_id"`                                //排序
+    ParentId string `json:"parent_id,optional"`                  //上级部门
+    Name string `json:"name"`                                    //部门名称
+    FullName string `json:"full_name"`                           //部门全称
+    Code string `json:"code"`                                    //部门编码
+    Remark string `json:"remark"`                                //备注
+    CreatedAt int64 `json:"created_at,optional"`
+    UpdatedAt int64 `json:"updated_at,optional"`
+}
+
+type DepartmentsResponse {
+    Code int `json:"code"`
+    Msg string `json:"msg"`
+    Data []Department `json:"data"` //部门列表
+}
+
+
+//添加、更新部门
+type DepartmentRequest {
+    Id string `json:"id,optional"`
+    Type int64 `json:"type"`                                     //部门类型：20.小组，40.部门，60.子公司，80.公司
+    SortId int64 `json:"sort_id"`                                //排序
+    ParentId string `json:"parent_id,optional"`                  //上级部门
+    Name string `json:"name"`                                    //部门名称
+    FullName string `json:"full_name"`                           //部门全称
+    Code string `json:"code"`                                    //部门编码
+    Remark string `json:"remark"`                                //备注
+    CreatedAt int64 `json:"created_at,optional"`
+    UpdatedAt int64 `json:"updated_at,optional"`
+}
+
+
