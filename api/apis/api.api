@@ -1,0 +1,51 @@
+syntax = "v1"
+
+info(
+    title: "api数据结构"
+    desc: "api数据结构"
+    author: "董咚懂咚"
+    email: "1024@qq.com"
+    version: "1.0.1"
+)
+
+//添加api
+type ApiAddRequest {
+    Type int64 `json:"type,options=1|2"`                             //类型：1.模块，2.API
+    SortId int64 `json:"sort_id,range=[0:]"`                         //排序
+    ParentId string `json:"parent_id"`                     //上级id
+    Uri string `json:"uri,optional"`                                 //请求路径
+    Method string `json:"method,options=|GET|POST|PUT|PATCH|DELETE"` //请求方法
+    Name string `json:"name"`                                        //名称
+    Remark string `json:"remark,optional"`                           //备注
+}
+
+
+//修改api
+type ApiUpdateRequest {
+    Api
+}
+
+//删除api
+type ApiIdRequest {
+    Id string `form:"id"`
+}
+
+
+//全部api
+type ApisResponse {
+    Code int `json:"code"`
+    Msg string `json:"msg"`
+    Data []Api `json:"data"`
+}
+
+//api
+type Api {
+    Id string `json:"id"`                                  //
+    Type int64 `json:"type,options=1|2"`                             //类型：1.模块，2.API
+    SortId int64 `json:"sort_id,range=[0:]"`                         //排序
+    ParentId string `json:"parent_id"`                     //上级id
+    Uri string `json:"uri,optional"`                                 //请求路径
+    Method string `json:"method,options=|GET|POST|PUT|PATCH|DELETE"` //请求方法
+    Name string `json:"name"`                                        //名称
+    Remark string `json:"remark,optional"`                           //备注
+}

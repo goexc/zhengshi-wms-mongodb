@@ -8,8 +8,8 @@ info(
     version: "1.0.1"
 )
 
-//角色信息[删除]
-type RoleRemoveRequest {
+//角色信息[删除、菜单列表、api列表]
+type RoleIdRequest {
     Id string `form:"id"`
 }
 
@@ -54,19 +54,32 @@ type Role {
 
 //角色状态请求
 type RoleStatusRequest {
-    Id string `json:"id"`
-    Status int64 `json:"status,range=(0:]"`    //状态：10.停用，20.在用
+    Id string `form:"id"`
+    Status int64 `form:"status,range=(0:]"`    //状态：10.停用，20.在用
 }
 
 //分配角色菜单
 type RoleMenusRequest {
     RoleId string `json:"role_id"`     //角色id
-    MenusId []int64 `json:"menus_id"`  //菜单id
+    MenusId []string `json:"menus_id"`  //菜单id
 }
 
 //角色菜单分页
 type RoleMenusResponse {
     Code int `json:"code"`
     Msg string `json:"msg"`
-    Data []int64 `json:"data"`
+    Data []string `json:"data"`
+}
+
+//分配角色api
+type RoleApisRequest {
+    RoleId string `json:"role_id"`     //角色id
+    ApisId []string `json:"apis_id"` //api id
+}
+
+//角色全部api
+type RoleApisResponse {
+    Code int `json:"code"`
+    Msg string `json:"msg"`
+    Data []string `json:"data"`
 }

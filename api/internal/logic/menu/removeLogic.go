@@ -35,7 +35,7 @@ func (l *RemoveLogic) Remove(req *types.MenuRemoveRequest) (resp *types.BaseResp
 	id, err := primitive.ObjectIDFromHex(req.Id)
 	if err != nil {
 		fmt.Printf("[Error]解析菜单id：%s\n", err.Error())
-		resp.Msg = "服务器内部错误"
+		resp.Msg = "参数错误"
 		resp.Code = http.StatusInternalServerError
 		return resp, nil
 	}

@@ -34,12 +34,9 @@ func NewAddLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AddLogic {
 func (l *AddLogic) Add(req *types.MenuRequest) (resp *types.BaseResponse, err error) {
 	resp = new(types.BaseResponse)
 
-	//1.路径、uri是否重复
+	//1.路径是否重复
 	filter := bson.M{
-		"$or": []bson.M{
-			{"path": req.Path},
-			{"uri": req.Uri},
-		},
+		"path": req.Path,
 	}
 	singleRes := l.svcCtx.MenuModel.FindOne(l.ctx, filter)
 	switch singleRes.Err() {
@@ -54,8 +51,6 @@ func (l *AddLogic) Add(req *types.MenuRequest) (resp *types.BaseResponse, err er
 
 		if one.Path == strings.TrimSpace(req.Path) {
 			resp.Msg = "菜单路径重复"
-		} else if one.Uri == strings.TrimSpace(req.Uri) {
-			resp.Msg = "菜单uri重复"
 		}
 		resp.Code = http.StatusBadRequest
 		return resp, nil
@@ -99,7 +94,6 @@ func (l *AddLogic) Add(req *types.MenuRequest) (resp *types.BaseResponse, err er
 		Type:       req.Type,
 		Name:       req.Name,
 		Path:       req.Path,
-		Uri:        req.Uri,
 		ParentId:   req.ParentId,
 		SortId:     req.SortId,
 		Component:  req.Component,
@@ -112,7 +106,7 @@ func (l *AddLogic) Add(req *types.MenuRequest) (resp *types.BaseResponse, err er
 		CreatedAt:  time.Now().Unix(),
 		UpdatedAt:  time.Now().Unix(),
 	}
-	_, err = l.svcCtx.MenuModel.InsertOne(l.ctx, menu)
+	_, err = l.svcCtx.MenuModel.InsertOne(l.ctx, &menu)
 	if err != nil {
 		fmt.Printf("[Error]新增菜单入库：%s\n", err.Error())
 		resp.Code = http.StatusInternalServerError

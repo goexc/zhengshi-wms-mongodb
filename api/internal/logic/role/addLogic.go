@@ -86,7 +86,7 @@ func (l *AddLogic) Add(req *types.RoleRequest) (resp *types.BaseResponse, err er
 		CreatedAt: time.Now().Unix(),
 		UpdatedAt: time.Now().Unix(),
 	}
-	_, err = l.svcCtx.RoleModel.InsertOne(l.ctx, role)
+	_, err = l.svcCtx.RoleModel.InsertOne(l.ctx, &role)
 	if err != nil {
 		fmt.Printf("[Error]新角色[%s]入库:%s\n", req.Name, err.Error())
 		resp.Code = http.StatusInternalServerError

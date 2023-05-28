@@ -9,7 +9,7 @@ import (
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-func MenusHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
+func ApisHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req types.RoleIdRequest
 		if err := httpx.Parse(r, &req); err != nil {
@@ -17,8 +17,8 @@ func MenusHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := role.NewMenusLogic(r.Context(), svcCtx)
-		resp, err := l.Menus(&req)
+		l := role.NewApisLogic(r.Context(), svcCtx)
+		resp, err := l.Apis(&req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {

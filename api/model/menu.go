@@ -7,7 +7,6 @@ type Menu struct {
 	Type       int64              `json:"type" bson:"type"`             //路由类型：1.菜单，2.按钮
 	Name       string             `json:"name" bson:"name"`             //路由名称：如，System
 	Path       string             `json:"path" bson:"path"`             //路由路径
-	Uri        string             `json:"uri" bson:"uri"`               //路由uri
 	ParentId   string             `json:"parent_id" bson:"parent_id"`   //父路由id
 	SortId     int64              `json:"sort_id" bson:"sort_id"`       //排序
 	Component  string             `json:"component" bson:"component"`   //路由组件

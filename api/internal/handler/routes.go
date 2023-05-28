@@ -4,6 +4,7 @@ package handler
 import (
 	"net/http"
 
+	api "api/internal/handler/api"
 	auth "api/internal/handler/auth"
 	department "api/internal/handler/department"
 	menu "api/internal/handler/menu"
@@ -62,6 +63,33 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			{
 				Method:  http.MethodGet,
 				Path:    "/",
+				Handler: api.ListHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/",
+				Handler: api.AddHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPut,
+				Path:    "/",
+				Handler: api.UpdateHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodDelete,
+				Path:    "/",
+				Handler: api.RemoveHandler(serverCtx),
+			},
+		},
+		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
+		rest.WithPrefix("/api"),
+	)
+
+	server.AddRoutes(
+		[]rest.Route{
+			{
+				Method:  http.MethodGet,
+				Path:    "/",
 				Handler: role.ListHandler(serverCtx),
 			},
 			{
@@ -90,9 +118,19 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Handler: role.MenusHandler(serverCtx),
 			},
 			{
-				Method:  http.MethodPut,
+				Method:  http.MethodPost,
 				Path:    "/menus",
 				Handler: role.MenuDistributeHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/apis",
+				Handler: role.ApisHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/apis",
+				Handler: role.ApiDistributeHandler(serverCtx),
 			},
 		},
 		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),

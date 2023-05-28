@@ -31,6 +31,41 @@ type LoginData struct {
 	Exp     int64  `json:"exp,optional"`     //过期时间戳
 }
 
+type ApiAddRequest struct {
+	Type     int64  `json:"type,options=1|2"`                          //类型：1.模块，2.API
+	SortId   int64  `json:"sort_id,range=[0:]"`                        //排序
+	ParentId string `json:"parent_id"`                                 //上级id
+	Uri      string `json:"uri,optional"`                              //请求路径
+	Method   string `json:"method,options=|GET|POST|PUT|PATCH|DELETE"` //请求方法
+	Name     string `json:"name"`                                      //名称
+	Remark   string `json:"remark,optional"`                           //备注
+}
+
+type ApiUpdateRequest struct {
+	Api
+}
+
+type ApiIdRequest struct {
+	Id string `form:"id"`
+}
+
+type ApisResponse struct {
+	Code int    `json:"code"`
+	Msg  string `json:"msg"`
+	Data []Api  `json:"data"`
+}
+
+type Api struct {
+	Id       string `json:"id"`                                        //
+	Type     int64  `json:"type,options=1|2"`                          //类型：1.模块，2.API
+	SortId   int64  `json:"sort_id,range=[0:]"`                        //排序
+	ParentId string `json:"parent_id"`                                 //上级id
+	Uri      string `json:"uri,optional"`                              //请求路径
+	Method   string `json:"method,options=|GET|POST|PUT|PATCH|DELETE"` //请求方法
+	Name     string `json:"name"`                                      //名称
+	Remark   string `json:"remark,optional"`                           //备注
+}
+
 type MenuRemoveRequest struct {
 	Id string `form:"id":"id"`
 }
@@ -38,7 +73,6 @@ type MenuRemoveRequest struct {
 type MenuRequest struct {
 	Id         string `json:"id,optional"`
 	Type       int64  `json:"type,options=1|2"`   //路由类型：1.菜单，2.按钮
-	Uri        string `json:"uri,optional"`       //路由uri
 	SortId     int64  `json:"sort_id"`            //排序
 	ParentId   string `json:"parent_id"`          //父路由id
 	Path       string `json:"path,optional"`      //路由路径
@@ -61,7 +95,6 @@ type MenusResponse struct {
 type Menu struct {
 	Id         string `json:"id"`
 	Type       int64  `json:"type"`               //路由类型：1.菜单，2.按钮
-	Uri        string `json:"uri,optional"`       //路由uri
 	SortId     int64  `json:"sort_id"`            //排序
 	ParentId   string `json:"parent_id"`          //父路由id
 	Path       string `json:"path,optional"`      //路由路径
@@ -76,7 +109,7 @@ type Menu struct {
 	Children   []Menu `json:"children,optional"`
 }
 
-type RoleRemoveRequest struct {
+type RoleIdRequest struct {
 	Id string `form:"id"`
 }
 
@@ -118,19 +151,30 @@ type Role struct {
 }
 
 type RoleStatusRequest struct {
-	Id     string `json:"id"`
-	Status int64  `json:"status,range=(0:]"` //状态：10.停用，20.在用
+	Id     string `form:"id"`
+	Status int64  `form:"status,range=(0:]"` //状态：10.停用，20.在用
 }
 
 type RoleMenusRequest struct {
-	RoleId  string  `json:"role_id"`  //角色id
-	MenusId []int64 `json:"menus_id"` //菜单id
+	RoleId  string   `json:"role_id"`  //角色id
+	MenusId []string `json:"menus_id"` //菜单id
 }
 
 type RoleMenusResponse struct {
-	Code int     `json:"code"`
-	Msg  string  `json:"msg"`
-	Data []int64 `json:"data"`
+	Code int      `json:"code"`
+	Msg  string   `json:"msg"`
+	Data []string `json:"data"`
+}
+
+type RoleApisRequest struct {
+	RoleId string   `json:"role_id"` //角色id
+	ApisId []string `json:"apis_id"` //api id
+}
+
+type RoleApisResponse struct {
+	Code int      `json:"code"`
+	Msg  string   `json:"msg"`
+	Data []string `json:"data"`
 }
 
 type DepartmentRemoveRequest struct {

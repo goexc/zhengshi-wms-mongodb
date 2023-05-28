@@ -97,7 +97,7 @@ func (l *RegisterLogic) Register(req *types.RegisterRequest) (resp *types.BaseRe
 	}
 	_, err = l.svcCtx.UserModel.InsertOne(l.ctx, &user)
 	if err != nil {
-		fmt.Printf("[Error]注册入库：%s\n", res.Err())
+		fmt.Printf("[Error]注册入库：%s\n", err.Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务器内部错误"
 		return resp, nil

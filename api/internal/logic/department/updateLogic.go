@@ -39,7 +39,14 @@ func (l *UpdateLogic) Update(req *types.DepartmentRequest) (resp *types.BaseResp
 	}
 
 	var ids bson.A
-	id, _ := primitive.ObjectIDFromHex(req.Id)
+	id, err := primitive.ObjectIDFromHex(req.Id)
+	if err != nil {
+		fmt.Printf("[Error]部门[%s]id转换：%s\n", req.Id, err.Error())
+		resp.Code = http.StatusBadRequest
+		resp.Msg = "参数错误"
+		return resp, nil
+	}
+
 	if strings.TrimSpace(req.ParentId) != "" {
 		parentId, _ := primitive.ObjectIDFromHex(req.ParentId)
 		ids = bson.A{id, parentId}

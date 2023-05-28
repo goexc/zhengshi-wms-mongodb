@@ -33,7 +33,14 @@ func NewUpdateLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UpdateLogi
 func (l *UpdateLogic) Update(req *types.RoleRequest) (resp *types.BaseResponse, err error) {
 	resp = new(types.BaseResponse)
 
-	id, _ := primitive.ObjectIDFromHex(req.Id)
+	id, err := primitive.ObjectIDFromHex(req.Id)
+	if err != nil {
+		fmt.Printf("[Error]角色[%s]id转换：%s\n", req.Id, err.Error())
+		resp.Code = http.StatusBadRequest
+		resp.Msg = "参数错误"
+		return resp, nil
+	}
+
 	var filter = bson.M{"_id": id}
 	var role = model.Role{
 		Name:      req.Name,
@@ -58,7 +65,7 @@ func (l *UpdateLogic) Update(req *types.RoleRequest) (resp *types.BaseResponse, 
 		resp.Code = http.StatusInternalServerError
 		return resp, nil
 	}
-	
+
 	resp.Code = http.StatusOK
 	resp.Msg = "成功"
 	return resp, nil

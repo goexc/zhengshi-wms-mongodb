@@ -17,7 +17,6 @@ type MenuRemoveRequest {
 type MenuRequest {
     Id string `json:"id,optional"`
     Type int64 `json:"type,options=1|2"`                                     //路由类型：1.菜单，2.按钮
-    Uri string `json:"uri,optional"`                                         //路由uri
     SortId int64 `json:"sort_id"`                                            //排序
     ParentId string `json:"parent_id"`                                       //父路由id
     Path string `json:"path,optional"`                                       //路由路径
@@ -40,7 +39,6 @@ type MenusResponse {
 type Menu {
     Id string `json:"id"`
     Type int64 `json:"type"`                                                 //路由类型：1.菜单，2.按钮
-    Uri string `json:"uri,optional"`                                         //路由uri
     SortId int64 `json:"sort_id"`                                            //排序
     ParentId string `json:"parent_id"`                             //父路由id
     Path string `json:"path,optional"`                                       //路由路径

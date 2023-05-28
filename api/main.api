@@ -11,6 +11,7 @@ info(
 import (
 	"apis/base.api"
 	"apis/auth.api"
+	"apis/api.api"
 	"apis/menu.api"
 	"apis/role.api"
 	"apis/department.api"
@@ -57,6 +58,31 @@ service main {
 	delete / (MenuRemoveRequest) returns (BaseResponse)
 }
 
+// api管理
+@server(
+	jwt: Auth
+	group: api
+	prefix: api
+)
+
+service main {
+	@doc "api分页"
+	@handler list
+	get / returns (ApisResponse)
+	
+	@doc "添加api"
+	@handler add
+	post / (ApiAddRequest) returns (BaseResponse)
+	
+	@doc "修改api"
+	@handler update
+	put / (ApiUpdateRequest) returns (BaseResponse)
+	
+	@doc "删除api"
+	@handler remove
+	delete / (ApiIdRequest) returns (BaseResponse)
+}
+
 // 角色管理
 @server(
 	jwt: Auth
@@ -79,19 +105,27 @@ service main {
 	
 	@doc "删除角色"
 	@handler remove
-	delete / (RoleRemoveRequest) returns (BaseResponse)
+	delete / (RoleIdRequest) returns (BaseResponse)
 	
 	@doc "更改角色状态"
 	@handler status
 	patch /status (RoleStatusRequest) returns (BaseResponse)
 	
-	@doc "角色的全部菜单"
+	@doc "角色的菜单列表"
 	@handler menus
-	get /menus (RoleRemoveRequest) returns (RoleMenusResponse)
+	get /menus (RoleIdRequest) returns (RoleMenusResponse)
 	
 	@doc "分配角色菜单"
 	@handler menuDistribute
-	put /menus (RoleMenusRequest) returns (BaseResponse)
+	post /menus (RoleMenusRequest) returns (BaseResponse)
+	
+	@doc "角色的api列表"
+	@handler apis
+	get /apis (RoleIdRequest) returns (RoleApisResponse)
+	
+	@doc "分配角色api"
+	@handler apiDistribute
+	post /apis (RoleApisRequest) returns (BaseResponse)
 	
 }
 

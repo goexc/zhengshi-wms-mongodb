@@ -83,8 +83,6 @@ func (l *AddLogic) Add(req *types.DepartmentRequest) (resp *types.BaseResponse, 
 		return resp, nil
 	}
 
-	fmt.Println("兄弟部门数量：", len(ds))
-
 	for _, d := range ds {
 		if d.Name == strings.TrimSpace(req.Name) {
 			resp.Code = http.StatusBadRequest

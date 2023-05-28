@@ -20,6 +20,7 @@ type ServiceContext struct {
 	Cache           cache.Cache
 	Enforcer        *casbin.SyncedEnforcer
 	UserModel       *mongo.Collection
+	ApiModel        *mongo.Collection
 	MenuModel       *mongo.Collection
 	DepartmentModel *mongo.Collection
 	RoleModel       *mongo.Collection
@@ -33,7 +34,9 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	ctx := &ServiceContext{
 		Config:          c,
 		Cache:           cache.New(c.CacheRedis, syncx.NewSingleFlight(), cache.NewStat(""), mongo.ErrNoDocuments),
+		Enforcer:        InitCasbin(c),
 		UserModel:       db.Collection("user"),
+		ApiModel:        db.Collection("api"),
 		MenuModel:       db.Collection("menu"),
 		DepartmentModel: db.Collection("department"),
 		RoleModel:       db.Collection("role"),
@@ -83,7 +86,7 @@ func InitMongoDB(c config.Config) *mongo.Database {
 	return client.Database(c.MongoDB.Database)
 }
 
-func InitCasbin(c config.Config) {
+func InitCasbin(c config.Config) *casbin.SyncedEnforcer {
 
 	//2.casbin初始化
 	//2.1 casbin 数据库连接
@@ -98,8 +101,10 @@ func InitCasbin(c config.Config) {
 		panic("enforcer初始化失败:" + err.Error())
 	}
 
-	//enforcer.EnableLog(true)
+	enforcer.EnableLog(true)
 
 	//2.3 casbin auto load
 	enforcer.StartAutoLoadPolicy(time.Minute)
+
+	return enforcer
 }
