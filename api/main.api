@@ -15,6 +15,8 @@ import (
 	"apis/menu.api"
 	"apis/role.api"
 	"apis/department.api"
+	"apis/user.api"
+	"apis/warehouse.api"
 )
 
 //身份验证
@@ -24,10 +26,6 @@ import (
 )
 
 service main{
-	@doc "注册"
-	@handler register
-	post /register(RegisterRequest) returns(BaseResponse)
-	
 	@doc "登录"
 	@handler login
 	post /login(LoginRequest) returns(LoginResponse)
@@ -152,4 +150,41 @@ service main {
 	@doc "删除部门"
 	@handler remove
 	delete / (DepartmentRemoveRequest) returns (BaseResponse)
+}
+
+// 用户管理
+@server(
+	jwt: Auth
+	group: user
+	prefix: user
+)
+
+service main {
+	@doc "用户分页"
+	@handler list
+	get / (UserListRequest) returns (UserListResponse)
+	
+	@doc "添加用户"
+	@handler add
+	post / (UserRequest) returns (BaseResponse)
+	
+	@doc "修改用户"
+	@handler update
+	put / (UserRequest) returns (BaseResponse)
+	
+	@doc "删除用户"
+	@handler remove
+	delete / (UserIdRequest) returns (BaseResponse)
+	
+	@doc "管理员重置用户密码"
+	@handler resetPassword
+	patch /password (ResetUserPasswordRequest) returns (BaseResponse)
+	
+	@doc "管理员更改用户状态"
+	@handler status
+	patch /status (UserStatusRequest) returns (BaseResponse)
+	
+	@doc "用户全部菜单"
+	@handler menu
+	get /menu returns (MenusResponse)
 }

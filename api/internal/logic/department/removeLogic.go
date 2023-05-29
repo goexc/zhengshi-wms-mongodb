@@ -58,7 +58,9 @@ func (l *RemoveLogic) Remove(req *types.DepartmentRemoveRequest) (resp *types.Ba
 		return resp, nil
 	}
 
-	// 3.删除部门
+	//TODO:3.部门是否分配给用户
+
+	// 4.删除部门
 	filter = bson.D{
 		{"_id", id},
 	}

@@ -9,6 +9,7 @@ import (
 	department "api/internal/handler/department"
 	menu "api/internal/handler/menu"
 	role "api/internal/handler/role"
+	user "api/internal/handler/user"
 	"api/internal/svc"
 
 	"github.com/zeromicro/go-zero/rest"
@@ -17,11 +18,6 @@ import (
 func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 	server.AddRoutes(
 		[]rest.Route{
-			{
-				Method:  http.MethodPost,
-				Path:    "/register",
-				Handler: auth.RegisterHandler(serverCtx),
-			},
 			{
 				Method:  http.MethodPost,
 				Path:    "/login",
@@ -162,5 +158,47 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 		},
 		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
 		rest.WithPrefix("/department"),
+	)
+
+	server.AddRoutes(
+		[]rest.Route{
+			{
+				Method:  http.MethodGet,
+				Path:    "/",
+				Handler: user.ListHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/",
+				Handler: user.AddHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPut,
+				Path:    "/",
+				Handler: user.UpdateHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodDelete,
+				Path:    "/",
+				Handler: user.RemoveHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPatch,
+				Path:    "/password",
+				Handler: user.ResetPasswordHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPatch,
+				Path:    "/status",
+				Handler: user.StatusHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/menu",
+				Handler: user.MenuHandler(serverCtx),
+			},
+		},
+		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
+		rest.WithPrefix("/user"),
 	)
 }

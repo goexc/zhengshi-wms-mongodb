@@ -1,0 +1,29 @@
+syntax = "v1"
+
+info(
+    title: "仓库数据结构"
+    desc: "仓库数据结构"
+    author: "董咚懂咚"
+    email: "1024071953@qq.com"
+    version: "1.0.1"
+)
+
+//仓库Id请求
+type WarehouseIdRequest {
+    Id string `form:"id":"id"`
+}
+
+//添加、更新仓库
+type WarehouseRequest {
+    Id string `json:"id,optional"`
+    Name string `json:"name"`       //仓库名称
+    Number string `json:"number"`   //仓库编号
+    Type string `json:"type"`       //仓库类型
+    Area float64 `json:"area"`      //仓库面积
+    City string `json:"city"`       //所在城市
+    Address string `json:"address"` //地址
+    Manager string `json:"manager"` //负责人
+    Contact string `json:"contact"` //联系方式
+}
+
+//仓库区域：zone

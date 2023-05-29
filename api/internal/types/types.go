@@ -6,14 +6,6 @@ type BaseResponse struct {
 	Msg  string `json:"msg"`
 }
 
-type RegisterRequest struct {
-	Account  string `json:"account"`           //账号名称
-	Password string `json:"password"`          //账号密码
-	Mobile   string `json:"mobile"`            //手机号码
-	Email    string `json:"email"`             //邮箱
-	Sex      int    `json:"sex,options=0|1|2"` //性别：0.女，1.男，2.未知
-}
-
 type LoginRequest struct {
 	Account  string `json:"account"`  //账号名称
 	Password string `json:"password"` //账号密码
@@ -217,4 +209,72 @@ type DepartmentRequest struct {
 	Remark    string `json:"remark"`             //备注
 	CreatedAt int64  `json:"created_at,optional"`
 	UpdatedAt int64  `json:"updated_at,optional"`
+}
+
+type UserIdRequest struct {
+	Id int64 `form:"id,range=[1:]"`
+}
+
+type UserRequest struct {
+	User
+}
+
+type ResetUserPasswordRequest struct {
+	Id       int64  `json:"id"`
+	Password string `json:"password"`
+}
+
+type UserStatusRequest struct {
+	Id     int64 `json:"id"`
+	Status int64 `json:"status"` //状态：0.禁用，10.启用
+}
+
+type UserListRequest struct {
+	Page   int    `form:"page,range=[1:]"`
+	Size   int    `form:"size,range=[1:]"`
+	Name   string `form:"name,optional"`   //搜索关键词：用户名
+	Mobile string `form:"mobile,optional"` //搜索关键词：手机号码
+}
+
+type UserListResponse struct {
+	Code int          `json:"code"`
+	Msg  string       `json:"msg"`
+	Data UserPaginate `json:"data"`
+}
+
+type UserPaginate struct {
+	Total int64  `json:"total"`
+	List  []User `json:"list"` //用户列表
+}
+
+type User struct {
+	Id             string   `json:"id,optional"`
+	Account        string   `json:"account" validate:"required" comment:"账号名称"` //账号名称
+	Password       string   `json:"password"`                                   //用户密码
+	Sex            int      `json:"sex,options=0|1|2"`                          //性别：0.女，1.男，2.未知
+	DepartmentId   string   `json:"department_id"`                              //部门id
+	DepartmentName string   `json:"department_name,optional"`                   //部门名称
+	RolesId        []string `json:"roles_id"`                                   //角色id
+	Mobile         string   `json:"mobile"`                                     //手机号码
+	Email          string   `json:"email,optional" validate:"email"`            //邮箱
+	Status         int64    `json:"status,optional"`                            //用户状态：0.未启用，20.启用，50.禁用
+	Remark         string   `json:"remark,optional"`                            //备注
+	CreatedAt      int64    `json:"created_at,optional"`
+	UpdatedAt      int64    `json:"updated_at,optional"`
+}
+
+type WarehouseIdRequest struct {
+	Id string `form:"id":"id"`
+}
+
+type WarehouseRequest struct {
+	Id      string  `json:"id,optional"`
+	Name    string  `json:"name"`    //仓库名称
+	Number  string  `json:"number"`  //仓库编号
+	Type    string  `json:"type"`    //仓库类型
+	Area    float64 `json:"area"`    //仓库面积
+	City    string  `json:"city"`    //所在城市
+	Address string  `json:"address"` //地址
+	Manager string  `json:"manager"` //负责人
+	Contact string  `json:"contact"` //联系方式
 }

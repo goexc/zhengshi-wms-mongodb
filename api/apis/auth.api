@@ -8,15 +8,6 @@ info(
     version: "v1.0.1"
 )
 
-type RegisterRequest {
-    Account string `json:"account"`         //账号名称
-    Password string `json:"password"`       //账号密码
-    Mobile string `json:"mobile"`           //手机号码
-    Email string `json:"email"`             //邮箱
-    Sex int `json:"sex,options=0|1|2"`                    //性别：0.女，1.男，2.未知
-}
-
-
 type LoginRequest {
     Account string `json:"account"`         //账号名称
     Password string `json:"password"`       //账号密码
