@@ -2,7 +2,6 @@ package user
 
 import (
 	"api/pkg/validatorx"
-	"fmt"
 	"github.com/go-playground/validator/v10"
 	"net/http"
 	"strings"
@@ -22,14 +21,18 @@ func AddHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		//参数校验
-		if err := validatorx.Validator.StructCtx(r.Context(), req); err != nil {
+		if err := validatorx.Validator.Struct(req); err != nil {
 			errs := err.(validator.ValidationErrors)
 			var es []string
 			for _, e := range errs {
 				es = append(es, e.Translate(validatorx.Trans))
 			}
-			w.Write([]byte(fmt.Sprintf(`{"code": 400, "msg":"%s"}`, strings.Join(es, "/"))))
-			httpx.ErrorCtx(r.Context(), w, nil)
+			var resp = types.BaseResponse{
+				Code: http.StatusBadRequest,
+				Msg:  strings.Join(es, ", "),
+			}
+
+			httpx.OkJsonCtx(r.Context(), w, resp)
 			return
 		}
 

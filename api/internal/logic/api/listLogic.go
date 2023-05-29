@@ -34,7 +34,7 @@ func (l *ListLogic) List() (resp *types.ApisResponse, err error) {
 	cur, err := l.svcCtx.ApiModel.Find(l.ctx, bson.M{})
 	if err != nil {
 		fmt.Printf("[Error]查询api列表:%s\n", err.Error())
-		resp.Code = http.StatusBadRequest
+		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务内部错误"
 		return resp, nil
 	}
@@ -42,7 +42,7 @@ func (l *ListLogic) List() (resp *types.ApisResponse, err error) {
 
 	if err = cur.All(l.ctx, &apis); err != nil {
 		fmt.Printf("[Error]解析api列表:%s\n", err.Error())
-		resp.Code = http.StatusBadRequest
+		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务内部错误"
 		return resp, nil
 	}

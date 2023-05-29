@@ -145,11 +145,26 @@ func (l *AddLogic) Add(req *types.UserRequest) (resp *types.BaseResponse, err er
 		{"updated_at", time.Now().Unix()},
 	}
 
-	_, err = l.svcCtx.UserModel.InsertOne(l.ctx, &insert)
+	insertRes, err := l.svcCtx.UserModel.InsertOne(l.ctx, &insert)
 	if err != nil {
 		fmt.Printf("[Error]新增用户入库：%s\n", err.Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务器内部错误"
+		return resp, nil
+	}
+
+	var userId = insertRes.InsertedID.(primitive.ObjectID).Hex()
+
+	//5.录入角色
+	var groupPolicies = make([][]string, 0)
+	for _, roleId := range req.RolesId {
+		groupPolicies = append(groupPolicies, []string{fmt.Sprintf("user_%s", userId), fmt.Sprintf("role_%s", roleId)})
+	}
+	_, err = l.svcCtx.Enforcer.AddGroupingPoliciesEx(groupPolicies)
+	if err != nil {
+		fmt.Printf("[Error]用户[%s]分配角色:%s\n", userId, err.Error())
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "服务内部错误"
 		return resp, nil
 	}
 

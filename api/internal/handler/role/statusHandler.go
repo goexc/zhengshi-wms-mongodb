@@ -2,7 +2,6 @@ package role
 
 import (
 	"api/pkg/validatorx"
-	"fmt"
 	"github.com/go-playground/validator/v10"
 	"net/http"
 	"strings"
@@ -28,8 +27,12 @@ func StatusHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			for _, e := range errs {
 				es = append(es, e.Translate(validatorx.Trans))
 			}
-			w.Write([]byte(fmt.Sprintf(`{"code": 400, "msg":"%s"}`, strings.Join(es, "/"))))
-			httpx.ErrorCtx(r.Context(), w, nil)
+			var resp = types.BaseResponse{
+				Code: http.StatusBadRequest,
+				Msg:  strings.Join(es, ", "),
+			}
+
+			httpx.OkJsonCtx(r.Context(), w, resp)
 			return
 		}
 

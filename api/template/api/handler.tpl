@@ -3,7 +3,6 @@ package {{.PkgName}}
 import (
     {{if .HasRequest}}
 	"api/pkg/validatorx"
-	"fmt"
     "github.com/go-playground/validator/v10"
     "strings"
     {{end}}"net/http"
@@ -27,9 +26,13 @@ func {{.HandlerName}}(svcCtx *svc.ServiceContext) http.HandlerFunc {
             for _, e := range errs {
                 es = append(es, e.Translate(validatorx.Trans))
             }
-            w.Write([]byte(fmt.Sprintf(`{"code": 400, "msg":"%s"}`, strings.Join(es, "/"))))
-            httpx.ErrorCtx(r.Context(), w, nil)
-            return
+			var resp = types.BaseResponse{
+				Code: http.StatusBadRequest,
+				Msg:  strings.Join(es, ", "),
+			}
+
+			httpx.OkJsonCtx(r.Context(), w, resp)
+			return
         }
 
 		{{end}}l := {{.LogicName}}.New{{.LogicType}}(r.Context(), svcCtx)

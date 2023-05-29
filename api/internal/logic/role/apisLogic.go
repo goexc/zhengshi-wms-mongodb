@@ -43,7 +43,7 @@ func (l *ApisLogic) Apis(req *types.RoleIdRequest) (resp *types.RoleApisResponse
 	cur, err := l.svcCtx.ApiModel.Find(l.ctx, filter)
 	if err != nil {
 		fmt.Printf("[Error]查询角色[%s]api列表:%s\n", req.Id, err.Error())
-		resp.Code = http.StatusBadRequest
+		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务内部错误"
 		return resp, nil
 	}
@@ -52,7 +52,7 @@ func (l *ApisLogic) Apis(req *types.RoleIdRequest) (resp *types.RoleApisResponse
 	var apis []model.Api
 	if err = cur.All(l.ctx, &apis); err != nil {
 		fmt.Printf("[Error]解析角色[%s]api列表:%s\n", req.Id, err.Error())
-		resp.Code = http.StatusBadRequest
+		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务内部错误"
 		return resp, nil
 	}

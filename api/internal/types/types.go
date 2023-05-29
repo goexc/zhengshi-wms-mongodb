@@ -212,7 +212,7 @@ type DepartmentRequest struct {
 }
 
 type UserIdRequest struct {
-	Id int64 `form:"id,range=[1:]"`
+	Id string `json:"id" validate:"required" comment:"用户"`
 }
 
 type UserRequest struct {
@@ -220,20 +220,20 @@ type UserRequest struct {
 }
 
 type ResetUserPasswordRequest struct {
-	Id       int64  `json:"id"`
-	Password string `json:"password"`
+	Id       string `json:"id" validate:"required" comment:"用户"`
+	Password string `json:"password" validate:"required,gte=6" comment:"密码"` //用户密码
 }
 
 type UserStatusRequest struct {
-	Id     int64 `json:"id"`
-	Status int64 `json:"status"` //状态：0.禁用，10.启用
+	Id     string `json:"id" validate:"required" comment:"用户"`
+	Status int    `json:"status" validate:"oneof=0 10" comment:"状态"` //状态：0.禁用，10.启用
 }
 
 type UserListRequest struct {
-	Page   int    `form:"page,range=[1:]"`
-	Size   int    `form:"size,range=[1:]"`
-	Name   string `form:"name,optional"`   //搜索关键词：用户名
-	Mobile string `form:"mobile,optional"` //搜索关键词：手机号码
+	Page    int64  `form:"page,optional" validate:"required,gte=1" comment:"页数""`
+	Size    int64  `form:"size,optional" validate:"required,gte=10,lte=100" comment:"条数"`
+	Account string `form:"account,optional"` //搜索关键词：用户名
+	Mobile  string `form:"mobile,optional"`  //搜索关键词：手机号码
 }
 
 type UserListResponse struct {
@@ -249,16 +249,16 @@ type UserPaginate struct {
 
 type User struct {
 	Id             string   `json:"id,optional"`
-	Account        string   `json:"account" validate:"required" comment:"账号名称"` //账号名称
-	Password       string   `json:"password"`                                   //用户密码
-	Sex            int      `json:"sex,options=0|1|2"`                          //性别：0.女，1.男，2.未知
-	DepartmentId   string   `json:"department_id"`                              //部门id
-	DepartmentName string   `json:"department_name,optional"`                   //部门名称
-	RolesId        []string `json:"roles_id"`                                   //角色id
-	Mobile         string   `json:"mobile"`                                     //手机号码
-	Email          string   `json:"email,optional" validate:"email"`            //邮箱
-	Status         int64    `json:"status,optional"`                            //用户状态：0.未启用，20.启用，50.禁用
-	Remark         string   `json:"remark,optional"`                            //备注
+	Account        string   `json:"account" validate:"required" comment:"账号名称"`                 //账号名称
+	Password       string   `json:"password" validate:"required,gte=6" comment:"密码"`            //用户密码
+	Sex            string   `json:"sex" validate:"required,oneof=男 女" comment:"性别"`             //性别
+	DepartmentId   string   `json:"department_id" validate:"required" comment:"部门"`             //部门id
+	DepartmentName string   `json:"department_name"`                                            //部门名称
+	RolesId        []string `json:"roles_id" validate:"gt=0,dive,required" comment:"角色"`        //角色id
+	Mobile         string   `json:"mobile,optional" validate:"required,e164" comment:"手机号码"`    //手机号码
+	Email          string   `json:"email,optional"  validate:"email,omitempty" comment:"Email"` //邮箱
+	Status         int      `json:"status,optional" validate:"oneof=0 20 50" comment:"状态"`      //用户状态：0.未启用，20.启用，50.禁用
+	Remark         string   `json:"remark,optional"`                                            //备注
 	CreatedAt      int64    `json:"created_at,optional"`
 	UpdatedAt      int64    `json:"updated_at,optional"`
 }

@@ -70,7 +70,7 @@ func (l *AddLogic) Add(req *types.DepartmentRequest) (resp *types.BaseResponse, 
 	cur, err := l.svcCtx.DepartmentModel.Find(l.ctx, filter)
 	if err != nil {
 		fmt.Printf("[Error]查询上级部门[%s]的下级:%s\n", req.ParentId, err.Error())
-		resp.Code = http.StatusBadRequest
+		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务内部错误"
 		return resp, nil
 	}
@@ -78,7 +78,7 @@ func (l *AddLogic) Add(req *types.DepartmentRequest) (resp *types.BaseResponse, 
 
 	if err = cur.All(l.ctx, &ds); err != nil {
 		fmt.Printf("[Error]解析同级部门:%s\n", err.Error())
-		resp.Code = http.StatusBadRequest
+		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务内部错误"
 		return resp, nil
 	}
@@ -118,7 +118,7 @@ func (l *AddLogic) Add(req *types.DepartmentRequest) (resp *types.BaseResponse, 
 	_, err = l.svcCtx.DepartmentModel.InsertOne(l.ctx, &department)
 	if err != nil {
 		fmt.Printf("[Error]部门[%s]入库:%s\n", req.Name, err.Error())
-		resp.Code = http.StatusBadRequest
+		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务内部错误"
 		return resp, nil
 	}
