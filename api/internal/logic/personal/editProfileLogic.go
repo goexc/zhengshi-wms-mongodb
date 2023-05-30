@@ -1,4 +1,4 @@
-package user
+package personal
 
 import (
 	"api/model"
@@ -17,33 +17,29 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
-type UpdateLogic struct {
+type EditProfileLogic struct {
 	logx.Logger
 	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewUpdateLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UpdateLogic {
-	return &UpdateLogic{
+func NewEditProfileLogic(ctx context.Context, svcCtx *svc.ServiceContext) *EditProfileLogic {
+	return &EditProfileLogic{
 		Logger: logx.WithContext(ctx),
 		ctx:    ctx,
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *UpdateLogic) Update(req *types.UserUpdateRequest) (resp *types.BaseResponse, err error) {
+func (l *EditProfileLogic) EditProfile(req *types.ProfileRequest) (resp *types.BaseResponse, err error) {
 	resp = new(types.BaseResponse)
 
-	if strings.TrimSpace(req.Id) == "" {
-		resp.Code = http.StatusBadRequest
-		resp.Msg = "请选择用户"
-		return resp, nil
-	}
+	uid := l.ctx.Value("uid").(string)
 
-	// 1.用户是否存在
-	id, err := primitive.ObjectIDFromHex(strings.TrimSpace(req.Id))
+	// 1.个人是否存在
+	id, err := primitive.ObjectIDFromHex(uid)
 	if err != nil {
-		fmt.Printf("[Error]用户[%s]id转换：%s\n", req.Id, err.Error())
+		fmt.Printf("[Error]个人[%s]id转换：%s\n", uid, err.Error())
 		resp.Code = http.StatusBadRequest
 		resp.Msg = "参数错误"
 		return resp, nil
@@ -52,14 +48,14 @@ func (l *UpdateLogic) Update(req *types.UserUpdateRequest) (resp *types.BaseResp
 	var filter = bson.M{"_id": id}
 	singleRes := l.svcCtx.UserModel.FindOne(l.ctx, filter)
 	switch singleRes.Err() {
-	case nil: //用户存在
-	case mongo.ErrNoDocuments: //用户不存在
-		fmt.Printf("[Error]用户[%s]不存在\n", req.Id)
+	case nil: //个人存在
+	case mongo.ErrNoDocuments: //个人不存在
+		fmt.Printf("[Error]个人[%s]不存在\n", uid)
 		resp.Code = http.StatusBadRequest
-		resp.Msg = "用户不存在"
+		resp.Msg = "个人不存在"
 		return resp, nil
 	default: //其他错误
-		fmt.Printf("[Error]查询用户[%s]是否存在:%s\n", req.Id, err.Error())
+		fmt.Printf("[Error]查询个人[%s]:%s\n", uid, err.Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务内部错误"
 		return resp, nil
@@ -86,7 +82,7 @@ func (l *UpdateLogic) Update(req *types.UserUpdateRequest) (resp *types.BaseResp
 	case nil:
 		var one model.User
 		if err = singleRes.Decode(&one); err != nil {
-			fmt.Printf("[Error]解析重复用户:%s\n", err.Error())
+			fmt.Printf("[Error]解析重复个人:%s\n", err.Error())
 			resp.Code = http.StatusInternalServerError
 			resp.Msg = "服务器内部错误"
 			return resp, nil
@@ -105,7 +101,7 @@ func (l *UpdateLogic) Update(req *types.UserUpdateRequest) (resp *types.BaseResp
 		return resp, nil
 	case mongo.ErrNoDocuments: //账号名称、手机号码、Email未占用
 	default:
-		fmt.Printf("[Error]查询重复用户:%s\n", singleRes.Err().Error())
+		fmt.Printf("[Error]查询重复个人:%s\n", singleRes.Err().Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务器内部错误"
 		return resp, nil
@@ -121,7 +117,6 @@ func (l *UpdateLogic) Update(req *types.UserUpdateRequest) (resp *types.BaseResp
 	}
 
 	filter = bson.M{"_id": departmentId}
-	fmt.Println("部门过滤器：", filter)
 	singleRes = l.svcCtx.DepartmentModel.FindOne(l.ctx, filter)
 	switch singleRes.Err() {
 	case nil: //存在
@@ -131,7 +126,7 @@ func (l *UpdateLogic) Update(req *types.UserUpdateRequest) (resp *types.BaseResp
 		resp.Msg = "部门不存在"
 		return resp, nil
 	default: //其他错误
-		fmt.Printf("[Error]查询部门[%s]是否存在:%s\n", req.DepartmentId, err.Error())
+		fmt.Printf("[Error]查询部门[%s]是否存在:%s\n", req.DepartmentId, singleRes.Err().Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务内部错误"
 		return resp, nil
@@ -178,42 +173,41 @@ func (l *UpdateLogic) Update(req *types.UserUpdateRequest) (resp *types.BaseResp
 		roles = append(roles, fmt.Sprintf("role_%s", roleId))
 	}
 
-	_, err = l.svcCtx.Enforcer.DeleteRolesForUser(fmt.Sprintf("user_%s", req.Id))
+	_, err = l.svcCtx.Enforcer.DeleteRolesForUser(fmt.Sprintf("user_%s", uid))
 	if err != nil {
-		fmt.Printf("[Error]用户[%s]清空角色:%s\n", req.Id, err.Error())
+		fmt.Printf("[Error]个人[%s]清空角色:%s\n", uid, err.Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务内部错误"
 		return resp, nil
 	}
 
 	if len(roles) > 0 {
-		_, err = l.svcCtx.Enforcer.AddRolesForUser(fmt.Sprintf("user_%s", req.Id), roles)
+		_, err = l.svcCtx.Enforcer.AddRolesForUser(fmt.Sprintf("user_%s", uid), roles)
 		if err != nil {
-			fmt.Printf("[Error]用户[%s]分配角色:%s\n", req.Id, err.Error())
+			fmt.Printf("[Error]个人[%s]分配角色:%s\n", uid, err.Error())
 			resp.Code = http.StatusInternalServerError
 			resp.Msg = "服务内部错误"
 			return resp, nil
 		}
 	}
 
-	//6.更新：密码单独更新
+	//6.更新：密码单独修改
 	update := bson.M{
 		"$set": bson.M{
-			"account": strings.TrimSpace(req.Account),
-			//"password":        cryptx.PasswordEncrypt(l.svcCtx.Config.Salt, req.Password),
+			"account":         strings.TrimSpace(req.Account),
 			"mobile":          req.Mobile,
 			"email":           req.Email,
 			"avatar":          l.svcCtx.Config.Avatar,
 			"sex":             req.Sex,
-			"status":          req.Status,
 			"department_id":   strings.TrimSpace(req.DepartmentId),
 			"department_name": department.FullName,
 			"updated_at":      time.Now().Unix(),
 		},
 	}
+
 	_, err = l.svcCtx.UserModel.UpdateByID(l.ctx, id, &update)
 	if err != nil {
-		fmt.Printf("[Error]更新用户[%s]信息：%s\n", req.Id, err.Error())
+		fmt.Printf("[Error]更新个人[%s]信息：%s\n", uid, err.Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务器内部错误"
 		return resp, nil

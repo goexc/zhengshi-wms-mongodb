@@ -32,14 +32,12 @@ func NewAddLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AddLogic {
 	}
 }
 
-func (l *AddLogic) Add(req *types.UserRequest) (resp *types.BaseResponse, err error) {
+func (l *AddLogic) Add(req *types.UserAddRequest) (resp *types.BaseResponse, err error) {
 	resp = new(types.BaseResponse)
-
-	//0.参数校验:部门id、角色id
 
 	//1.用户名、手机号码、Email是否存在
 	var or = []bson.M{
-		{"name": strings.TrimSpace(req.Account)},
+		{"account": strings.TrimSpace(req.Account)},
 		{"mobile": strings.TrimSpace(req.Mobile)},
 	}
 	if strings.TrimSpace(req.Email) != "" {
@@ -91,7 +89,7 @@ func (l *AddLogic) Add(req *types.UserRequest) (resp *types.BaseResponse, err er
 
 	filter = bson.M{"_id": departmentId}
 	singleRes = l.svcCtx.DepartmentModel.FindOne(l.ctx, filter)
-	switch err {
+	switch singleRes.Err() {
 	case nil: //存在
 	case mongo.ErrNoDocuments: //部门不存在
 		fmt.Printf("[Error]部门[%s]不存在\n", req.DepartmentId)
@@ -99,9 +97,17 @@ func (l *AddLogic) Add(req *types.UserRequest) (resp *types.BaseResponse, err er
 		resp.Msg = "部门不存在"
 		return resp, nil
 	default: //其他错误
-		fmt.Printf("[Error]查询部门[%s]是否存在:%s\n", req.DepartmentId, err.Error())
+		fmt.Printf("[Error]查询部门[%s]是否存在:%s\n", req.DepartmentId, singleRes.Err().Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务内部错误"
+		return resp, nil
+	}
+
+	var department model.Department
+	if err = singleRes.Decode(&department); err != nil {
+		fmt.Printf("[Error]部门[%s]数据解析\n", req.DepartmentId)
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "服务器内部错误"
 		return resp, nil
 	}
 
@@ -141,6 +147,8 @@ func (l *AddLogic) Add(req *types.UserRequest) (resp *types.BaseResponse, err er
 		{"avatar", l.svcCtx.Config.Avatar},
 		{"sex", req.Sex},
 		{"status", 0},
+		{"department_id", strings.TrimSpace(req.DepartmentId)},
+		{"department_name", department.FullName},
 		{"created_at", time.Now().Unix()},
 		{"updated_at", time.Now().Unix()},
 	}

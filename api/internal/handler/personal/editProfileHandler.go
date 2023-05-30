@@ -1,4 +1,4 @@
-package user
+package personal
 
 import (
 	"api/pkg/validatorx"
@@ -6,15 +6,15 @@ import (
 	"net/http"
 	"strings"
 
-	"api/internal/logic/user"
+	"api/internal/logic/personal"
 	"api/internal/svc"
 	"api/internal/types"
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-func AddHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
+func EditProfileHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.UserAddRequest
+		var req types.ProfileRequest
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
@@ -36,8 +36,8 @@ func AddHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := user.NewAddLogic(r.Context(), svcCtx)
-		resp, err := l.Add(&req)
+		l := personal.NewEditProfileLogic(r.Context(), svcCtx)
+		resp, err := l.EditProfile(&req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {

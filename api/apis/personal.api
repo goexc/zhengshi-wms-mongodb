@@ -8,23 +8,41 @@ info(
     version: "1.0.1"
 )
 
-type ProfileResponse {
+type ProfilePasswordRequest {
+    Password string `json:"password,optional" validate:"required,gte=6" comment:"密码"`  //用户密码
+}
 
+type ProfileAvatarRequest {
+    Avatar string `json:"avatar,optional" validate:"url,required" comment:"头像"` //头像链接
+}
+
+type ProfileRequest {
+    Account string `json:"account"`                //账号名称
+    Sex string `json:"sex"`                        //性别
+    DepartmentId string `json:"department_id"`     //部门id
+    RolesId []string `json:"roles_id"`             //角色id
+    Mobile string `json:"mobile"`                  //手机号码
+    Email string `json:"email,optional"`           //邮箱
+                                                   //    Status int `json:"status,optional"`            //个人不应该修改自己的用户状态：0.未启用，20.启用，50.禁用
+    Remark string `json:"remark,optional"`         //备注
+}
+
+type ProfileResponse {
     Code int `json:"code"`
     Msg string `json:"msg"`
     Data Profile `json:"data,optional"`
 }
 
 type Profile {
-    Account string `json:"account"`                //账号名称
-    Sex string `json:"sex"`                        //性别
-    DepartmentId string `json:"department_id"`     //部门id
-    DepartmentName string `json:"department_name"` //部门名称
+    Account string `json:"account"`                     //账号名称
+    Sex string `json:"sex"`                             //性别
+    DepartmentId string `json:"department_id"`          //部门id
+    DepartmentName string `json:"department_name"`      //部门名称
     RolesId []ProfileRole `json:"roles_id"`             //角色id
-    Mobile string `json:"mobile,optional"`         //手机号码
-    Email string `json:"email,optional"`           //邮箱
-    Status int `json:"status,optional"`            //用户状态：0.未启用，20.启用，50.禁用
-    Remark string `json:"remark,optional"`         //备注
+    Mobile string `json:"mobile,optional"`              //手机号码
+    Email string `json:"email,optional"`                //邮箱
+    Status int `json:"status,optional"`                 //用户状态：0.未启用，20.启用，50.禁用
+    Remark string `json:"remark,optional"`              //备注
     CreatedAt int64 `json:"created_at,optional"`
     UpdatedAt int64 `json:"updated_at,optional"`
 }

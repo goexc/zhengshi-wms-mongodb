@@ -215,8 +215,28 @@ type UserIdRequest struct {
 	Id string `form:"id,optional" validate:"mongodb,required" comment:"用户"`
 }
 
-type UserRequest struct {
-	User
+type UserAddRequest struct {
+	Account      string   `json:"account" validate:"required" comment:"账号名称"`                  //账号名称
+	Password     string   `json:"password" validate:"required,gte=6" comment:"密码"`             //用户密码
+	Sex          string   `json:"sex" validate:"required,oneof=男 女" comment:"性别"`              //性别
+	DepartmentId string   `json:"department_id" validate:"mongodb,required" comment:"部门"`      //部门id
+	RolesId      []string `json:"roles_id" validate:"gt=0,dive,required,mongodb" comment:"角色"` //角色id
+	Mobile       string   `json:"mobile,optional" validate:"required,e164" comment:"手机号码"`     //手机号码
+	Email        string   `json:"email,optional"  validate:"email,omitempty" comment:"Email"`  //邮箱
+	Status       int      `json:"status,optional" validate:"oneof=0 20 50" comment:"状态"`       //用户状态：0.未启用，20.启用，50.禁用
+	Remark       string   `json:"remark,optional" validate:"omitempty,gte=2" comment:"备注"`     //备注
+}
+
+type UserUpdateRequest struct {
+	Id           string   `json:"id,optional" validate:"omitempty,mongodb" comment:"账号"`
+	Account      string   `json:"account" validate:"required" comment:"账号名称"`                  //账号名称
+	Sex          string   `json:"sex" validate:"required,oneof=男 女" comment:"性别"`              //性别
+	DepartmentId string   `json:"department_id" validate:"mongodb,required" comment:"部门"`      //部门id
+	RolesId      []string `json:"roles_id" validate:"gt=0,dive,required,mongodb" comment:"角色"` //角色id
+	Mobile       string   `json:"mobile,optional" validate:"required,e164" comment:"手机号码"`     //手机号码
+	Email        string   `json:"email,optional"  validate:"email,omitempty" comment:"Email"`  //邮箱
+	Status       int      `json:"status,optional" validate:"oneof=0 20 50" comment:"状态"`       //用户状态：0.未启用，20.启用，50.禁用
+	Remark       string   `json:"remark,optional" validate:"omitempty,gte=2" comment:"备注"`     //备注
 }
 
 type ChangePasswordRequest struct {
@@ -252,8 +272,8 @@ type User struct {
 	Account        string   `json:"account" validate:"required" comment:"账号名称"`                  //账号名称
 	Password       string   `json:"password" validate:"required,gte=6" comment:"密码"`             //用户密码
 	Sex            string   `json:"sex" validate:"required,oneof=男 女" comment:"性别"`              //性别
-	DepartmentId   string   `json:"department_id" validate:"required" comment:"部门"`              //部门id
-	DepartmentName string   `json:"department_name"`                                             //部门名称
+	DepartmentId   string   `json:"department_id" validate:"mongodb,required" comment:"部门"`      //部门id
+	DepartmentName string   `json:"department_name,optional"`                                    //部门名称
 	RolesId        []string `json:"roles_id" validate:"gt=0,dive,required,mongodb" comment:"角色"` //角色id
 	Mobile         string   `json:"mobile,optional" validate:"required,e164" comment:"手机号码"`     //手机号码
 	Email          string   `json:"email,optional"  validate:"email,omitempty" comment:"Email"`  //邮箱
@@ -261,6 +281,24 @@ type User struct {
 	Remark         string   `json:"remark,optional" validate:"omitempty,gte=2" comment:"备注"`     //备注
 	CreatedAt      int64    `json:"created_at,optional"`
 	UpdatedAt      int64    `json:"updated_at,optional"`
+}
+
+type ProfilePasswordRequest struct {
+	Password string `json:"password,optional" validate:"required,gte=6" comment:"密码"` //用户密码
+}
+
+type ProfileAvatarRequest struct {
+	Avatar string `json:"avatar,optional" validate:"url,required" comment:"头像"` //头像链接
+}
+
+type ProfileRequest struct {
+	Account      string   `json:"account"`         //账号名称
+	Sex          string   `json:"sex"`             //性别
+	DepartmentId string   `json:"department_id"`   //部门id
+	RolesId      []string `json:"roles_id"`        //角色id
+	Mobile       string   `json:"mobile"`          //手机号码
+	Email        string   `json:"email,optional"`  //邮箱
+	Remark       string   `json:"remark,optional"` //备注
 }
 
 type ProfileResponse struct {

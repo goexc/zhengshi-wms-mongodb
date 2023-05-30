@@ -167,11 +167,11 @@ service main {
 	
 	@doc "添加用户"
 	@handler add
-	post / (UserRequest) returns (BaseResponse)
+	post / (UserAddRequest) returns (BaseResponse)
 	
 	@doc "修改用户"
 	@handler update
-	put / (UserRequest) returns (BaseResponse)
+	put / (UserUpdateRequest) returns (BaseResponse)
 	
 	@doc "删除用户"
 	@handler remove
@@ -197,6 +197,18 @@ service main {
 	@doc "个人信息"
 	@handler profile
 	get /profile returns (ProfileResponse)
+	
+	@doc "修改个人信息"
+	@handler editProfile
+	put /profile(ProfileRequest) returns (BaseResponse)
+	
+	@doc "修改个人密码"
+	@handler changePassword
+	patch /password(ProfilePasswordRequest) returns (BaseResponse)
+	
+	@doc "修改个人头像"
+	@handler changeAvatar
+	patch /avatar(ProfileAvatarRequest) returns (BaseResponse)
 	
 	@doc "个人全部菜单"
 	@handler menu

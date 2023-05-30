@@ -206,6 +206,21 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Handler: personal.ProfileHandler(serverCtx),
 			},
 			{
+				Method:  http.MethodPut,
+				Path:    "/profile",
+				Handler: personal.EditProfileHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPatch,
+				Path:    "/password",
+				Handler: personal.ChangePasswordHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPatch,
+				Path:    "/avatar",
+				Handler: personal.ChangeAvatarHandler(serverCtx),
+			},
+			{
 				Method:  http.MethodGet,
 				Path:    "/menu",
 				Handler: personal.MenuHandler(serverCtx),
