@@ -68,7 +68,7 @@ func (l *MenuDistributeLogic) MenuDistribute(req *types.RoleMenusRequest) (resp 
 	if count != int64(len(req.MenusId)) {
 		fmt.Printf("[Error]待绑定菜单数：%d，可查询菜单数：%d\n", len(req.MenusId), count)
 		resp.Code = http.StatusBadRequest
-		resp.Msg = "部分角色不存在"
+		resp.Msg = "部分菜单不存在"
 		return resp, nil
 	}
 

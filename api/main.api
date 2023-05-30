@@ -16,6 +16,7 @@ import (
 	"apis/role.api"
 	"apis/department.api"
 	"apis/user.api"
+	"apis/personal.api"
 	"apis/warehouse.api"
 )
 
@@ -176,15 +177,29 @@ service main {
 	@handler remove
 	delete / (UserIdRequest) returns (BaseResponse)
 	
-	@doc "管理员重置用户密码"
-	@handler resetPassword
-	patch /password (ResetUserPasswordRequest) returns (BaseResponse)
+	@doc "管理员修改用户密码"
+	@handler changePassword
+	patch /password (ChangePasswordRequest) returns (BaseResponse)
 	
 	@doc "管理员更改用户状态"
 	@handler status
 	patch /status (UserStatusRequest) returns (BaseResponse)
+}
+
+// 个人中心
+@server(
+	jwt: Auth
+	group: personal
+	prefix: personal
+)
+
+service main {
+	@doc "个人信息"
+	@handler profile
+	get /profile returns (ProfileResponse)
 	
-	@doc "用户全部菜单"
+	@doc "个人全部菜单"
 	@handler menu
 	get /menu returns (MenusResponse)
+	
 }

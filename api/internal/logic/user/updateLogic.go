@@ -37,7 +37,7 @@ func (l *UpdateLogic) Update(req *types.UserRequest) (resp *types.BaseResponse, 
 
 	if strings.TrimSpace(req.Id) == "" {
 		resp.Code = http.StatusBadRequest
-		resp.Msg = "请选择要修改的用户"
+		resp.Msg = "请选择用户"
 		return resp, nil
 	}
 
@@ -51,12 +51,11 @@ func (l *UpdateLogic) Update(req *types.UserRequest) (resp *types.BaseResponse, 
 	}
 
 	var filter = bson.M{"_id": id}
-
 	singleRes := l.svcCtx.UserModel.FindOne(l.ctx, filter)
 	switch singleRes.Err() {
 	case nil: //用户存在
 	case mongo.ErrNoDocuments: //用户不存在
-		fmt.Printf("[Error]用户[%d]不存在\n", req.Id)
+		fmt.Printf("[Error]用户[%s]不存在\n", req.Id)
 		resp.Code = http.StatusBadRequest
 		resp.Msg = "用户不存在"
 		return resp, nil
@@ -165,7 +164,31 @@ func (l *UpdateLogic) Update(req *types.UserRequest) (resp *types.BaseResponse, 
 		return resp, nil
 	}
 
-	//5.更新
+	//解绑旧角色,绑定新角色
+	var roles []string
+	for _, roleId := range req.RolesId {
+		roles = append(roles, fmt.Sprintf("role_%s", roleId))
+	}
+
+	_, err = l.svcCtx.Enforcer.DeleteRolesForUser(fmt.Sprintf("user_%s", req.Id))
+	if err != nil {
+		fmt.Printf("[Error]用户[%s]清空角色:%s\n", req.Id, err.Error())
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "服务内部错误"
+		return resp, nil
+	}
+
+	if len(roles) > 0 {
+		_, err = l.svcCtx.Enforcer.AddRolesForUser(fmt.Sprintf("user_%s", req.Id), roles)
+		if err != nil {
+			fmt.Printf("[Error]用户[%s]分配角色:%s\n", req.Id, err.Error())
+			resp.Code = http.StatusInternalServerError
+			resp.Msg = "服务内部错误"
+			return resp, nil
+		}
+	}
+
+	//6.更新
 	update := bson.M{
 		"$set": bson.M{
 			"account":    strings.TrimSpace(req.Account),

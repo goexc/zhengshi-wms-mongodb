@@ -1,8 +1,7 @@
 package user
 
 import (
-	"api/internal/svc"
-	"api/internal/types"
+	"api/pkg/cryptx"
 	"context"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
@@ -11,24 +10,27 @@ import (
 	"net/http"
 	"strings"
 
+	"api/internal/svc"
+	"api/internal/types"
+
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
-type StatusLogic struct {
+type ChangePasswordLogic struct {
 	logx.Logger
 	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewStatusLogic(ctx context.Context, svcCtx *svc.ServiceContext) *StatusLogic {
-	return &StatusLogic{
+func NewChangePasswordLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ChangePasswordLogic {
+	return &ChangePasswordLogic{
 		Logger: logx.WithContext(ctx),
 		ctx:    ctx,
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *StatusLogic) Status(req *types.UserStatusRequest) (resp *types.BaseResponse, err error) {
+func (l *ChangePasswordLogic) ChangePassword(req *types.ChangePasswordRequest) (resp *types.BaseResponse, err error) {
 	resp = new(types.BaseResponse)
 
 	if strings.TrimSpace(req.Id) == "" {
@@ -65,13 +67,13 @@ func (l *StatusLogic) Status(req *types.UserStatusRequest) (resp *types.BaseResp
 	//2.修改用户状态
 	update := bson.M{
 		"$set": bson.M{
-			"status": req.Status,
+			"password": cryptx.PasswordEncrypt(l.svcCtx.Config.Salt, req.Password),
 		},
 	}
 
 	_, err = l.svcCtx.UserModel.UpdateByID(l.ctx, id, &update)
 	if err != nil {
-		fmt.Printf("[Error]更新用户[%s]信息：%s\n", req.Id, err.Error())
+		fmt.Printf("[Error]修改用户[%s]密码：%s\n", req.Id, err.Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务器内部错误"
 		return resp, nil
@@ -79,6 +81,5 @@ func (l *StatusLogic) Status(req *types.UserStatusRequest) (resp *types.BaseResp
 
 	resp.Code = http.StatusOK
 	resp.Msg = "成功"
-
-	return
+	return resp, nil
 }

@@ -7,6 +7,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"net/http"
+	"strings"
 
 	"api/internal/svc"
 	"api/internal/types"
@@ -32,7 +33,7 @@ func (l *RemoveLogic) Remove(req *types.MenuRemoveRequest) (resp *types.BaseResp
 	resp = new(types.BaseResponse)
 
 	// 1.参数解析
-	id, err := primitive.ObjectIDFromHex(req.Id)
+	id, err := primitive.ObjectIDFromHex(strings.TrimSpace(req.Id))
 	if err != nil {
 		fmt.Printf("[Error]解析菜单id：%s\n", err.Error())
 		resp.Msg = "参数错误"

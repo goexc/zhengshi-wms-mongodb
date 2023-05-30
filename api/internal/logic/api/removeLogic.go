@@ -7,6 +7,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"net/http"
+	"strings"
 
 	"api/internal/svc"
 	"api/internal/types"
@@ -33,7 +34,7 @@ func (l *RemoveLogic) Remove(req *types.ApiIdRequest) (resp *types.BaseResponse,
 
 	//1.Api是否存在
 	//2.删除Api
-	id, err := primitive.ObjectIDFromHex(req.Id)
+	id, err := primitive.ObjectIDFromHex(strings.TrimSpace(req.Id))
 	if err != nil {
 		fmt.Printf("[Error]Api[%s]id转换：%s\n", req.Id, err.Error())
 		resp.Code = http.StatusBadRequest

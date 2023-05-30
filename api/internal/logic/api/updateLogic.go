@@ -35,7 +35,7 @@ func (l *UpdateLogic) Update(req *types.ApiUpdateRequest) (resp *types.BaseRespo
 	resp = new(types.BaseResponse)
 
 	//1.api是否存在
-	id, err := primitive.ObjectIDFromHex(req.Id)
+	id, err := primitive.ObjectIDFromHex(strings.TrimSpace(req.Id))
 	if err != nil {
 		fmt.Printf("[Error]api[%s]id转换：%s\n", req.Id, err.Error())
 		resp.Code = http.StatusBadRequest

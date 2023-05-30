@@ -81,7 +81,7 @@ type MenuRequest struct {
 type MenusResponse struct {
 	Code int    `json:"code"`
 	Msg  string `json:"msg"`
-	Data []Menu `json:"data"`
+	Data []Menu `json:"data,optional"`
 }
 
 type Menu struct {
@@ -102,22 +102,22 @@ type Menu struct {
 }
 
 type RoleIdRequest struct {
-	Id string `form:"id"`
+	Id string `form:"id" validate:"required" comment:"角色"`
 }
 
 type RoleRequest struct {
-	Id       string `json:"id,optional"`
-	ParentId string `json:"parent_id"`          //上级角色id
-	SortId   int64  `json:"sort_id,range=[0:]"` //排序
-	Status   int64  `json:"status,range=(0:]"`  //状态：10.停用，20.在用
-	Name     string `json:"name"`               //角色名称
-	Remark   string `json:"remark"`             //备注
+	Id       string `json:"id,optional" validate:"omitempty" comment:"角色"`
+	ParentId string `json:"parent_id" validate:"omitempty" comment:"上级角色"`       //上级角色id
+	SortId   int64  `json:"sort_id" validate:"required,gte=0" comment:"排序"`      //排序
+	Status   int64  `json:"status" validate:"required,oneof=10 20" comment:"状态"` //状态：10.停用，20.在用
+	Name     string `json:"name" validate:"required" comment:"角色名称"`             //角色名称
+	Remark   string `json:"remark" validate:"omitempty" comment:"备注"`            //备注
 }
 
 type RoleListRequest struct {
-	Page int64  `form:"page,range=[1:]"`
-	Size int64  `form:"size,range=[1:]"`
-	Name string `form:"name,optional"` //角色名称
+	Page int64  `form:"page" validate:"required,gte=1" comment:"页数"`
+	Size int64  `form:"size" validate:"required,gte=1" comment:"条数"`
+	Name string `form:"name,optional" validate:"omitempty" comment:"角色名称"` //角色名称
 }
 
 type RoleListResponse struct {
@@ -143,13 +143,13 @@ type Role struct {
 }
 
 type RoleStatusRequest struct {
-	Id     string `form:"id"`
-	Status int64  `form:"status,range=(0:]"` //状态：10.停用，20.在用
+	Id     string `form:"id" validate:"required" comment:"角色"`
+	Status int64  `form:"status" validate:"required,oneof=10 20" comment:"状态"` //状态：10.停用，20.在用
 }
 
 type RoleMenusRequest struct {
-	RoleId  string   `json:"role_id"`  //角色id
-	MenusId []string `json:"menus_id"` //菜单id
+	RoleId  string   `json:"role_id" validate:"required" comment:"角色"`                      //角色id
+	MenusId []string `json:"menus_id" validate:"required,gte=1,dive,required" comment:"菜单"` //菜单id
 }
 
 type RoleMenusResponse struct {
@@ -159,8 +159,8 @@ type RoleMenusResponse struct {
 }
 
 type RoleApisRequest struct {
-	RoleId string   `json:"role_id"` //角色id
-	ApisId []string `json:"apis_id"` //api id
+	RoleId string   `json:"role_id" validate:"required" comment:"角色"`                      //角色id
+	ApisId []string `json:"apis_id" validate:"required,gte=1,dive,required" comment:"Api"` //api id
 }
 
 type RoleApisResponse struct {
@@ -212,21 +212,21 @@ type DepartmentRequest struct {
 }
 
 type UserIdRequest struct {
-	Id string `json:"id" validate:"required" comment:"用户"`
+	Id string `form:"id,optional" validate:"mongodb,required" comment:"用户"`
 }
 
 type UserRequest struct {
 	User
 }
 
-type ResetUserPasswordRequest struct {
-	Id       string `json:"id" validate:"required" comment:"用户"`
+type ChangePasswordRequest struct {
+	Id       string `json:"id" validate:"mongodb,required" comment:"用户"`
 	Password string `json:"password" validate:"required,gte=6" comment:"密码"` //用户密码
 }
 
 type UserStatusRequest struct {
 	Id     string `json:"id" validate:"required" comment:"用户"`
-	Status int    `json:"status" validate:"oneof=0 10" comment:"状态"` //状态：0.禁用，10.启用
+	Status int    `json:"status,optional" validate:"oneof=20 50" comment:"状态"` //用户状态：0.未启用[初始化，不可用于修改]，20.启用，50.禁用
 }
 
 type UserListRequest struct {
@@ -248,19 +248,44 @@ type UserPaginate struct {
 }
 
 type User struct {
-	Id             string   `json:"id,optional"`
-	Account        string   `json:"account" validate:"required" comment:"账号名称"`                 //账号名称
-	Password       string   `json:"password" validate:"required,gte=6" comment:"密码"`            //用户密码
-	Sex            string   `json:"sex" validate:"required,oneof=男 女" comment:"性别"`             //性别
-	DepartmentId   string   `json:"department_id" validate:"required" comment:"部门"`             //部门id
-	DepartmentName string   `json:"department_name"`                                            //部门名称
-	RolesId        []string `json:"roles_id" validate:"gt=0,dive,required" comment:"角色"`        //角色id
-	Mobile         string   `json:"mobile,optional" validate:"required,e164" comment:"手机号码"`    //手机号码
-	Email          string   `json:"email,optional"  validate:"email,omitempty" comment:"Email"` //邮箱
-	Status         int      `json:"status,optional" validate:"oneof=0 20 50" comment:"状态"`      //用户状态：0.未启用，20.启用，50.禁用
-	Remark         string   `json:"remark,optional"`                                            //备注
+	Id             string   `json:"id,optional" validate:"omitempty,mongodb" comment:"账号"`
+	Account        string   `json:"account" validate:"required" comment:"账号名称"`                  //账号名称
+	Password       string   `json:"password" validate:"required,gte=6" comment:"密码"`             //用户密码
+	Sex            string   `json:"sex" validate:"required,oneof=男 女" comment:"性别"`              //性别
+	DepartmentId   string   `json:"department_id" validate:"required" comment:"部门"`              //部门id
+	DepartmentName string   `json:"department_name"`                                             //部门名称
+	RolesId        []string `json:"roles_id" validate:"gt=0,dive,required,mongodb" comment:"角色"` //角色id
+	Mobile         string   `json:"mobile,optional" validate:"required,e164" comment:"手机号码"`     //手机号码
+	Email          string   `json:"email,optional"  validate:"email,omitempty" comment:"Email"`  //邮箱
+	Status         int      `json:"status,optional" validate:"oneof=0 20 50" comment:"状态"`       //用户状态：0.未启用，20.启用，50.禁用
+	Remark         string   `json:"remark,optional" validate:"omitempty,gte=2" comment:"备注"`     //备注
 	CreatedAt      int64    `json:"created_at,optional"`
 	UpdatedAt      int64    `json:"updated_at,optional"`
+}
+
+type ProfileResponse struct {
+	Code int     `json:"code"`
+	Msg  string  `json:"msg"`
+	Data Profile `json:"data,optional"`
+}
+
+type Profile struct {
+	Account        string        `json:"account"`         //账号名称
+	Sex            string        `json:"sex"`             //性别
+	DepartmentId   string        `json:"department_id"`   //部门id
+	DepartmentName string        `json:"department_name"` //部门名称
+	RolesId        []ProfileRole `json:"roles_id"`        //角色id
+	Mobile         string        `json:"mobile,optional"` //手机号码
+	Email          string        `json:"email,optional"`  //邮箱
+	Status         int           `json:"status,optional"` //用户状态：0.未启用，20.启用，50.禁用
+	Remark         string        `json:"remark,optional"` //备注
+	CreatedAt      int64         `json:"created_at,optional"`
+	UpdatedAt      int64         `json:"updated_at,optional"`
+}
+
+type ProfileRole struct {
+	RoleId   string `json:"role_id"`
+	RoleName string `json:"role_name"`
 }
 
 type WarehouseIdRequest struct {

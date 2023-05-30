@@ -8,6 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"net/http"
+	"strings"
 	"time"
 
 	"api/internal/svc"
@@ -33,7 +34,7 @@ func NewUpdateLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UpdateLogi
 func (l *UpdateLogic) Update(req *types.RoleRequest) (resp *types.BaseResponse, err error) {
 	resp = new(types.BaseResponse)
 
-	id, err := primitive.ObjectIDFromHex(req.Id)
+	id, err := primitive.ObjectIDFromHex(strings.TrimSpace(req.Id))
 	if err != nil {
 		fmt.Printf("[Error]角色[%s]id转换：%s\n", req.Id, err.Error())
 		resp.Code = http.StatusBadRequest

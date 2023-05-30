@@ -10,23 +10,23 @@ info(
 
 //角色信息[删除、菜单列表、api列表]
 type RoleIdRequest {
-    Id string `form:"id"`
+    Id string `form:"id" validate:"required" comment:"角色"`
 }
 
 //添加角色
 type RoleRequest {
-    Id string `json:"id,optional"`
-    ParentId string `json:"parent_id"`          //上级角色id
-    SortId int64 `json:"sort_id,range=[0:]"`    //排序
-    Status int64 `json:"status,range=(0:]"`     //状态：10.停用，20.在用
-    Name string `json:"name"`                   //角色名称
-    Remark string `json:"remark"`               //备注
+    Id string `json:"id,optional" validate:"omitempty" comment:"角色"`
+    ParentId string `json:"parent_id" validate:"omitempty" comment:"上级角色"`          //上级角色id
+    SortId int64 `json:"sort_id" validate:"required,gte=0" comment:"排序"`               //排序
+    Status int64 `json:"status" validate:"required,oneof=10 20" comment:"状态"`          //状态：10.停用，20.在用
+    Name string `json:"name" validate:"required" comment:"角色名称"`                     //角色名称
+    Remark string `json:"remark" validate:"omitempty" comment:"备注"`                    //备注
 }
 
 type RoleListRequest {
-    Page int64 `form:"page,range=[1:]"`
-    Size int64 `form:"size,range=[1:]"`
-    Name string `form:"name,optional"` //角色名称
+    Page int64 `form:"page" validate:"required,gte=1" comment:"页数"`
+    Size int64 `form:"size" validate:"required,gte=1" comment:"条数"`
+    Name string `form:"name,optional" validate:"omitempty" comment:"角色名称"` //角色名称
 }
 
 //角色分页
@@ -54,14 +54,14 @@ type Role {
 
 //角色状态请求
 type RoleStatusRequest {
-    Id string `form:"id"`
-    Status int64 `form:"status,range=(0:]"`    //状态：10.停用，20.在用
+    Id string `form:"id" validate:"required" comment:"角色"`
+    Status int64 `form:"status" validate:"required,oneof=10 20" comment:"状态"`    //状态：10.停用，20.在用
 }
 
 //分配角色菜单
 type RoleMenusRequest {
-    RoleId string `json:"role_id"`     //角色id
-    MenusId []string `json:"menus_id"`  //菜单id
+    RoleId string `json:"role_id" validate:"required" comment:"角色"`                          //角色id
+    MenusId []string `json:"menus_id" validate:"required,gte=1,dive,required" comment:"菜单"`  //菜单id
 }
 
 //角色菜单分页
@@ -73,8 +73,8 @@ type RoleMenusResponse {
 
 //分配角色api
 type RoleApisRequest {
-    RoleId string `json:"role_id"`     //角色id
-    ApisId []string `json:"apis_id"` //api id
+    RoleId string `json:"role_id" validate:"required" comment:"角色"`                        //角色id
+    ApisId []string `json:"apis_id" validate:"required,gte=1,dive,required" comment:"Api"`   //api id
 }
 
 //角色全部api

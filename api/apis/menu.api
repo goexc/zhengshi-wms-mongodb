@@ -33,7 +33,7 @@ type MenuRequest {
 type MenusResponse {
     Code int `json:"code"`
     Msg string `json:"msg"`
-    Data []Menu `json:"data"`
+    Data []Menu `json:"data,optional"`
 }
 
 type Menu {

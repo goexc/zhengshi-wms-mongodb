@@ -10,7 +10,7 @@ info(
 
 //用户信息
 type UserIdRequest {
-    Id string `json:"id" validate:"required" comment:"用户"`
+    Id string `form:"id,optional" validate:"mongodb,required" comment:"用户"`
 }
 
 //添加、修改用户
@@ -19,15 +19,15 @@ type UserRequest {
 }
 
 //重置用户密码
-type ResetUserPasswordRequest {
-    Id string `json:"id" validate:"required" comment:"用户"`
+type ChangePasswordRequest {
+    Id string `json:"id" validate:"mongodb,required" comment:"用户"`
     Password string `json:"password" validate:"required,gte=6" comment:"密码"`                  //用户密码
 }
 
 //用户状态请求
 type UserStatusRequest {
     Id string `json:"id" validate:"required" comment:"用户"`
-    Status int `json:"status" validate:"oneof=0 10" comment:"状态"`                            //状态：0.禁用，10.启用
+    Status int `json:"status,optional" validate:"oneof=20 50" comment:"状态"`               //用户状态：0.未启用[初始化，不可用于修改]，20.启用，50.禁用
 }
 
 //用户列表
@@ -35,7 +35,7 @@ type UserListRequest {
     Page int64 `form:"page,optional" validate:"required,gte=1" comment:"页数""`
     Size int64 `form:"size,optional" validate:"required,gte=10,lte=100" comment:"条数"`
     Account string `form:"account,optional"`       //搜索关键词：用户名
-    Mobile string `form:"mobile,optional"`   //搜索关键词：手机号码
+    Mobile string `form:"mobile,optional"`         //搜索关键词：手机号码
 }
 
 type UserListResponse {
@@ -50,17 +50,17 @@ type UserPaginate {
 }
 
 type User {
-    Id string `json:"id,optional"`
-    Account string `json:"account" validate:"required" comment:"账号名称"`                      //账号名称
-    Password string `json:"password" validate:"required,gte=6" comment:"密码"`                  //用户密码
-    Sex string `json:"sex" validate:"required,oneof=男 女" comment:"性别"`                      //性别
-    DepartmentId string `json:"department_id" validate:"required" comment:"部门"`               //部门id
-    DepartmentName string `json:"department_name"`                                              //部门名称
-    RolesId []string `json:"roles_id" validate:"gt=0,dive,required" comment:"角色"`             //角色id
-    Mobile string `json:"mobile,optional" validate:"required,e164" comment:"手机号码"`          //手机号码
-    Email string `json:"email,optional"  validate:"email,omitempty" comment:"Email"`             //邮箱
-    Status int `json:"status,optional" validate:"oneof=0 20 50" comment:"状态"`               //用户状态：0.未启用，20.启用，50.禁用
-    Remark string `json:"remark,optional"`                                                      //备注
+    Id string `json:"id,optional" validate:"omitempty,mongodb" comment:"账号"`
+    Account string `json:"account" validate:"required" comment:"账号名称"`                              //账号名称
+    Password string `json:"password" validate:"required,gte=6" comment:"密码"`                          //用户密码
+    Sex string `json:"sex" validate:"required,oneof=男 女" comment:"性别"`                              //性别
+    DepartmentId string `json:"department_id" validate:"required" comment:"部门"`                       //部门id
+    DepartmentName string `json:"department_name"`                                                      //部门名称
+    RolesId []string `json:"roles_id" validate:"gt=0,dive,required,mongodb" comment:"角色"`             //角色id
+    Mobile string `json:"mobile,optional" validate:"required,e164" comment:"手机号码"`                  //手机号码
+    Email string `json:"email,optional"  validate:"email,omitempty" comment:"Email"`                    //邮箱
+    Status int `json:"status,optional" validate:"oneof=0 20 50" comment:"状态"`                //用户状态：0.未启用，20.启用，50.禁用
+    Remark string `json:"remark,optional" validate:"omitempty,gte=2" comment:"备注"`                    //备注
     CreatedAt int64 `json:"created_at,optional"`
     UpdatedAt int64 `json:"updated_at,optional"`
 }

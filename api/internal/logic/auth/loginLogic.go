@@ -85,6 +85,10 @@ func (l *LoginLogic) Login(req *types.LoginRequest) (resp *types.LoginResponse, 
 		resp.Msg = "账号未启用"
 		return resp, nil
 	case 20: //启用
+	case 50: //禁用
+		resp.Code = http.StatusBadRequest
+		resp.Msg = "账号已禁用"
+		return resp, nil
 	default:
 		resp.Code = http.StatusBadRequest
 		resp.Msg = "账号状态异常，请咨询管理员"

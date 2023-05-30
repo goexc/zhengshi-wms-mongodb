@@ -8,6 +8,7 @@ import (
 	auth "api/internal/handler/auth"
 	department "api/internal/handler/department"
 	menu "api/internal/handler/menu"
+	personal "api/internal/handler/personal"
 	role "api/internal/handler/role"
 	user "api/internal/handler/user"
 	"api/internal/svc"
@@ -185,20 +186,32 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			{
 				Method:  http.MethodPatch,
 				Path:    "/password",
-				Handler: user.ResetPasswordHandler(serverCtx),
+				Handler: user.ChangePasswordHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodPatch,
 				Path:    "/status",
 				Handler: user.StatusHandler(serverCtx),
 			},
-			{
-				Method:  http.MethodGet,
-				Path:    "/menu",
-				Handler: user.MenuHandler(serverCtx),
-			},
 		},
 		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
 		rest.WithPrefix("/user"),
+	)
+
+	server.AddRoutes(
+		[]rest.Route{
+			{
+				Method:  http.MethodGet,
+				Path:    "/profile",
+				Handler: personal.ProfileHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/menu",
+				Handler: personal.MenuHandler(serverCtx),
+			},
+		},
+		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
+		rest.WithPrefix("/personal"),
 	)
 }
