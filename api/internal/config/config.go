@@ -25,4 +25,10 @@ type Config struct {
 		Password string
 		Database string
 	}
+	Ids struct {
+		SystemInit string //系统初始化步骤id
+		Company    string //企业id
+		Role       string //系统管理角色id
+		User       string //系统管理员
+	}
 }

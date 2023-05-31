@@ -8,6 +8,19 @@ info(
     version: "v1.0.1"
 )
 
+type RegisterRequest {
+    Company string `json:"company,optional" validate:"required" comment:"企业名称"`              //公司名称，顶级部门名称
+    Account string `json:"account,optional" validate:"required" comment:"账号名称"`              //账号名称
+    Password string `json:"password,optional" validate:"required,gte=6" comment:"密码"`          //账号密码
+    Mobile string `json:"mobile,optional" validate:"required,e164" comment:"手机号码"`           //手机号码
+    Email string `json:"email,optional" validate:"omitempty,email" comment:"Email"`              //Email
+}
+
+type RegisterResponse {
+    Code int `json:"code"`
+    Msg string `json:"msg"`
+}
+
 type LoginRequest {
     Account string `json:"account"`         //账号名称
     Password string `json:"password"`       //账号密码

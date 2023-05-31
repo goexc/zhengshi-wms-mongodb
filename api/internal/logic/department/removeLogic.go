@@ -60,6 +60,19 @@ func (l *RemoveLogic) Remove(req *types.DepartmentRemoveRequest) (resp *types.Ba
 	}
 
 	//TODO:3.部门是否分配给用户
+	count, err = l.svcCtx.UserModel.CountDocuments(l.ctx, bson.M{"department_id": strings.TrimSpace(req.Id)})
+	if err != nil {
+		fmt.Printf("[Error]统计部门[%s]是否占用:%s\n", req.Id, err.Error())
+		resp.Msg = "服务器内部错误"
+		resp.Code = http.StatusInternalServerError
+		return resp, nil
+	}
+
+	if count > 0 {
+		resp.Msg = "请先与用户解绑"
+		resp.Code = http.StatusBadRequest
+		return resp, nil
+	}
 
 	// 4.删除部门
 	filter = bson.D{
