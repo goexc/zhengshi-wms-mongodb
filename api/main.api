@@ -18,6 +18,7 @@ import (
 	"apis/user.api"
 	"apis/personal.api"
 	"apis/warehouse.api"
+	"apis/company.api"
 )
 
 //身份验证
@@ -218,4 +219,21 @@ service main {
 	@handler menu
 	get /menu returns (MenusResponse)
 	
+}
+
+// 企业信息
+@server(
+	jwt: Auth
+	group: company
+	prefix: company
+)
+
+service main {
+	@doc "获取企业信息"
+	@handler get
+	get / returns (CompanyResponse)
+	
+	@doc "修改企业信息"
+	@handler update
+	put / (CompanyRequest) returns (BaseResponse)
 }

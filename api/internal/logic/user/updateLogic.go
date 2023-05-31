@@ -207,7 +207,7 @@ func (l *UpdateLogic) Update(req *types.UserUpdateRequest) (resp *types.BaseResp
 			"sex":             req.Sex,
 			"status":          req.Status,
 			"department_id":   strings.TrimSpace(req.DepartmentId),
-			"department_name": department.FullName,
+			"department_name": department.Name,
 			"updated_at":      time.Now().Unix(),
 		},
 	}

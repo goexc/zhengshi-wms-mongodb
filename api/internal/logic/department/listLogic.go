@@ -60,7 +60,6 @@ func (l *ListLogic) List() (resp *types.DepartmentsResponse, err error) {
 			SortId:    one.SortId,
 			ParentId:  one.ParentId,
 			Name:      one.Name,
-			FullName:  one.FullName,
 			Code:      one.Code,
 			Remark:    one.Remark,
 			CreatedAt: one.CreatedAt,

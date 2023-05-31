@@ -22,6 +22,7 @@ type ServiceContext struct {
 	Cache           cache.Cache
 	Enforcer        *casbin.SyncedEnforcer
 	SystemInitModel *mongo.Collection
+	CompanyModel    *mongo.Collection
 	UserModel       *mongo.Collection
 	ApiModel        *mongo.Collection
 	MenuModel       *mongo.Collection
@@ -39,6 +40,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		Cache:           cache.New(c.CacheRedis, syncx.NewSingleFlight(), cache.NewStat(""), mongo.ErrNoDocuments),
 		Enforcer:        InitCasbin(c),
 		SystemInitModel: db.Collection("system_init"),
+		CompanyModel:    db.Collection("company"),
 		UserModel:       db.Collection("user"),
 		ApiModel:        db.Collection("api"),
 		MenuModel:       db.Collection("menu"),

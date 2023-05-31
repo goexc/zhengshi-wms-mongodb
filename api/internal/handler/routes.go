@@ -6,6 +6,7 @@ import (
 
 	api "api/internal/handler/api"
 	auth "api/internal/handler/auth"
+	company "api/internal/handler/company"
 	department "api/internal/handler/department"
 	menu "api/internal/handler/menu"
 	personal "api/internal/handler/personal"
@@ -233,5 +234,22 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 		},
 		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
 		rest.WithPrefix("/personal"),
+	)
+
+	server.AddRoutes(
+		[]rest.Route{
+			{
+				Method:  http.MethodGet,
+				Path:    "/",
+				Handler: company.GetHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPut,
+				Path:    "/",
+				Handler: company.UpdateHandler(serverCtx),
+			},
+		},
+		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
+		rest.WithPrefix("/company"),
 	)
 }

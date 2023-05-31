@@ -56,7 +56,15 @@ func (l *RegisterLogic) Register(req *types.RegisterRequest) (resp *types.Regist
 		return resp, nil
 	}
 
-	//2.添加企业信息
+	//2.添加顶级部门：企业信息
+	departmentId, err := primitive.ObjectIDFromHex(l.svcCtx.Config.Ids.Department)
+	if err != nil {
+		fmt.Printf("[Error]解析顶级部门(企业)id[%s]：%s\n", l.svcCtx.Config.Ids.Department, err.Error())
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "服务器内部错误"
+		return resp, nil
+	}
+
 	companyId, err := primitive.ObjectIDFromHex(l.svcCtx.Config.Ids.Company)
 	if err != nil {
 		fmt.Printf("[Error]解析企业id：%s\n", err.Error())
@@ -74,21 +82,51 @@ func (l *RegisterLogic) Register(req *types.RegisterRequest) (resp *types.Regist
 		return resp, nil
 	}
 
-	//2.2 企业未注册
-	var company model.Department
-	company = model.Department{
-		Id:        companyId,
+	_, err = l.svcCtx.CompanyModel.DeleteMany(l.ctx, bson.M{})
+	if err != nil {
+		fmt.Printf("[Error]删除遗留企业信息：%s\n", err.Error())
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "服务器内部错误"
+		return resp, nil
+	}
+
+	//2.2 添加顶级部门
+	var department model.Department
+	department = model.Department{
+		Id:        departmentId,
 		Type:      80,
 		SortId:    0,
 		ParentId:  "",
 		Name:      req.Company,
-		FullName:  req.Company,
 		Code:      "",
 		Remark:    "",
 		CreatedAt: time.Now().Unix(),
 		UpdatedAt: time.Now().Unix(),
 	}
-	_, err = l.svcCtx.DepartmentModel.InsertOne(l.ctx, &company)
+	_, err = l.svcCtx.DepartmentModel.InsertOne(l.ctx, &department)
+	if err != nil {
+		fmt.Printf("[Error]注册顶级部门(企业)信息:%s\n", err.Error())
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "服务器内部错误"
+		return resp, nil
+	}
+
+	//2.3 添加企业信息
+	var company = model.Company{
+		Id:                            companyId,
+		Name:                          req.Company,
+		Address:                       "",
+		Contact:                       "",
+		LegalRepresentative:           "",
+		UnifiedSocialCreditIdentifier: "",
+		Email:                         "",
+		Site:                          "",
+		Introduction:                  "",
+		BusinessScope:                 "",
+		CreatedAt:                     time.Now().Unix(),
+		UpdatedAt:                     time.Now().Unix(),
+	}
+	_, err = l.svcCtx.CompanyModel.InsertOne(l.ctx, &company)
 	if err != nil {
 		fmt.Printf("[Error]注册企业信息:%s\n", err.Error())
 		resp.Code = http.StatusInternalServerError
@@ -162,7 +200,7 @@ func (l *RegisterLogic) Register(req *types.RegisterRequest) (resp *types.Regist
 		Email:          req.Email,
 		Avatar:         l.svcCtx.Config.Avatar,
 		Sex:            "",
-		DepartmentId:   l.svcCtx.Config.Ids.Company,
+		DepartmentId:   l.svcCtx.Config.Ids.Department,
 		DepartmentName: req.Company,
 		Status:         20,
 		Remark:         "",

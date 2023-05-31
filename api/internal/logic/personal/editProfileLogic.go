@@ -200,7 +200,7 @@ func (l *EditProfileLogic) EditProfile(req *types.ProfileRequest) (resp *types.B
 			"avatar":          l.svcCtx.Config.Avatar,
 			"sex":             req.Sex,
 			"department_id":   strings.TrimSpace(req.DepartmentId),
-			"department_name": department.FullName,
+			"department_name": department.Name,
 			"updated_at":      time.Now().Unix(),
 		},
 	}

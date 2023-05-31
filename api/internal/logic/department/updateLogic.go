@@ -93,7 +93,6 @@ func (l *UpdateLogic) Update(req *types.DepartmentRequest) (resp *types.BaseResp
 		SortId:    req.SortId,
 		ParentId:  req.ParentId,
 		Name:      req.Name,
-		FullName:  req.FullName,
 		Code:      req.Code,
 		Remark:    req.Remark,
 		UpdatedAt: time.Now().Unix(),

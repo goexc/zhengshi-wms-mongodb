@@ -148,7 +148,7 @@ func (l *AddLogic) Add(req *types.UserAddRequest) (resp *types.BaseResponse, err
 		{"sex", req.Sex},
 		{"status", 0},
 		{"department_id", strings.TrimSpace(req.DepartmentId)},
-		{"department_name", department.FullName},
+		{"department_name", department.Name},
 		{"created_at", time.Now().Unix()},
 		{"updated_at", time.Now().Unix()},
 	}

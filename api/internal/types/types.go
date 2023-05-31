@@ -198,7 +198,6 @@ type Department struct {
 	SortId    int64  `json:"sort_id"`            //排序
 	ParentId  string `json:"parent_id,optional"` //上级部门
 	Name      string `json:"name"`               //部门名称
-	FullName  string `json:"full_name"`          //部门全称
 	Code      string `json:"code"`               //部门编码
 	Remark    string `json:"remark"`             //备注
 	CreatedAt int64  `json:"created_at,optional"`
@@ -217,7 +216,6 @@ type DepartmentRequest struct {
 	SortId    int64  `json:"sort_id"`            //排序
 	ParentId  string `json:"parent_id,optional"` //上级部门
 	Name      string `json:"name"`               //部门名称
-	FullName  string `json:"full_name"`          //部门全称
 	Code      string `json:"code"`               //部门编码
 	Remark    string `json:"remark"`             //备注
 	CreatedAt int64  `json:"created_at,optional"`
@@ -235,7 +233,7 @@ type UserAddRequest struct {
 	DepartmentId string   `json:"department_id" validate:"mongodb,required" comment:"部门"`      //部门id
 	RolesId      []string `json:"roles_id" validate:"gt=0,dive,required,mongodb" comment:"角色"` //角色id
 	Mobile       string   `json:"mobile,optional" validate:"required,e164" comment:"手机号码"`     //手机号码
-	Email        string   `json:"email,optional"  validate:"email,omitempty" comment:"Email"`  //邮箱
+	Email        string   `json:"email,optional"  validate:"omitempty,email" comment:"Email"`  //邮箱
 	Status       int      `json:"status,optional" validate:"oneof=0 20 50" comment:"状态"`       //用户状态：0.未启用，20.启用，50.禁用
 	Remark       string   `json:"remark,optional" validate:"omitempty,gte=2" comment:"备注"`     //备注
 }
@@ -247,7 +245,7 @@ type UserUpdateRequest struct {
 	DepartmentId string   `json:"department_id" validate:"mongodb,required" comment:"部门"`      //部门id
 	RolesId      []string `json:"roles_id" validate:"gt=0,dive,required,mongodb" comment:"角色"` //角色id
 	Mobile       string   `json:"mobile,optional" validate:"required,e164" comment:"手机号码"`     //手机号码
-	Email        string   `json:"email,optional"  validate:"email,omitempty" comment:"Email"`  //邮箱
+	Email        string   `json:"email,optional"  validate:"omitempty,email" comment:"Email"`  //邮箱
 	Status       int      `json:"status,optional" validate:"oneof=0 20 50" comment:"状态"`       //用户状态：0.未启用，20.启用，50.禁用
 	Remark       string   `json:"remark,optional" validate:"omitempty,gte=2" comment:"备注"`     //备注
 }
@@ -289,7 +287,7 @@ type User struct {
 	DepartmentName string   `json:"department_name,optional"`                                    //部门名称
 	RolesId        []string `json:"roles_id" validate:"gt=0,dive,required,mongodb" comment:"角色"` //角色id
 	Mobile         string   `json:"mobile,optional" validate:"required,e164" comment:"手机号码"`     //手机号码
-	Email          string   `json:"email,optional"  validate:"email,omitempty" comment:"Email"`  //邮箱
+	Email          string   `json:"email,optional"  validate:"omitempty,email" comment:"Email"`  //邮箱
 	Status         int      `json:"status,optional" validate:"oneof=0 20 50" comment:"状态"`       //用户状态：0.未启用，20.启用，50.禁用
 	Remark         string   `json:"remark,optional" validate:"omitempty,gte=2" comment:"备注"`     //备注
 	CreatedAt      int64    `json:"created_at,optional"`
@@ -353,4 +351,36 @@ type WarehouseRequest struct {
 	Address string  `json:"address"` //地址
 	Manager string  `json:"manager"` //负责人
 	Contact string  `json:"contact"` //联系方式
+}
+
+type CompanyRequest struct {
+	Name                          string `json:"name" validate:"required" comment:"企业名称"`                                 //企业名称
+	Address                       string `json:"address" validate:"required" comment:"企业地址"`                              //企业地址
+	Contact                       string `json:"contact" validate:"required,e164" comment:"联系方式"`                         //联系方式
+	LegalRepresentative           string `json:"legal_representative" validate:"required" comment:"法定代表人"`                //法定代表人
+	UnifiedSocialCreditIdentifier string `json:"unified_social_credit_identifier" validate:"required" comment:"统一社会信用代码"` //统一社会信用代码
+	Email                         string `json:"email" validate:"omitempty,email" comment:"Email"`                        //Email
+	Site                          string `json:"site" validate:"omitempty,url" comment:"企业网址"`                            //企业网址
+	Introduction                  string `json:"introduction" validate:"omitempty" comment:"简介"`                          //简介
+	BusinessScope                 string `json:"business_scope" validate:"omitempty" comment:"经营范围"`                      //经营范围
+}
+
+type CompanyResponse struct {
+	Code int     `json:"code"`
+	Msg  string  `json:"msg"`
+	Data Company `json:"data,optional"`
+}
+
+type Company struct {
+	Name                          string `json:"name"`                             //企业名称
+	Address                       string `json:"address"`                          //企业地址
+	Contact                       string `json:"contact"`                          //联系方式
+	LegalRepresentative           string `json:"legal_representative"`             //法定代表人
+	UnifiedSocialCreditIdentifier string `json:"unified_social_credit_identifier"` //统一社会信用代码
+	Email                         string `json:"email"`                            //Email
+	Site                          string `json:"site"`                             //企业网址
+	Introduction                  string `json:"introduction"`                     //简介
+	BusinessScope                 string `json:"business_scope"`                   //经营范围
+	CreatedAt                     int64  `json:"created_at"`                       //
+	UpdatedAt                     int64  `json:"updated_at"`                       //
 }

@@ -61,7 +61,7 @@ func (l *AddLogic) Add(req *types.DepartmentRequest) (resp *types.BaseResponse, 
 		}
 	}
 
-	//2.查询兄弟部门是否重复：name、full_name、code
+	//2.查询兄弟部门是否重复：name、code
 	var ds = make([]model.Department, 0)
 	var filter = bson.D{
 		{"parent_id", req.ParentId},
@@ -90,12 +90,6 @@ func (l *AddLogic) Add(req *types.DepartmentRequest) (resp *types.BaseResponse, 
 			return resp, nil
 		}
 
-		if d.FullName == strings.TrimSpace(req.FullName) {
-			resp.Code = http.StatusBadRequest
-			resp.Msg = "部门全称重复"
-			return resp, nil
-		}
-
 		if d.Code == strings.TrimSpace(req.Code) {
 			resp.Code = http.StatusBadRequest
 			resp.Msg = "部门编码重复"
@@ -109,7 +103,6 @@ func (l *AddLogic) Add(req *types.DepartmentRequest) (resp *types.BaseResponse, 
 		"sort_id":    req.SortId,
 		"parent_id":  req.ParentId,
 		"name":       req.Name,
-		"full_name":  req.FullName,
 		"code":       req.Code,
 		"remark":     req.Remark,
 		"created_at": time.Now().Unix(),

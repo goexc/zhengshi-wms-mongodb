@@ -28,6 +28,7 @@ type Config struct {
 	Ids struct {
 		SystemInit string //系统初始化步骤id
 		Company    string //企业id
+		Department string //顶级部门：企业id
 		Role       string //系统管理角色id
 		User       string //系统管理员
 	}

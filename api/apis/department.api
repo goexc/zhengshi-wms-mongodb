@@ -26,7 +26,6 @@ type Department {
     SortId int64 `json:"sort_id"`                                //排序
     ParentId string `json:"parent_id,optional"`                  //上级部门
     Name string `json:"name"`                                    //部门名称
-    FullName string `json:"full_name"`                           //部门全称
     Code string `json:"code"`                                    //部门编码
     Remark string `json:"remark"`                                //备注
     CreatedAt int64 `json:"created_at,optional"`
@@ -47,7 +46,6 @@ type DepartmentRequest {
     SortId int64 `json:"sort_id"`                                //排序
     ParentId string `json:"parent_id,optional"`                  //上级部门
     Name string `json:"name"`                                    //部门名称
-    FullName string `json:"full_name"`                           //部门全称
     Code string `json:"code"`                                    //部门编码
     Remark string `json:"remark"`                                //备注
     CreatedAt int64 `json:"created_at,optional"`

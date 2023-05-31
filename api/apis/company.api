@@ -1,0 +1,44 @@
+syntax = "v1"
+
+info(
+    title: "企业信息数据结构"
+    desc: "企业信息数据结构"
+    author: "董咚懂咚"
+    email: "1024071953@qq.com"
+    version: "1.0.1"
+)
+
+//修改企业信息
+type CompanyRequest {
+    Name string `json:"name" validate:"required" comment:"企业名称"`                                                                         //企业名称
+    Address string `json:"address" validate:"required" comment:"企业地址"`                                                                   //企业地址
+    Contact string `json:"contact" validate:"required,e164" comment:"联系方式"`                                                              //联系方式
+    LegalRepresentative string `json:"legal_representative" validate:"required" comment:"法定代表人"`                                        //法定代表人
+    UnifiedSocialCreditIdentifier string `json:"unified_social_credit_identifier" validate:"required" comment:"统一社会信用代码"`            //统一社会信用代码
+    Email string `json:"email" validate:"omitempty,email" comment:"Email"`                                                                   //Email
+    Site string `json:"site" validate:"omitempty,url" comment:"企业网址"`                                                                    //企业网址
+    Introduction string `json:"introduction" validate:"omitempty" comment:"简介"`                                                            //简介
+    BusinessScope string `json:"business_scope" validate:"omitempty" comment:"经营范围"`                                                     //经营范围
+}
+
+
+//企业信息
+type CompanyResponse {
+    Code int `json:"code"`
+    Msg string `json:"msg"`
+    Data Company `json:"data,optional"`
+}
+
+type Company {
+    Name string `json:"name"`                                                         //企业名称
+    Address string `json:"address"`                                                   //企业地址
+    Contact string `json:"contact"`                                                   //联系方式
+    LegalRepresentative string `json:"legal_representative"`                          //法定代表人
+    UnifiedSocialCreditIdentifier string `json:"unified_social_credit_identifier"`    //统一社会信用代码
+    Email string `json:"email"`                                                       //Email
+    Site string `json:"site"`                                                         //企业网址
+    Introduction string `json:"introduction"`                                         //简介
+    BusinessScope string `json:"business_scope"`                                      //经营范围
+    CreatedAt int64 `json:"created_at"`                                               //
+    UpdatedAt int64 `json:"updated_at"`                                               //
+}

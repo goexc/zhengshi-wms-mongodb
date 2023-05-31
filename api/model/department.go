@@ -10,7 +10,6 @@ type Department struct {
 	SortId    int64              `json:"sort_id" bson:"sort_id"`                 // 排序
 	ParentId  string             `json:"parent_id" bson:"parent_id"`             // 上级部门
 	Name      string             `json:"name" bson:"name"`                       // 部门名称
-	FullName  string             `json:"full_name" bson:"full_name"`             // 部门全称
 	Code      string             `json:"code" bson:"code"`                       // 部门编码
 	Remark    string             `json:"remark" bson:"remark"`                   // 备注
 	CreatedAt int64              `json:"created_at" bson:"created_at,omitempty"` //
