@@ -94,7 +94,7 @@ func (l *RegisterLogic) Register(req *types.RegisterRequest) (resp *types.Regist
 	var department model.Department
 	department = model.Department{
 		Id:        departmentId,
-		Type:      80,
+		Type:      20,
 		SortId:    0,
 		ParentId:  "",
 		Name:      req.Company,
@@ -194,7 +194,7 @@ func (l *RegisterLogic) Register(req *types.RegisterRequest) (resp *types.Regist
 	//5.2 添加根账号
 	var user = model.User{
 		Id:             userId,
-		Account:        req.Account,
+		Name:           req.Name,
 		Password:       cryptx.PasswordEncrypt(l.svcCtx.Config.Salt, req.Password),
 		Mobile:         req.Mobile,
 		Email:          req.Email,

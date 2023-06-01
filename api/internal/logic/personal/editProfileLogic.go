@@ -63,7 +63,7 @@ func (l *EditProfileLogic) EditProfile(req *types.ProfileRequest) (resp *types.B
 
 	//2.账号名称、手机号码、Email是否重复
 	var or = []bson.M{
-		{"account": strings.TrimSpace(req.Account)},
+		{"name": strings.TrimSpace(req.Name)},
 		{"mobile": strings.TrimSpace(req.Mobile)},
 	}
 	if strings.TrimSpace(req.Email) != "" {
@@ -89,7 +89,7 @@ func (l *EditProfileLogic) EditProfile(req *types.ProfileRequest) (resp *types.B
 		}
 
 		switch true {
-		case one.Account == strings.TrimSpace(req.Account):
+		case one.Name == strings.TrimSpace(req.Name):
 			resp.Msg = "账号名称重复"
 		case one.Mobile == strings.TrimSpace(req.Mobile):
 			resp.Msg = "手机号码重复"
@@ -194,7 +194,7 @@ func (l *EditProfileLogic) EditProfile(req *types.ProfileRequest) (resp *types.B
 	//6.更新：密码单独修改
 	update := bson.M{
 		"$set": bson.M{
-			"account":         strings.TrimSpace(req.Account),
+			"name":            strings.TrimSpace(req.Name),
 			"mobile":          req.Mobile,
 			"email":           req.Email,
 			"avatar":          l.svcCtx.Config.Avatar,

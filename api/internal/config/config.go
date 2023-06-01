@@ -32,4 +32,15 @@ type Config struct {
 		Role       string //系统管理角色id
 		User       string //系统管理员
 	}
+	Collections struct {
+		SystemInit string
+		Company    string
+		User       string
+		Api        string
+		Menu       string
+		Department string
+		Role       string
+		RoleMenu   string
+		Supplier   string
+	}
 }

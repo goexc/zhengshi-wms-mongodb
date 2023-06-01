@@ -102,7 +102,7 @@ func (l *ProfileLogic) Profile() (resp *types.ProfileResponse, err error) {
 
 	//3.汇总
 	resp.Data = types.Profile{
-		Account:        profile.Account,
+		Name:           profile.Name,
 		Sex:            profile.Sex,
 		DepartmentId:   profile.DepartmentId,
 		DepartmentName: profile.DepartmentName,

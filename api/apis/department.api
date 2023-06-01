@@ -22,7 +22,7 @@ type DepartmentResponse {
 
 type Department {
     Id string `json:"id,optional" path:"id"`
-    Type int64 `json:"type"`                                     //部门类型：20.小组，40.部门，60.子公司，80.公司
+    Type int64 `json:"type"`                                     //部门类型：20.公司，40.子公司，60.供应商，80.小组
     SortId int64 `json:"sort_id"`                                //排序
     ParentId string `json:"parent_id,optional"`                  //上级部门
     Name string `json:"name"`                                    //部门名称
@@ -42,7 +42,7 @@ type DepartmentsResponse {
 //添加、更新部门
 type DepartmentRequest {
     Id string `json:"id,optional"`
-    Type int64 `json:"type"`                                     //部门类型：20.小组，40.部门，60.子公司，80.公司
+    Type int64 `json:"type"`                                     //部门类型：20.公司，40.子公司，60.供应商，80.小组
     SortId int64 `json:"sort_id"`                                //排序
     ParentId string `json:"parent_id,optional"`                  //上级部门
     Name string `json:"name"`                                    //部门名称

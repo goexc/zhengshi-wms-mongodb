@@ -37,7 +37,7 @@ func (l *AddLogic) Add(req *types.UserAddRequest) (resp *types.BaseResponse, err
 
 	//1.用户名、手机号码、Email是否存在
 	var or = []bson.M{
-		{"account": strings.TrimSpace(req.Account)},
+		{"name": strings.TrimSpace(req.Name)},
 		{"mobile": strings.TrimSpace(req.Mobile)},
 	}
 	if strings.TrimSpace(req.Email) != "" {
@@ -60,7 +60,7 @@ func (l *AddLogic) Add(req *types.UserAddRequest) (resp *types.BaseResponse, err
 		}
 
 		switch true {
-		case one.Account == strings.TrimSpace(req.Account):
+		case one.Name == strings.TrimSpace(req.Name):
 			resp.Msg = "账号名称重复"
 		case one.Mobile == strings.TrimSpace(req.Mobile):
 			resp.Msg = "手机号码重复"
@@ -140,7 +140,7 @@ func (l *AddLogic) Add(req *types.UserAddRequest) (resp *types.BaseResponse, err
 
 	//5.添加用户
 	insert := bson.D{
-		{"account", strings.TrimSpace(req.Account)},
+		{"name", strings.TrimSpace(req.Name)},
 		{"password", cryptx.PasswordEncrypt(l.svcCtx.Config.Salt, req.Password)},
 		{"mobile", req.Mobile},
 		{"email", req.Email},

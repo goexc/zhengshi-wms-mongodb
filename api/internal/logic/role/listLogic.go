@@ -51,7 +51,6 @@ func (l *ListLogic) List(req *types.RoleListRequest) (resp *types.RoleListRespon
 	}
 	defer cur.Close(l.ctx)
 
-	//var roles []model.Role
 	var roles []model.Role
 	if err = cur.All(l.ctx, &roles); err != nil {
 		fmt.Println("[Error]解析角色列表：", err.Error())

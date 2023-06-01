@@ -8,7 +8,7 @@ type BaseResponse struct {
 
 type RegisterRequest struct {
 	Company  string `json:"company,optional" validate:"required" comment:"企业名称"`       //公司名称，顶级部门名称
-	Account  string `json:"account,optional" validate:"required" comment:"账号名称"`       //账号名称
+	Name     string `json:"name,optional" validate:"required" comment:"账号名称"`          //账号名称
 	Password string `json:"password,optional" validate:"required,gte=6" comment:"密码"`  //账号密码
 	Mobile   string `json:"mobile,optional" validate:"required,e164" comment:"手机号码"`   //手机号码
 	Email    string `json:"email,optional" validate:"omitempty,email" comment:"Email"` //Email
@@ -20,7 +20,7 @@ type RegisterResponse struct {
 }
 
 type LoginRequest struct {
-	Account  string `json:"account"`  //账号名称
+	Name     string `json:"name"`     //账号名称
 	Password string `json:"password"` //账号密码
 }
 
@@ -31,9 +31,9 @@ type LoginResponse struct {
 }
 
 type LoginData struct {
-	Account string `json:"account,optional"` //账号名称
-	Token   string `json:"token,optional"`   //Token
-	Exp     int64  `json:"exp,optional"`     //过期时间戳
+	Name  string `json:"name,optional"`  //账号名称
+	Token string `json:"token,optional"` //Token
+	Exp   int64  `json:"exp,optional"`   //过期时间戳
 }
 
 type ApiAddRequest struct {
@@ -194,7 +194,7 @@ type DepartmentResponse struct {
 
 type Department struct {
 	Id        string `json:"id,optional" path:"id"`
-	Type      int64  `json:"type"`               //部门类型：20.小组，40.部门，60.子公司，80.公司
+	Type      int64  `json:"type"`               //部门类型：20.公司，40.子公司，60.供应商，80.小组
 	SortId    int64  `json:"sort_id"`            //排序
 	ParentId  string `json:"parent_id,optional"` //上级部门
 	Name      string `json:"name"`               //部门名称
@@ -212,7 +212,7 @@ type DepartmentsResponse struct {
 
 type DepartmentRequest struct {
 	Id        string `json:"id,optional"`
-	Type      int64  `json:"type"`               //部门类型：20.小组，40.部门，60.子公司，80.公司
+	Type      int64  `json:"type"`               //部门类型：20.公司，40.子公司，60.供应商，80.小组
 	SortId    int64  `json:"sort_id"`            //排序
 	ParentId  string `json:"parent_id,optional"` //上级部门
 	Name      string `json:"name"`               //部门名称
@@ -227,7 +227,7 @@ type UserIdRequest struct {
 }
 
 type UserAddRequest struct {
-	Account      string   `json:"account" validate:"required" comment:"账号名称"`                  //账号名称
+	Name         string   `json:"name" validate:"required" comment:"账号名称"`                     //账号名称
 	Password     string   `json:"password" validate:"required,gte=6" comment:"密码"`             //用户密码
 	Sex          string   `json:"sex" validate:"required,oneof=男 女" comment:"性别"`              //性别
 	DepartmentId string   `json:"department_id" validate:"mongodb,required" comment:"部门"`      //部门id
@@ -240,7 +240,7 @@ type UserAddRequest struct {
 
 type UserUpdateRequest struct {
 	Id           string   `json:"id,optional" validate:"omitempty,mongodb" comment:"账号"`
-	Account      string   `json:"account" validate:"required" comment:"账号名称"`                  //账号名称
+	Name         string   `json:"name" validate:"required" comment:"账号名称"`                     //账号名称
 	Sex          string   `json:"sex" validate:"required,oneof=男 女" comment:"性别"`              //性别
 	DepartmentId string   `json:"department_id" validate:"mongodb,required" comment:"部门"`      //部门id
 	RolesId      []string `json:"roles_id" validate:"gt=0,dive,required,mongodb" comment:"角色"` //角色id
@@ -261,10 +261,10 @@ type UserStatusRequest struct {
 }
 
 type UserListRequest struct {
-	Page    int64  `form:"page,optional" validate:"required,gte=1" comment:"页数""`
-	Size    int64  `form:"size,optional" validate:"required,gte=10,lte=100" comment:"条数"`
-	Account string `form:"account,optional"` //搜索关键词：用户名
-	Mobile  string `form:"mobile,optional"`  //搜索关键词：手机号码
+	Page   int64  `form:"page,optional" validate:"required,gte=1" comment:"页数""`
+	Size   int64  `form:"size,optional" validate:"required,gte=10,lte=100" comment:"条数"`
+	Name   string `form:"name,optional"`   //搜索关键词：用户名
+	Mobile string `form:"mobile,optional"` //搜索关键词：手机号码
 }
 
 type UserListResponse struct {
@@ -280,7 +280,7 @@ type UserPaginate struct {
 
 type User struct {
 	Id             string   `json:"id,optional" validate:"omitempty,mongodb" comment:"账号"`
-	Account        string   `json:"account" validate:"required" comment:"账号名称"`                  //账号名称
+	Name           string   `json:"name" validate:"required" comment:"账号名称"`                     //账号名称
 	Password       string   `json:"password" validate:"required,gte=6" comment:"密码"`             //用户密码
 	Sex            string   `json:"sex" validate:"required,oneof=男 女" comment:"性别"`              //性别
 	DepartmentId   string   `json:"department_id" validate:"mongodb,required" comment:"部门"`      //部门id
@@ -303,7 +303,7 @@ type ProfileAvatarRequest struct {
 }
 
 type ProfileRequest struct {
-	Account      string   `json:"account"`         //账号名称
+	Name         string   `json:"name"`            //账号名称
 	Sex          string   `json:"sex"`             //性别
 	DepartmentId string   `json:"department_id"`   //部门id
 	RolesId      []string `json:"roles_id"`        //角色id
@@ -319,7 +319,7 @@ type ProfileResponse struct {
 }
 
 type Profile struct {
-	Account        string        `json:"account"`         //账号名称
+	Name           string        `json:"name"`            //账号名称
 	Sex            string        `json:"sex"`             //性别
 	DepartmentId   string        `json:"department_id"`   //部门id
 	DepartmentName string        `json:"department_name"` //部门名称
@@ -383,4 +383,50 @@ type Company struct {
 	BusinessScope                 string `json:"business_scope"`                   //经营范围
 	CreatedAt                     int64  `json:"created_at"`                       //
 	UpdatedAt                     int64  `json:"updated_at"`                       //
+}
+
+type SupplierStatusRequest struct {
+	Id     string `json:"id" validate:"required" comment:"供应商"`
+	Status string `json:"status" validate:"required,oneof=active inactive pending_approval approval_rejected blacklisted contract_expired deleted" comment:"状态"` //状态
+}
+
+type SuppliersRequest struct {
+	Page int64  `form:"page,optional" validate:"required,gte=1" comment:"页数""`
+	Size int64  `form:"size,optional" validate:"required,gte=10,lte=100" comment:"条数"`
+	Name string `form:"name,optional" validate:"omitempty" comment:"供应商名称"` //供应商名称
+}
+
+type Supplier struct {
+	Id        string `json:"id,optional" path:"id"`
+	Name      string `json:"name"`               //供应商名称
+	Address   string `json:"address"`            //供应商地址
+	Contact   string `json:"contact"`            //联系方式
+	Manager   string `json:"manager"`            //负责人
+	Level     int    `json:"level"`              //供应商等级
+	Remark    string `json:"remark"`             //备注
+	Status    string `json:"status"`             //状态：10.启用；100.删除
+	CreateBy  string `json:"create_by,optional"` //创建人
+	CreatedAt int64  `json:"created_at,optional"`
+	UpdatedAt int64  `json:"updated_at,optional"`
+}
+
+type SuppliersResponse struct {
+	Code int              `json:"code"`
+	Msg  string           `json:"msg"`
+	Data SupplierPaginate `json:"data"`
+}
+
+type SupplierPaginate struct {
+	Total int64      `json:"total"`
+	List  []Supplier `json:"list"` //供应商列表
+}
+
+type SupplierRequest struct {
+	Id      string `json:"id,optional" validate:"omitempty,mongodb" comment:"供应商"`
+	Name    string `json:"name" validate:"required" comment:"供应商名称"`               //供应商名称
+	Address string `json:"address" validate:"omitempty" comment:"供应商地址"`           //供应商地址
+	Contact string `json:"contact" validate:"required,e164" comment:"联系方式"`        //联系方式
+	Manager string `json:"manager" validate:"required" comment:"负责人"`              //负责人
+	Level   int    `json:"level" validate:"required,gte=1,lte=10" comment:"供应商等级"` //供应商等级
+	Remark  string `json:"remark,optional"`                                        //备注
 }

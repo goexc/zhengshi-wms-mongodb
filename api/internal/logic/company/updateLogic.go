@@ -82,7 +82,7 @@ func (l *UpdateLogic) Update(req *types.CompanyRequest) (resp *types.BaseRespons
 		"$set": bson.M{
 			"_id":        departmentId,
 			"name":       req.Name,
-			"type":       80,
+			"type":       20,
 			"sort_id":    0,
 			"parent_id":  "",
 			"updated_at": time.Now().Unix(),

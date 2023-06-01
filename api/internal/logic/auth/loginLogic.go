@@ -39,7 +39,7 @@ func (l *LoginLogic) Login(req *types.LoginRequest) (resp *types.LoginResponse, 
 
 	//2.查询账号
 	filter := bson.M{
-		"account": req.Account,
+		"name": req.Name,
 		//"password": req.Password,
 	}
 	res := l.svcCtx.UserModel.FindOne(l.ctx, filter)
@@ -99,7 +99,7 @@ func (l *LoginLogic) Login(req *types.LoginRequest) (resp *types.LoginResponse, 
 	now := time.Now()
 	token, err := jwtx.GetToken(l.svcCtx.Config.Auth.AccessSecret, user.Id.Hex(), now.Unix(), l.svcCtx.Config.Auth.AccessExpire)
 	if err != nil {
-		fmt.Printf("[Error]账号[%s]生成token:%s\n", user.Account, err.Error())
+		fmt.Printf("[Error]账号[%s]生成token:%s\n", user.Name, err.Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务内部错误"
 		return resp, nil
@@ -108,7 +108,7 @@ func (l *LoginLogic) Login(req *types.LoginRequest) (resp *types.LoginResponse, 
 	//6.缓存token
 	err = l.svcCtx.Cache.SetWithExpireCtx(l.ctx, fmt.Sprintf(userTokenKey, user.Id.Hex()), token, time.Duration(l.svcCtx.Config.Auth.AccessExpire))
 	if err != nil {
-		fmt.Printf("[Error]缓存用户[%s]Token:%s\n", user.Account, err.Error())
+		fmt.Printf("[Error]缓存用户[%s]Token:%s\n", user.Name, err.Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务内部错误"
 		return resp, nil
@@ -127,7 +127,7 @@ func (l *LoginLogic) Login(req *types.LoginRequest) (resp *types.LoginResponse, 
 
 	resp.Code = http.StatusOK
 	resp.Msg = "成功"
-	resp.Data.Account = user.Account
+	resp.Data.Name = user.Name
 	resp.Data.Token = token
 	resp.Data.Exp = now.Unix() + l.svcCtx.Config.Auth.AccessExpire
 	return resp, nil

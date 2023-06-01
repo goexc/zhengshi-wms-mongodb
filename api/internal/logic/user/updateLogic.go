@@ -67,7 +67,7 @@ func (l *UpdateLogic) Update(req *types.UserUpdateRequest) (resp *types.BaseResp
 
 	//2.账号名称、手机号码、Email是否重复
 	var or = []bson.M{
-		{"account": strings.TrimSpace(req.Account)},
+		{"name": strings.TrimSpace(req.Name)},
 		{"mobile": strings.TrimSpace(req.Mobile)},
 	}
 	if strings.TrimSpace(req.Email) != "" {
@@ -93,7 +93,7 @@ func (l *UpdateLogic) Update(req *types.UserUpdateRequest) (resp *types.BaseResp
 		}
 
 		switch true {
-		case one.Account == strings.TrimSpace(req.Account):
+		case one.Name == strings.TrimSpace(req.Name):
 			resp.Msg = "账号名称重复"
 		case one.Mobile == strings.TrimSpace(req.Mobile):
 			resp.Msg = "手机号码重复"
@@ -199,7 +199,7 @@ func (l *UpdateLogic) Update(req *types.UserUpdateRequest) (resp *types.BaseResp
 	//6.更新：密码单独更新
 	update := bson.M{
 		"$set": bson.M{
-			"account": strings.TrimSpace(req.Account),
+			"name": strings.TrimSpace(req.Name),
 			//"password":        cryptx.PasswordEncrypt(l.svcCtx.Config.Salt, req.Password),
 			"mobile":          req.Mobile,
 			"email":           req.Email,

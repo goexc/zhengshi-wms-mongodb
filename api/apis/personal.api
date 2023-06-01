@@ -17,7 +17,7 @@ type ProfileAvatarRequest {
 }
 
 type ProfileRequest {
-    Account string `json:"account"`                //账号名称
+    Name string `json:"name"`                //账号名称
     Sex string `json:"sex"`                        //性别
     DepartmentId string `json:"department_id"`     //部门id
     RolesId []string `json:"roles_id"`             //角色id
@@ -34,7 +34,7 @@ type ProfileResponse {
 }
 
 type Profile {
-    Account string `json:"account"`                     //账号名称
+    Name string `json:"name"`                     //账号名称
     Sex string `json:"sex"`                             //性别
     DepartmentId string `json:"department_id"`          //部门id
     DepartmentName string `json:"department_name"`      //部门名称

@@ -33,18 +33,18 @@ func NewListLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ListLogic {
 func (l *ListLogic) List(req *types.UserListRequest) (resp *types.UserListResponse, err error) {
 	resp = new(types.UserListResponse)
 
-	account := strings.TrimSpace(req.Account)
+	name := strings.TrimSpace(req.Name)
 	mobile := strings.TrimSpace(req.Mobile)
 	var filter bson.M
 	switch true {
-	case account != "" && mobile != "":
+	case name != "" && mobile != "":
 		//i 表示不区分大小写
-		regex := bson.M{"$regex": primitive.Regex{Pattern: ".*" + account + ".*", Options: "i"}}
-		filter = bson.M{"account": regex, "mobile": mobile}
-	case account != "":
+		regex := bson.M{"$regex": primitive.Regex{Pattern: ".*" + name + ".*", Options: "i"}}
+		filter = bson.M{"name": regex, "mobile": mobile}
+	case name != "":
 		//i 表示不区分大小写
-		regex := bson.M{"$regex": primitive.Regex{Pattern: ".*" + account + ".*", Options: "i"}}
-		filter = bson.M{"account": regex}
+		regex := bson.M{"$regex": primitive.Regex{Pattern: ".*" + name + ".*", Options: "i"}}
+		filter = bson.M{"name": regex}
 	case mobile != "":
 		filter = bson.M{"mobile": mobile}
 	default:
@@ -94,7 +94,7 @@ func (l *ListLogic) List(req *types.UserListRequest) (resp *types.UserListRespon
 	for _, one := range users {
 		resp.Data.List = append(resp.Data.List, types.User{
 			Id:             one.Id.Hex(),
-			Account:        one.Account,
+			Name:           one.Name,
 			Password:       one.Password,
 			Sex:            one.Sex,
 			DepartmentId:   one.DepartmentId,
