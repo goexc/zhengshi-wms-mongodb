@@ -30,6 +30,7 @@ type ServiceContext struct {
 	RoleModel       *mongo.Collection
 	RoleMenuModel   *mongo.Collection
 	SupplierModel   *mongo.Collection
+	CustomerModel   *mongo.Collection
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -49,6 +50,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		RoleModel:       db.Collection("role"),
 		RoleMenuModel:   db.Collection("role_menu"),
 		SupplierModel:   db.Collection("supplier"),
+		CustomerModel:   db.Collection("customer"),
 	}
 
 	//2.角色表添加索引

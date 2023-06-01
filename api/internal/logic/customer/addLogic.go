@@ -1,4 +1,4 @@
-package supplier
+package customer
 
 import (
 	"api/model"
@@ -32,7 +32,7 @@ func NewAddLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AddLogic {
 	}
 }
 
-func (l *AddLogic) Add(req *types.SupplierRequest) (resp *types.BaseResponse, err error) {
+func (l *AddLogic) Add(req *types.CustomerRequest) (resp *types.BaseResponse, err error) {
 	resp = new(types.BaseResponse)
 
 	uid := l.ctx.Value("uid").(string)
@@ -43,7 +43,7 @@ func (l *AddLogic) Add(req *types.SupplierRequest) (resp *types.BaseResponse, er
 		resp.Msg = "参数错误"
 		return resp, nil
 	}
-	//1.供应商是否存在
+	//1.客户是否存在
 	var name = strings.TrimSpace(req.Name)
 	//i 表示不区分大小写
 	filter := bson.M{
@@ -54,12 +54,12 @@ func (l *AddLogic) Add(req *types.SupplierRequest) (resp *types.BaseResponse, er
 		},
 		"status": bson.M{"$ne": 100},
 	}
-	singleRes := l.svcCtx.SupplierModel.FindOne(l.ctx, filter)
+	singleRes := l.svcCtx.CustomerModel.FindOne(l.ctx, filter)
 	switch singleRes.Err() {
 	case nil:
-		var one model.Supplier
+		var one model.Customer
 		if err = singleRes.Decode(&one); err != nil {
-			fmt.Printf("[Error]解析重复供应商:%s\n", err.Error())
+			fmt.Printf("[Error]解析重复客户:%s\n", err.Error())
 			resp.Code = http.StatusInternalServerError
 			resp.Msg = "服务器内部错误"
 			return resp, nil
@@ -67,26 +67,26 @@ func (l *AddLogic) Add(req *types.SupplierRequest) (resp *types.BaseResponse, er
 
 		switch true {
 		case one.Name == strings.TrimSpace(req.Name):
-			resp.Msg = "供应商名称已占用"
+			resp.Msg = "客户名称已占用"
 		case one.Code == strings.TrimSpace(req.Code):
-			resp.Msg = "供应商编号已占用"
+			resp.Msg = "客户编号已占用"
 		case one.UnifiedSocialCreditIdentifier == strings.TrimSpace(req.UnifiedSocialCreditIdentifier):
-			resp.Msg = "供应商统一社会信用代码已占用"
+			resp.Msg = "客户统一社会信用代码已占用"
 		default:
-			resp.Msg = "供应商未知问题无法注册"
+			resp.Msg = "客户未知问题无法注册"
 		}
 		resp.Code = http.StatusBadRequest
 		return resp, nil
-	case mongo.ErrNoDocuments: //供应商未占用
+	case mongo.ErrNoDocuments: //客户未占用
 	default:
-		fmt.Printf("[Error]查询重复供应商:%s\n", singleRes.Err().Error())
+		fmt.Printf("[Error]查询重复客户:%s\n", singleRes.Err().Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务器内部错误"
 		return resp, nil
 	}
 
-	//2.添加供应商
-	var supplier = model.Supplier{
+	//2.添加客户
+	var customer = model.Customer{
 		Type:                          req.Type,
 		Code:                          strings.TrimSpace(req.Code),
 		LegalRepresentative:           strings.TrimSpace(req.LegalRepresentative),
@@ -96,16 +96,16 @@ func (l *AddLogic) Add(req *types.SupplierRequest) (resp *types.BaseResponse, er
 		Contact:                       strings.TrimSpace(req.Contact),
 		Manager:                       strings.TrimSpace(req.Manager),
 		Level:                         req.Level,
-		Status:                        pkg.SupplierStatusCode("pending_approval"), //默认:待审核
+		Status:                        pkg.CustomerStatusCode("potential"), //默认:潜在
 		Email:                         req.Email,
 		Remark:                        strings.TrimSpace(req.Remark),
 		Creator:                       uObjectID,
 		CreatedAt:                     time.Now().Unix(),
 		UpdatedAt:                     time.Now().Unix(),
 	}
-	_, err = l.svcCtx.SupplierModel.InsertOne(l.ctx, &supplier)
+	_, err = l.svcCtx.CustomerModel.InsertOne(l.ctx, &customer)
 	if err != nil {
-		fmt.Printf("[Error]供应商[%s]入库:%s\n", req.Name, err.Error())
+		fmt.Printf("[Error]客户[%s]入库:%s\n", req.Name, err.Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务器内部错误"
 		return resp, nil

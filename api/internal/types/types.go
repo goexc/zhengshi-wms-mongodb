@@ -397,17 +397,22 @@ type SuppliersRequest struct {
 }
 
 type Supplier struct {
-	Id        string `json:"id,optional" path:"id"`
-	Name      string `json:"name"`               //供应商名称
-	Address   string `json:"address"`            //供应商地址
-	Contact   string `json:"contact"`            //联系方式
-	Manager   string `json:"manager"`            //负责人
-	Level     int    `json:"level"`              //供应商等级
-	Remark    string `json:"remark"`             //备注
-	Status    string `json:"status"`             //状态：10.启用；100.删除
-	CreateBy  string `json:"create_by,optional"` //创建人
-	CreatedAt int64  `json:"created_at,optional"`
-	UpdatedAt int64  `json:"updated_at,optional"`
+	Id                            string `json:"id,optional" path:"id"`
+	Type                          int    `json:"type"`                             //供应商类型：10.个人、20.企业、30.组织
+	Code                          string `json:"code"`                             //供应商编号：分配给供应商的唯一标识符或编号，用于快速识别和检索客户信息
+	Name                          string `json:"name"`                             //供应商名称
+	LegalRepresentative           string `json:"legal_representative"`             //法定代表人
+	UnifiedSocialCreditIdentifier string `json:"unified_social_credit_identifier"` //统一社会信用代码
+	Address                       string `json:"address"`                          //供应商地址
+	Contact                       string `json:"contact"`                          //联系方式
+	Manager                       string `json:"manager"`                          //负责人
+	Level                         int    `json:"level"`                            //供应商等级
+	Email                         string `json:"email"`                            //Email
+	Remark                        string `json:"remark"`                           //备注
+	Status                        string `json:"status"`                           //状态：10.启用；100.删除
+	CreateBy                      string `json:"create_by,optional"`               //创建人
+	CreatedAt                     int64  `json:"created_at,optional"`
+	UpdatedAt                     int64  `json:"updated_at,optional"`
 }
 
 type SuppliersResponse struct {
@@ -422,11 +427,72 @@ type SupplierPaginate struct {
 }
 
 type SupplierRequest struct {
-	Id      string `json:"id,optional" validate:"omitempty,mongodb" comment:"供应商"`
-	Name    string `json:"name" validate:"required" comment:"供应商名称"`               //供应商名称
-	Address string `json:"address" validate:"omitempty" comment:"供应商地址"`           //供应商地址
-	Contact string `json:"contact" validate:"required,e164" comment:"联系方式"`        //联系方式
-	Manager string `json:"manager" validate:"required" comment:"负责人"`              //负责人
-	Level   int    `json:"level" validate:"required,gte=1,lte=10" comment:"供应商等级"` //供应商等级
-	Remark  string `json:"remark,optional"`                                        //备注
+	Id                            string `json:"id,optional" validate:"omitempty,mongodb" comment:"供应商"`
+	Type                          int    `json:"type,optional" validate:"required,oneof=10 20 30" comment:"供应商类型"`                        //供应商类型：10.个人、20.企业、30.组织
+	Code                          string `json:"code,optional" validate:"required,gte=6,lte=32" comment:"供应商编号"`                          //供应商编号：分配给供应商的唯一标识符或编号，用于快速识别和检索客户信息
+	Name                          string `json:"name,optional" validate:"required" comment:"供应商名称"`                                       //供应商名称
+	LegalRepresentative           string `json:"legal_representative,optional" validate:"required" comment:"法定代表人"`                       //法定代表人
+	UnifiedSocialCreditIdentifier string `json:"unified_social_credit_identifier,optional" validate:"required,lte=18" comment:"统一社会信用代码"` //统一社会信用代码
+	Address                       string `json:"address,optional" validate:"omitempty" comment:"供应商地址"`                                   //供应商地址
+	Contact                       string `json:"contact,optional" validate:"required,e164" comment:"联系方式"`                                //联系方式
+	Manager                       string `json:"manager,optional" validate:"required" comment:"负责人"`                                      //负责人
+	Level                         int    `json:"level,optional" validate:"required,gte=1,lte=10" comment:"供应商等级"`                         //供应商等级
+	Email                         string `json:"email,optional" validate:"omitempty,email" comment:"Email"`                               //Email
+	Remark                        string `json:"remark,optional"`                                                                         //备注
+}
+
+type CustomerStatusRequest struct {
+	Id     string `json:"id" validate:"required" comment:"客户"`
+	Status string `json:"status" validate:"required,oneof=potential active inactive frozen blacklisted contract_expired deleted" comment:"状态"` //状态
+}
+
+type CustomersRequest struct {
+	Page int64  `form:"page,optional" validate:"required,gte=1" comment:"页数""`
+	Size int64  `form:"size,optional" validate:"required,gte=10,lte=100" comment:"条数"`
+	Name string `form:"name,optional" validate:"omitempty" comment:"客户名称"` //客户名称
+}
+
+type Customer struct {
+	Id                            string `json:"id,optional" path:"id"`
+	Type                          int    `json:"type"`                             //客户类型：10.个人、20.企业、30.组织
+	Code                          string `json:"code"`                             //客户编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
+	Name                          string `json:"name"`                             //客户名称
+	LegalRepresentative           string `json:"legal_representative"`             //法定代表人
+	UnifiedSocialCreditIdentifier string `json:"unified_social_credit_identifier"` //统一社会信用代码
+	Address                       string `json:"address"`                          //客户地址
+	Contact                       string `json:"contact"`                          //联系方式
+	Manager                       string `json:"manager"`                          //负责人
+	Level                         int    `json:"level"`                            //客户等级
+	Email                         string `json:"email"`                            //Email
+	Remark                        string `json:"remark"`                           //备注
+	Status                        string `json:"status"`                           //状态
+	CreateBy                      string `json:"create_by,optional"`               //创建人
+	CreatedAt                     int64  `json:"created_at,optional"`
+	UpdatedAt                     int64  `json:"updated_at,optional"`
+}
+
+type CustomersResponse struct {
+	Code int              `json:"code"`
+	Msg  string           `json:"msg"`
+	Data CustomerPaginate `json:"data"`
+}
+
+type CustomerPaginate struct {
+	Total int64      `json:"total"`
+	List  []Customer `json:"list"` //客户列表
+}
+
+type CustomerRequest struct {
+	Id                            string `json:"id,optional" validate:"omitempty,mongodb" comment:"客户"`
+	Type                          int    `json:"type,optional" validate:"required,oneof=10 20 30" comment:"客户类型"`                         //客户类型：10.个人、20.企业、30.组织
+	Code                          string `json:"code,optional" validate:"required,gte=6,lte=32" comment:"客户编号"`                           //客户编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
+	Name                          string `json:"name,optional" validate:"required" comment:"客户名称"`                                        //客户名称
+	LegalRepresentative           string `json:"legal_representative,optional" validate:"required" comment:"法定代表人"`                       //法定代表人
+	UnifiedSocialCreditIdentifier string `json:"unified_social_credit_identifier,optional" validate:"required,lte=18" comment:"统一社会信用代码"` //统一社会信用代码
+	Address                       string `json:"address,optional" validate:"omitempty" comment:"客户地址"`                                    //客户地址
+	Contact                       string `json:"contact,optional" validate:"required,e164" comment:"联系方式"`                                //联系方式
+	Manager                       string `json:"manager,optional" validate:"required" comment:"负责人"`                                      //负责人
+	Level                         int    `json:"level,optional" validate:"required,gte=1,lte=10" comment:"客户等级"`                          //客户等级
+	Email                         string `json:"email,optional" validate:"omitempty,email" comment:"Email"`                               //Email
+	Remark                        string `json:"remark,optional"`
 }

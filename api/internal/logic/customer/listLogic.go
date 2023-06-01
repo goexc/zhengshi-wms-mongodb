@@ -1,4 +1,4 @@
-package supplier
+package customer
 
 import (
 	"api/internal/svc"
@@ -30,12 +30,12 @@ func NewListLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ListLogic {
 	}
 }
 
-func (l *ListLogic) List(req *types.SuppliersRequest) (resp *types.SuppliersResponse, err error) {
-	resp = new(types.SuppliersResponse)
+func (l *ListLogic) List(req *types.CustomersRequest) (resp *types.CustomersResponse, err error) {
+	resp = new(types.CustomersResponse)
 
 	name := strings.TrimSpace(req.Name)
-	//1.供应商分页
-	var filter = bson.M{"status": bson.M{"$ne": 100}} //过滤已删除供应商
+	//1.客户分页
+	var filter = bson.M{"status": bson.M{"$ne": 100}} //过滤已删除客户
 	var matchStage = bson.D{{"$match", filter}}
 	if name != "" {
 		//i 表示不区分大小写
@@ -105,37 +105,37 @@ func (l *ListLogic) List(req *types.SuppliersRequest) (resp *types.SuppliersResp
 		limitStage,
 	}
 
-	cur, err := l.svcCtx.SupplierModel.Aggregate(l.ctx, pipeline)
+	cur, err := l.svcCtx.CustomerModel.Aggregate(l.ctx, pipeline)
 	if err != nil {
-		fmt.Printf("[Error]查询供应商列表:%s\n", err.Error())
+		fmt.Printf("[Error]查询客户列表:%s\n", err.Error())
 		resp.Msg = "服务器内部错误"
 		resp.Code = http.StatusInternalServerError
 		return resp, nil
 	}
 	defer cur.Close(l.ctx)
 
-	var suppliers []model.Supplier
+	var suppliers []model.Customer
 	if err = cur.All(l.ctx, &suppliers); err != nil {
-		fmt.Println("[Error]解析供应商列表：", err.Error())
+		fmt.Println("[Error]解析客户列表：", err.Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务器内部错误"
 		return resp, nil
 	}
-	fmt.Printf("供应商数量:%d\n", len(suppliers))
+	fmt.Printf("客户数量:%d\n", len(suppliers))
 
-	//2.供应商总数量
-	total, err := l.svcCtx.SupplierModel.CountDocuments(l.ctx, filter)
+	//2.客户总数量
+	total, err := l.svcCtx.CustomerModel.CountDocuments(l.ctx, filter)
 	if err != nil {
-		fmt.Println("[Error]供应商总数量：", err.Error())
+		fmt.Println("[Error]客户总数量：", err.Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务器内部错误"
 		return resp, nil
 	}
 
 	resp.Data.Total = total
-	resp.Data.List = make([]types.Supplier, 0)
+	resp.Data.List = make([]types.Customer, 0)
 	for _, supplier := range suppliers {
-		resp.Data.List = append(resp.Data.List, types.Supplier{
+		resp.Data.List = append(resp.Data.List, types.Customer{
 			Id:                            supplier.Id.Hex(),
 			Type:                          supplier.Type,
 			Code:                          strings.TrimSpace(supplier.Code),
@@ -146,7 +146,7 @@ func (l *ListLogic) List(req *types.SuppliersRequest) (resp *types.SuppliersResp
 			Contact:                       supplier.Contact,
 			Manager:                       supplier.Manager,
 			Level:                         supplier.Level,
-			Status:                        pkg.SupplierStatusText(supplier.Status),
+			Status:                        pkg.CustomerStatusText(supplier.Status),
 			Remark:                        supplier.Remark,
 			CreateBy:                      supplier.CreatorName,
 			CreatedAt:                     supplier.CreatedAt,

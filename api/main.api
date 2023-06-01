@@ -20,6 +20,7 @@ import (
 	"apis/warehouse.api"
 	"apis/company.api"
 	"apis/supplier.api"
+	"apis/customer.api"
 )
 
 //身份验证
@@ -259,7 +260,32 @@ service main {
 	@handler update
 	put / (SupplierRequest) returns (BaseResponse)
 	
-	@doc "修改供应商状态"
+	@doc "修改供应商状态/删除供应商"
 	@handler status
 	patch /status (SupplierStatusRequest) returns (BaseResponse)
+}
+
+// 客户管理
+@server(
+	jwt: Auth
+	group: customer
+	prefix: customer
+)
+
+service main {
+	@doc "客户分页"
+	@handler list
+	get / (CustomersRequest) returns (CustomersResponse)
+	
+	@doc "添加客户"
+	@handler add
+	post / (CustomerRequest) returns (BaseResponse)
+	
+	@doc "修改客户"
+	@handler update
+	put / (CustomerRequest) returns (BaseResponse)
+	
+	@doc "修改客户状态/删除客户"
+	@handler status
+	patch /status (CustomerStatusRequest) returns (BaseResponse)
 }

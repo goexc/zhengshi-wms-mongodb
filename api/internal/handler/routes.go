@@ -7,6 +7,7 @@ import (
 	api "api/internal/handler/api"
 	auth "api/internal/handler/auth"
 	company "api/internal/handler/company"
+	customer "api/internal/handler/customer"
 	department "api/internal/handler/department"
 	menu "api/internal/handler/menu"
 	personal "api/internal/handler/personal"
@@ -279,5 +280,32 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 		},
 		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
 		rest.WithPrefix("/supplier"),
+	)
+
+	server.AddRoutes(
+		[]rest.Route{
+			{
+				Method:  http.MethodGet,
+				Path:    "/",
+				Handler: customer.ListHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/",
+				Handler: customer.AddHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPut,
+				Path:    "/",
+				Handler: customer.UpdateHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPatch,
+				Path:    "/status",
+				Handler: customer.StatusHandler(serverCtx),
+			},
+		},
+		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
+		rest.WithPrefix("/customer"),
 	)
 }
