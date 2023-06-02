@@ -1,8 +1,6 @@
-package supplier
+package warehouse
 
 import (
-	"api/internal/svc"
-	"api/internal/types"
 	"api/model"
 	"api/pkg/code"
 	"context"
@@ -12,6 +10,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"net/http"
 	"strings"
+
+	"api/internal/svc"
+	"api/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -30,23 +31,45 @@ func NewListLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ListLogic {
 	}
 }
 
-func (l *ListLogic) List(req *types.SuppliersRequest) (resp *types.SuppliersResponse, err error) {
-	resp = new(types.SuppliersResponse)
+func (l *ListLogic) List(req *types.WarehousesRequest) (resp *types.WarehousesResponse, err error) {
+	resp = new(types.WarehousesResponse)
 
+	//1.仓库分页
+	//1.1 过滤已删除仓库
+	var filter = bson.M{"status": bson.M{"$ne": code.WarehouseStatusCode("删除")}} //过滤已删除仓库
+	var matchStage = bson.D{}
+	//1.2 查询指定名称的仓库
 	name := strings.TrimSpace(req.Name)
-	//1.供应商分页
-	var filter = bson.M{"status": bson.M{"$ne": 100}} //过滤已删除供应商
-	var matchStage = bson.D{{"$match", filter}}
 	if name != "" {
 		//i 表示不区分大小写
 		regex := bson.M{"$regex": primitive.Regex{Pattern: ".*" + name + ".*", Options: "i"}}
-		filter = bson.M{"name": regex, "status": bson.M{"$ne": 100}}
-		matchStage = bson.D{
-			{"$match", filter},
-		}
+		//filter = bson.M{"name": regex, "status": bson.M{"$ne": 100}}
+		filter["name"] = regex
+	}
+	//1.3 查询指定类型的仓库
+	t := code.WarehouseTypeCode(strings.TrimSpace(req.Type))
+	fmt.Println("仓库类型：", req.Type, t)
+	if t > 0 {
+		filter["type"] = t
+	}
+
+	//1.4 查询指定编号的仓库
+	if strings.TrimSpace(req.Code) != "" {
+		filter["code"] = strings.TrimSpace(req.Code)
+	}
+
+	//1.5 查询指定状态的仓库
+	status := code.WarehouseStatusCode(strings.TrimSpace(req.Status))
+	if status > 0 {
+		filter["status"] = status
+	}
+
+	//注入过滤器
+	matchStage = bson.D{
+		{"$match", filter},
 	}
 	//$lookup 阶段进行关联查询，
-	//将 supplier 集合中的 create_by 字段与 user 集合中的 _id 字段进行关联
+	//将 warehouse 集合中的 create_by 字段与 user 集合中的 _id 字段进行关联
 	lookupStage := bson.D{
 		{"$lookup", bson.D{
 			{"from", "user"},
@@ -105,52 +128,49 @@ func (l *ListLogic) List(req *types.SuppliersRequest) (resp *types.SuppliersResp
 		limitStage,
 	}
 
-	cur, err := l.svcCtx.SupplierModel.Aggregate(l.ctx, pipeline)
+	cur, err := l.svcCtx.WarehouseModel.Aggregate(l.ctx, pipeline)
 	if err != nil {
-		fmt.Printf("[Error]查询供应商列表:%s\n", err.Error())
+		fmt.Printf("[Error]查询仓库列表:%s\n", err.Error())
 		resp.Msg = "服务器内部错误"
 		resp.Code = http.StatusInternalServerError
 		return resp, nil
 	}
 	defer cur.Close(l.ctx)
 
-	var suppliers []model.Supplier
-	if err = cur.All(l.ctx, &suppliers); err != nil {
-		fmt.Println("[Error]解析供应商列表：", err.Error())
+	var warehouses []model.Warehouse
+	if err = cur.All(l.ctx, &warehouses); err != nil {
+		fmt.Println("[Error]解析仓库列表：", err.Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务器内部错误"
 		return resp, nil
 	}
-	fmt.Printf("供应商数量:%d\n", len(suppliers))
+	fmt.Printf("仓库数量:%d\n", len(warehouses))
 
-	//2.供应商总数量
-	total, err := l.svcCtx.SupplierModel.CountDocuments(l.ctx, filter)
+	//2.仓库总数量
+	total, err := l.svcCtx.WarehouseModel.CountDocuments(l.ctx, filter)
 	if err != nil {
-		fmt.Println("[Error]供应商总数量：", err.Error())
+		fmt.Println("[Error]仓库总数量：", err.Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务器内部错误"
 		return resp, nil
 	}
 
 	resp.Data.Total = total
-	resp.Data.List = make([]types.Supplier, 0)
-	for _, supplier := range suppliers {
-		resp.Data.List = append(resp.Data.List, types.Supplier{
-			Id:                            supplier.Id.Hex(),
-			Type:                          supplier.Type,
-			Code:                          strings.TrimSpace(supplier.Code),
-			LegalRepresentative:           strings.TrimSpace(supplier.LegalRepresentative),
-			UnifiedSocialCreditIdentifier: strings.TrimSpace(supplier.UnifiedSocialCreditIdentifier),
-			Name:                          supplier.Name,
-			Address:                       supplier.Address,
-			Contact:                       supplier.Contact,
-			Manager:                       supplier.Manager,
-			Level:                         supplier.Level,
-			Status:                        code.SupplierStatusText(supplier.Status),
-			Remark:                        supplier.Remark,
-			CreateBy:                      supplier.CreatorName,
-			CreatedAt:                     supplier.CreatedAt,
-			UpdatedAt:                     supplier.UpdatedAt,
+	resp.Data.List = make([]types.Warehouse, 0)
+	for _, warehouse := range warehouses {
+		resp.Data.List = append(resp.Data.List, types.Warehouse{
+			Id:        warehouse.Id.Hex(),
+			Type:      code.WarehouseTypeText(warehouse.Type),
+			Code:      strings.TrimSpace(warehouse.Code),
+			Name:      warehouse.Name,
+			Address:   warehouse.Address,
+			Contact:   warehouse.Contact,
+			Manager:   warehouse.Manager,
+			Status:    code.WarehouseStatusText(warehouse.Status),
+			Remark:    warehouse.Remark,
+			CreateBy:  warehouse.CreatorName,
+			CreatedAt: warehouse.CreatedAt,
+			UpdatedAt: warehouse.UpdatedAt,
 		})
 	}
 

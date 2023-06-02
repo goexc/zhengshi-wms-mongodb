@@ -1,7 +1,8 @@
-package supplier
+package warehouse
 
 import (
 	"api/model"
+	"api/pkg/code"
 	"context"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
@@ -31,7 +32,7 @@ func NewUpdateLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UpdateLogi
 	}
 }
 
-func (l *UpdateLogic) Update(req *types.SupplierRequest) (resp *types.BaseResponse, err error) {
+func (l *UpdateLogic) Update(req *types.WarehouseRequest) (resp *types.BaseResponse, err error) {
 	resp = new(types.BaseResponse)
 
 	//todo:用于操作记录
@@ -43,48 +44,47 @@ func (l *UpdateLogic) Update(req *types.SupplierRequest) (resp *types.BaseRespon
 	//	resp.Msg = "参数错误"
 	//	return resp, nil
 	//}
-	//1.供应商是否存在
+	//1.仓库是否存在
 	id, err := primitive.ObjectIDFromHex(strings.TrimSpace(req.Id))
 	if err != nil {
-		fmt.Printf("[Error]供应商[%s]id转换：%s\n", req.Id, err.Error())
+		fmt.Printf("[Error]仓库[%s]id转换：%s\n", req.Id, err.Error())
 		resp.Code = http.StatusBadRequest
-		resp.Msg = "供应商参数错误"
+		resp.Msg = "仓库参数错误"
 		return resp, nil
 	}
-	//排除已删除的供应商
+	//排除已删除的仓库
 	filter := bson.M{
 		"_id":    id,
 		"status": bson.M{"$ne": 100},
 	}
-	count, err := l.svcCtx.SupplierModel.CountDocuments(l.ctx, filter)
+	count, err := l.svcCtx.WarehouseModel.CountDocuments(l.ctx, filter)
 	if err != nil {
-		fmt.Printf("[Error]查询供应商[%s]是否存在:%s\n", req.Id, err.Error())
+		fmt.Printf("[Error]查询仓库[%s]是否存在:%s\n", req.Id, err.Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务器内部错误"
 		return resp, nil
 	}
 	if count == 0 {
 		resp.Code = http.StatusBadRequest
-		resp.Msg = "供应商不存在"
+		resp.Msg = "仓库不存在"
 		return resp, nil
 	}
 
-	//2.供应商名称是否重复
+	//2.仓库名称是否重复
 	filter = bson.M{
 		"_id":    bson.M{"$ne": id},
 		"status": bson.M{"$ne": 100},
 		"$or": []bson.M{
 			{"name": strings.TrimSpace(req.Name)},
 			{"code": strings.TrimSpace(req.Code)},
-			{"unified_social_credit_identifier": strings.TrimSpace(req.UnifiedSocialCreditIdentifier)},
 		},
 	}
-	singleRes := l.svcCtx.SupplierModel.FindOne(l.ctx, filter)
+	singleRes := l.svcCtx.WarehouseModel.FindOne(l.ctx, filter)
 	switch singleRes.Err() {
 	case nil:
-		var one model.Supplier
+		var one model.Warehouse
 		if err = singleRes.Decode(&one); err != nil {
-			fmt.Printf("[Error]解析重复供应商:%s\n", err.Error())
+			fmt.Printf("[Error]解析重复仓库:%s\n", err.Error())
 			resp.Code = http.StatusInternalServerError
 			resp.Msg = "服务器内部错误"
 			return resp, nil
@@ -92,45 +92,41 @@ func (l *UpdateLogic) Update(req *types.SupplierRequest) (resp *types.BaseRespon
 
 		switch true {
 		case one.Name == strings.TrimSpace(req.Name):
-			resp.Msg = "供应商名称已占用"
+			resp.Msg = "仓库名称已占用"
 		case one.Code == strings.TrimSpace(req.Code):
-			resp.Msg = "供应商编号已占用"
-		case one.UnifiedSocialCreditIdentifier == strings.TrimSpace(req.UnifiedSocialCreditIdentifier):
-			resp.Msg = "供应商统一社会信用代码已占用"
+			resp.Msg = "仓库编号已占用"
 		default:
-			resp.Msg = "供应商未知问题导致无法注册，请与系统管理员联系"
+			resp.Msg = "仓库未知问题导致无法注册，请与系统管理员联系"
 		}
 		resp.Code = http.StatusBadRequest
 		return resp, nil
-	case mongo.ErrNoDocuments: //供应商未占用
+	case mongo.ErrNoDocuments: //仓库未占用
 	default:
-		fmt.Printf("[Error]查询重复供应商:%s\n", singleRes.Err().Error())
+		fmt.Printf("[Error]查询重复仓库:%s\n", singleRes.Err().Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务器内部错误"
 		return resp, nil
 	}
 
-	//3.更新供应商信息
+	//3.更新仓库信息:不更新仓库状态
 	var update = bson.M{
 		"$set": bson.M{
-			"type":                             req.Type,
-			"name":                             strings.TrimSpace(req.Name),
-			"code":                             strings.TrimSpace(req.Code),
-			"legal_representative":             strings.TrimSpace(req.LegalRepresentative),
-			"unified_social_credit_identifier": strings.TrimSpace(req.UnifiedSocialCreditIdentifier),
-			"address":                          req.Address,
-			"contact":                          req.Contact,
-			"manager":                          req.Manager,
-			"level":                            req.Level,
-			"email":                            req.Email,
-			"remark":                           req.Remark,
-			"updated_at":                       time.Now().Unix(),
+			"type":          code.WarehouseTypeCode(req.Type),
+			"name":          strings.TrimSpace(req.Name),
+			"code":          strings.TrimSpace(req.Code),
+			"address":       strings.TrimSpace(req.Address),
+			"capacity":      req.Capacity,
+			"capacity_unit": strings.TrimSpace(req.CapacityUnit),
+			"contact":       strings.TrimSpace(req.Contact),
+			"manager":       strings.TrimSpace(req.Manager),
+			"remark":        strings.TrimSpace(req.Remark),
+			"updated_at":    time.Now().Unix(),
 		},
 	}
 
-	_, err = l.svcCtx.SupplierModel.UpdateByID(l.ctx, id, &update)
+	_, err = l.svcCtx.WarehouseModel.UpdateByID(l.ctx, id, &update)
 	if err != nil {
-		fmt.Printf("[Error]更新供应商[%s]信息：%s\n", req.Id, err.Error())
+		fmt.Printf("[Error]更新仓库[%s]信息：%s\n", req.Id, err.Error())
 		resp.Msg = "服务器内部错误"
 		resp.Code = http.StatusInternalServerError
 		return resp, nil

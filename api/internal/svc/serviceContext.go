@@ -18,19 +18,23 @@ import (
 )
 
 type ServiceContext struct {
-	Config          config.Config
-	Cache           cache.Cache
-	Enforcer        *casbin.SyncedEnforcer
-	SystemInitModel *mongo.Collection
-	CompanyModel    *mongo.Collection
-	UserModel       *mongo.Collection
-	ApiModel        *mongo.Collection
-	MenuModel       *mongo.Collection
-	DepartmentModel *mongo.Collection
-	RoleModel       *mongo.Collection
-	RoleMenuModel   *mongo.Collection
-	SupplierModel   *mongo.Collection
-	CustomerModel   *mongo.Collection
+	Config             config.Config
+	Cache              cache.Cache
+	Enforcer           *casbin.SyncedEnforcer
+	SystemInitModel    *mongo.Collection
+	CompanyModel       *mongo.Collection
+	UserModel          *mongo.Collection
+	ApiModel           *mongo.Collection
+	MenuModel          *mongo.Collection
+	DepartmentModel    *mongo.Collection
+	RoleModel          *mongo.Collection
+	RoleMenuModel      *mongo.Collection
+	SupplierModel      *mongo.Collection
+	CustomerModel      *mongo.Collection
+	WarehouseModel     *mongo.Collection //仓库
+	WarehouseZoneModel *mongo.Collection //库区
+	WarehouseRackModel *mongo.Collection //货架
+	WarehouseBinModel  *mongo.Collection //货位
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -38,19 +42,23 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	db := InitMongoDB(c)
 
 	ctx := &ServiceContext{
-		Config:          c,
-		Cache:           cache.New(c.CacheRedis, syncx.NewSingleFlight(), cache.NewStat(""), mongo.ErrNoDocuments),
-		Enforcer:        InitCasbin(c),
-		SystemInitModel: db.Collection("system_init"),
-		CompanyModel:    db.Collection("company"),
-		UserModel:       db.Collection("user"),
-		ApiModel:        db.Collection("api"),
-		MenuModel:       db.Collection("menu"),
-		DepartmentModel: db.Collection("department"),
-		RoleModel:       db.Collection("role"),
-		RoleMenuModel:   db.Collection("role_menu"),
-		SupplierModel:   db.Collection("supplier"),
-		CustomerModel:   db.Collection("customer"),
+		Config:             c,
+		Cache:              cache.New(c.CacheRedis, syncx.NewSingleFlight(), cache.NewStat(""), mongo.ErrNoDocuments),
+		Enforcer:           InitCasbin(c),
+		SystemInitModel:    db.Collection("system_init"),
+		CompanyModel:       db.Collection("company"),
+		UserModel:          db.Collection("user"),
+		ApiModel:           db.Collection("api"),
+		MenuModel:          db.Collection("menu"),
+		DepartmentModel:    db.Collection("department"),
+		RoleModel:          db.Collection("role"),
+		RoleMenuModel:      db.Collection("role_menu"),
+		SupplierModel:      db.Collection("supplier"),
+		CustomerModel:      db.Collection("customer"),
+		WarehouseModel:     db.Collection("warehouse"),      //仓库
+		WarehouseZoneModel: db.Collection("warehouse_zone"), //库区
+		WarehouseRackModel: db.Collection("warehouse_rack"), //货架
+		WarehouseBinModel:  db.Collection("warehouse_bin"),  //货位
 	}
 
 	//2.角色表添加索引

@@ -2,7 +2,7 @@ package customer
 
 import (
 	"api/model"
-	"api/pkg"
+	"api/pkg/code"
 	"context"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
@@ -73,7 +73,7 @@ func (l *AddLogic) Add(req *types.CustomerRequest) (resp *types.BaseResponse, er
 		case one.UnifiedSocialCreditIdentifier == strings.TrimSpace(req.UnifiedSocialCreditIdentifier):
 			resp.Msg = "客户统一社会信用代码已占用"
 		default:
-			resp.Msg = "客户未知问题无法注册"
+			resp.Msg = "客户未知问题导致无法注册，请与系统管理员联系"
 		}
 		resp.Code = http.StatusBadRequest
 		return resp, nil
@@ -96,7 +96,7 @@ func (l *AddLogic) Add(req *types.CustomerRequest) (resp *types.BaseResponse, er
 		Contact:                       strings.TrimSpace(req.Contact),
 		Manager:                       strings.TrimSpace(req.Manager),
 		Level:                         req.Level,
-		Status:                        pkg.CustomerStatusCode("potential"), //默认:潜在
+		Status:                        code.CustomerStatusCode("potential"), //默认:潜在
 		Email:                         req.Email,
 		Remark:                        strings.TrimSpace(req.Remark),
 		Creator:                       uObjectID,

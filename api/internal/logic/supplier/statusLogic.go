@@ -1,7 +1,7 @@
 package supplier
 
 import (
-	"api/pkg"
+	"api/pkg/code"
 	"context"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
@@ -58,7 +58,7 @@ func (l *StatusLogic) Status(req *types.SupplierStatusRequest) (resp *types.Base
 	//2.更改供应商状态
 	var update = bson.M{
 		"$set": bson.M{
-			"status": pkg.SupplierStatusCode(req.Status),
+			"status": code.SupplierStatusCode(req.Status),
 		},
 	}
 	_, err = l.svcCtx.SupplierModel.UpdateByID(l.ctx, id, &update)

@@ -4,7 +4,7 @@ import (
 	"api/internal/svc"
 	"api/internal/types"
 	"api/model"
-	"api/pkg"
+	"api/pkg/code"
 	"context"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
@@ -146,7 +146,7 @@ func (l *ListLogic) List(req *types.CustomersRequest) (resp *types.CustomersResp
 			Contact:                       supplier.Contact,
 			Manager:                       supplier.Manager,
 			Level:                         supplier.Level,
-			Status:                        pkg.CustomerStatusText(supplier.Status),
+			Status:                        code.CustomerStatusText(supplier.Status),
 			Remark:                        supplier.Remark,
 			CreateBy:                      supplier.CreatorName,
 			CreatedAt:                     supplier.CreatedAt,

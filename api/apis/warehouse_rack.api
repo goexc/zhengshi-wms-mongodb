@@ -1,0 +1,74 @@
+syntax = "v1"
+
+info(
+    title: "货架数据结构"
+    desc: "货架数据结构"
+    author: "董咚懂咚"
+    email: "1024071953@qq.com"
+    version: "1.0.1"
+)
+
+//修改货架状态
+type WarehouseRackStatusRequest {
+    Id string `json:"id" validate:"required" comment:"货架"`
+                                                                                                          //货架状态
+                                                                                                          //10.激活（Active）：表示货架处于可用状态，可以执行库存管理和操作。
+                                                                                                          //20.禁用（Disabled）：表示货架处于禁用状态，不可用于库存管理和操作。通常是由于维护、修复或其他原因暂时停用货架。
+                                                                                                          //30.盘点中(Stocktake )：用于表示当前正在进行盘点活动的货架。这样可以确保在盘点期间，其他库存管理操作不会干扰盘点过程。
+                                                                                                          //90.关闭（Closed）：表示货架已经关闭，不再进行任何库存管理和操作。通常是由于货架不再使用或被替代。
+                                                                                                          //100.删除（Deleted）
+    Status string `json:"status" validate:"required,oneof=激活 禁用 盘点中 关闭 删除" comment:"货架状态"` //货架状态
+}
+
+//添加、更新货架：状态不设置
+type WarehouseRackRequest {
+    Id string `json:"id,optional" validate:"omitempty,mongodb" comment:"货架"`
+    WarehouseZoneId string `json:"warehouse_zone_id,optional" validate:"required,mongodb" comment:"库区"`
+    Type string `json:"type,optional" validate:"required,oneof=标准货架 重型货架 中型货架 轻型货架" comment:"货架类型"`    //货架类型
+    Name string `json:"name,optional" validate:"required" comment:"货架名称"`                                              //货架名称
+    Code string `json:"code,optional" validate:"required" comment:"货架编号"`                                              //货架编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
+    Capacity float64 `json:"capacity,optional" validate:"omitempty,gte=0" comment:"货架容量"`                              // 货架容量
+    CapacityUnit string `json:"capacity_unit,optional" validate:"omitempty" comment:"货架容量单位"`                        // 货架容量单位：面积、体积或其他度量单位
+    Remark string `json:"remark,optional" validate:"omitempty" comment:"备注"`                                             //备注
+}
+
+//货架列表
+type WarehouseRacksRequest {
+    Page int64 `form:"page,optional" validate:"required,gte=1" comment:"页数""`
+    Size int64 `form:"size,optional" validate:"required,gte=10,lte=100" comment:"条数"`
+    WarehouseId string `form:"warehouse_id,optional" validate:"omitempty,mongodb" comment:"仓库"`                         //仓库Id
+    WarehouseZoneId string `form:"warehouse_zone_id,optional" validate:"omitempty,mongodb" comment:"库区"`                //库区Id
+    Type string `form:"type,optional" validate:"omitempty,oneof=标准货架 重型货架 中型货架 轻型货架" comment:"货架类型"`  //货架类型
+    Name string `form:"name,optional" validate:"omitempty" comment:"货架名称"`                                            //货架名称
+    Code string `form:"code,optional" validate:"omitempty" comment:"货架编号"`                                            //货架编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
+    Status string `form:"status,optional" validate:"omitempty,oneof=激活 禁用 盘点中 关闭" comment:"货架状态"`            //货架状态：不允许查询已删除的数据库
+}
+
+type WarehouseRacksResponse {
+    Code int `json:"code"`
+    Msg string `json:"msg"`
+    Data WarehouseRackPaginate `json:"data"`
+}
+
+type WarehouseRackPaginate {
+    Total int64 `json:"total"`
+    List []WarehouseRack `json:"list"` //用户列表
+}
+
+type WarehouseRack {
+    Id string `json:"id"`
+    WarehouseId string `json:"warehouse_id,optional"`                             //仓库Id
+    WarehouseName string `json:"warehouse_name,optional"`                         //仓库名称
+    WarehouseZoneId string `json:"warehouse_zone_id"`                             //库区Id
+    WarehouseZoneName string `json:"warehouse_zone_name"`                         //库区名称
+    Type string `json:"type"`                                                     //货架类型
+    Name string `json:"name"`                                                     //货架名称
+    Code string `json:"code"`                                                     //货架编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
+    Capacity float64 `json:"capacity"`                                            // 货架容量
+    CapacityUnit string `json:"capacity_unit"`                                    // 货架容量单位：面积、体积或其他度量单位
+    Status string `json:"status"`                                                 //货架状态
+    Remark string `json:"remark"`                                                 //备注
+    CreateBy string `json:"create_by,optional"`                                   //创建人
+    CreatedAt int64 `json:"created_at"`                                           //
+    UpdatedAt int64 `json:"updated_at"`                                           //
+}

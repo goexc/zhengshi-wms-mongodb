@@ -98,7 +98,7 @@ func (l *UpdateLogic) Update(req *types.CustomerRequest) (resp *types.BaseRespon
 		case one.UnifiedSocialCreditIdentifier == strings.TrimSpace(req.UnifiedSocialCreditIdentifier):
 			resp.Msg = "客户统一社会信用代码已占用"
 		default:
-			resp.Msg = "客户未知问题无法注册"
+			resp.Msg = "客户未知问题导致无法注册，请与系统管理员联系"
 		}
 		resp.Code = http.StatusBadRequest
 		return resp, nil

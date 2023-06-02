@@ -337,20 +337,170 @@ type ProfileRole struct {
 	RoleName string `json:"role_name"`
 }
 
-type WarehouseIdRequest struct {
-	Id string `form:"id":"id"`
+type WarehouseStatusRequest struct {
+	Id     string `json:"id" validate:"required" comment:"仓库"`
+	Status string `json:"status" validate:"required,oneof=激活 禁用 盘点中 关闭 删除" comment:"仓库状态"` //仓库状态
 }
 
 type WarehouseRequest struct {
-	Id      string  `json:"id,optional"`
-	Name    string  `json:"name"`    //仓库名称
-	Number  string  `json:"number"`  //仓库编号
-	Type    string  `json:"type"`    //仓库类型
-	Area    float64 `json:"area"`    //仓库面积
-	City    string  `json:"city"`    //所在城市
-	Address string  `json:"address"` //地址
-	Manager string  `json:"manager"` //负责人
-	Contact string  `json:"contact"` //联系方式
+	Id           string  `json:"id,optional" validate:"omitempty,mongodb" comment:"仓库"`
+	Type         string  `json:"type,optional" validate:"required,oneof=分销中心 生产仓库 跨境仓库 电商仓库 冷链仓库 合规仓库 专用仓库 跨渠道仓库 自动化仓库 第三方物流仓库 " comment:"仓库类型"` //仓库类型
+	Name         string  `json:"name,optional" validate:"required" comment:"仓库名称"`                                                               //仓库名称
+	Code         string  `json:"code,optional" validate:"required" comment:"仓库编号"`                                                               //仓库编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
+	Address      string  `json:"city,optional" validate:"omitempty" comment:"仓库地址"`                                                              //仓库地址
+	Capacity     float64 `json:"capacity,optional" validate:"omitempty,gte=0" comment:"仓库容量"`                                                    // 仓库容量
+	CapacityUnit string  `json:"capacity_unit,optional" validate:"omitempty" comment:"仓库容量单位"`                                                   // 仓库容量单位：面积、体积或其他度量单位
+	Manager      string  `json:"manager,optional" validate:"omitempty" comment:"负责人"`                                                            //负责人
+	Contact      string  `json:"contact,optional" validate:"omitempty,e164" comment:"联系方式"`                                                      //联系方式
+	Remark       string  `json:"remark,optional" validate:"omitempty" comment:"备注"`                                                              //备注
+}
+
+type WarehousesRequest struct {
+	Page   int64  `form:"page,optional" validate:"required,gte=1" comment:"页数""`
+	Size   int64  `form:"size,optional" validate:"required,gte=10,lte=100" comment:"条数"`
+	Type   string `form:"type,optional" validate:"omitempty,oneof=分销中心 生产仓库 跨境仓库 电商仓库 冷链仓库 合规仓库 专用仓库 跨渠道仓库 自动化仓库 第三方物流仓库 " comment:"仓库类型"` //仓库类型
+	Name   string `form:"name,optional" validate:"omitempty" comment:"仓库名称"`                                                               //仓库名称
+	Code   string `form:"code,optional" validate:"omitempty" comment:"仓库编号"`                                                               //仓库编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
+	Status string `form:"status,optional" validate:"omitempty,oneof=激活 禁用 盘点中 关闭" comment:"仓库状态"`                                          //仓库状态：不允许查询已删除的数据库
+}
+
+type WarehousesResponse struct {
+	Code int               `json:"code"`
+	Msg  string            `json:"msg"`
+	Data WarehousePaginate `json:"data"`
+}
+
+type WarehousePaginate struct {
+	Total int64       `json:"total"`
+	List  []Warehouse `json:"list"` //用户列表
+}
+
+type Warehouse struct {
+	Id           string  `json:"id,optional"`
+	Type         string  `json:"type,optional"`          //仓库类型
+	Name         string  `json:"name,optional"`          //仓库名称
+	Code         string  `json:"code,optional"`          //仓库编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
+	Address      string  `json:"city,optional"`          //仓库地址
+	Capacity     float64 `json:"capacity,optional"`      // 仓库容量
+	CapacityUnit string  `json:"capacity_unit,optional"` // 仓库容量单位：面积、体积或其他度量单位
+	Status       string  `json:"status,optional"`        //仓库状态
+	Manager      string  `json:"manager,optional"`       //负责人
+	Contact      string  `json:"contact,optional"`       //联系方式
+	Remark       string  `json:"remark,optional"`        //备注
+	CreateBy     string  `json:"create_by,optional"`     //创建人
+	CreatedAt    int64   `json:"created_at"`             //
+	UpdatedAt    int64   `json:"updated_at"`             //
+}
+
+type WarehouseZoneStatusRequest struct {
+	Id     string `json:"id" validate:"required" comment:"库区"`
+	Status string `json:"status" validate:"required,oneof=激活 禁用 盘点中 关闭 删除" comment:"库区状态"` //库区状态
+}
+
+type WarehouseZoneRequest struct {
+	Id           string  `json:"id,optional" validate:"omitempty,mongodb" comment:"库区"`
+	WarehouseId  string  `json:"warehouse_id,optional" validate:"required,mongodb" comment:"仓库"`
+	Name         string  `json:"name,optional" validate:"required" comment:"库区名称"`             //库区名称
+	Code         string  `json:"code,optional" validate:"required" comment:"库区编号"`             //库区编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
+	Capacity     float64 `json:"capacity,optional" validate:"omitempty,gte=0" comment:"库区容量"`  // 库区容量
+	CapacityUnit string  `json:"capacity_unit,optional" validate:"omitempty" comment:"库区容量单位"` // 库区容量单位：面积、体积或其他度量单位
+	Manager      string  `json:"manager,optional" validate:"omitempty" comment:"负责人"`          //负责人
+	Contact      string  `json:"contact,optional" validate:"omitempty,e164" comment:"联系方式"`    //联系方式
+	Remark       string  `json:"remark,optional" validate:"omitempty" comment:"备注"`            //备注
+}
+
+type WarehouseZonesRequest struct {
+	Page        int64  `form:"page,optional" validate:"required,gte=1" comment:"页数""`
+	Size        int64  `form:"size,optional" validate:"required,gte=10,lte=100" comment:"条数"`
+	WarehouseId string `form:"warehouse_id,optional" validate:"omitempty,mongodb" comment:"仓库"`                                                 //仓库Id
+	Type        string `form:"type,optional" validate:"omitempty,oneof=分销中心 生产库区 跨境库区 电商库区 冷链库区 合规库区 专用库区 跨渠道库区 自动化库区 第三方物流库区 " comment:"库区类型"` //库区类型
+	Name        string `form:"name,optional" validate:"omitempty" comment:"库区名称"`                                                               //库区名称
+	Code        string `form:"code,optional" validate:"omitempty" comment:"库区编号"`                                                               //库区编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
+	Status      string `form:"status,optional" validate:"omitempty,oneof=激活 禁用 盘点中 关闭" comment:"库区状态"`                                          //库区状态：不允许查询已删除的数据库
+}
+
+type WarehouseZonesResponse struct {
+	Code int                   `json:"code"`
+	Msg  string                `json:"msg"`
+	Data WarehouseZonePaginate `json:"data"`
+}
+
+type WarehouseZonePaginate struct {
+	Total int64           `json:"total"`
+	List  []WarehouseZone `json:"list"` //用户列表
+}
+
+type WarehouseZone struct {
+	Id            string  `json:"id,optional"`
+	WarehouseId   string  `json:"warehouse_id,optional"`   //仓库Id
+	WarehouseName string  `json:"warehouse_name,optional"` //仓库名称
+	Name          string  `json:"name,optional"`           //库区名称
+	Code          string  `json:"code,optional"`           //库区编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
+	Capacity      float64 `json:"capacity,optional"`       // 库区容量
+	CapacityUnit  string  `json:"capacity_unit,optional"`  // 库区容量单位：面积、体积或其他度量单位
+	Status        string  `json:"status,optional"`         //库区状态
+	Manager       string  `json:"manager,optional"`        //负责人
+	Contact       string  `json:"contact,optional"`        //联系方式
+	Remark        string  `json:"remark,optional"`         //备注
+	CreateBy      string  `json:"create_by,optional"`      //创建人
+	CreatedAt     int64   `json:"created_at"`              //
+	UpdatedAt     int64   `json:"updated_at"`              //
+}
+
+type WarehouseRackStatusRequest struct {
+	Id     string `json:"id" validate:"required" comment:"货架"`
+	Status string `json:"status" validate:"required,oneof=激活 禁用 盘点中 关闭 删除" comment:"货架状态"` //货架状态
+}
+
+type WarehouseRackRequest struct {
+	Id              string  `json:"id,optional" validate:"omitempty,mongodb" comment:"货架"`
+	WarehouseZoneId string  `json:"warehouse_zone_id,optional" validate:"required,mongodb" comment:"库区"`
+	Type            string  `json:"type,optional" validate:"required,oneof=标准货架 重型货架 中型货架 轻型货架" comment:"货架类型"` //货架类型
+	Name            string  `json:"name,optional" validate:"required" comment:"货架名称"`                           //货架名称
+	Code            string  `json:"code,optional" validate:"required" comment:"货架编号"`                           //货架编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
+	Capacity        float64 `json:"capacity,optional" validate:"omitempty,gte=0" comment:"货架容量"`                // 货架容量
+	CapacityUnit    string  `json:"capacity_unit,optional" validate:"omitempty" comment:"货架容量单位"`               // 货架容量单位：面积、体积或其他度量单位
+	Remark          string  `json:"remark,optional" validate:"omitempty" comment:"备注"`                          //备注
+}
+
+type WarehouseRacksRequest struct {
+	Page            int64  `form:"page,optional" validate:"required,gte=1" comment:"页数""`
+	Size            int64  `form:"size,optional" validate:"required,gte=10,lte=100" comment:"条数"`
+	WarehouseId     string `form:"warehouse_id,optional" validate:"omitempty,mongodb" comment:"仓库"`             //仓库Id
+	WarehouseZoneId string `form:"warehouse_zone_id,optional" validate:"omitempty,mongodb" comment:"库区"`        //库区Id
+	Type            string `form:"type,optional" validate:"omitempty,oneof=标准货架 重型货架 中型货架 轻型货架" comment:"货架类型"` //货架类型
+	Name            string `form:"name,optional" validate:"omitempty" comment:"货架名称"`                           //货架名称
+	Code            string `form:"code,optional" validate:"omitempty" comment:"货架编号"`                           //货架编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
+	Status          string `form:"status,optional" validate:"omitempty,oneof=激活 禁用 盘点中 关闭" comment:"货架状态"`      //货架状态：不允许查询已删除的数据库
+}
+
+type WarehouseRacksResponse struct {
+	Code int                   `json:"code"`
+	Msg  string                `json:"msg"`
+	Data WarehouseRackPaginate `json:"data"`
+}
+
+type WarehouseRackPaginate struct {
+	Total int64           `json:"total"`
+	List  []WarehouseRack `json:"list"` //用户列表
+}
+
+type WarehouseRack struct {
+	Id                string  `json:"id"`
+	WarehouseId       string  `json:"warehouse_id,optional"`   //仓库Id
+	WarehouseName     string  `json:"warehouse_name,optional"` //仓库名称
+	WarehouseZoneId   string  `json:"warehouse_zone_id"`       //库区Id
+	WarehouseZoneName string  `json:"warehouse_zone_name"`     //库区名称
+	Type              string  `json:"type"`                    //货架类型
+	Name              string  `json:"name"`                    //货架名称
+	Code              string  `json:"code"`                    //货架编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
+	Capacity          float64 `json:"capacity"`                // 货架容量
+	CapacityUnit      string  `json:"capacity_unit"`           // 货架容量单位：面积、体积或其他度量单位
+	Status            string  `json:"status"`                  //货架状态
+	Remark            string  `json:"remark"`                  //备注
+	CreateBy          string  `json:"create_by,optional"`      //创建人
+	CreatedAt         int64   `json:"created_at"`              //
+	UpdatedAt         int64   `json:"updated_at"`              //
 }
 
 type CompanyRequest struct {

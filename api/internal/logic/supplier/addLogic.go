@@ -2,7 +2,7 @@ package supplier
 
 import (
 	"api/model"
-	"api/pkg"
+	"api/pkg/code"
 	"context"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
@@ -73,7 +73,7 @@ func (l *AddLogic) Add(req *types.SupplierRequest) (resp *types.BaseResponse, er
 		case one.UnifiedSocialCreditIdentifier == strings.TrimSpace(req.UnifiedSocialCreditIdentifier):
 			resp.Msg = "供应商统一社会信用代码已占用"
 		default:
-			resp.Msg = "供应商未知问题无法注册"
+			resp.Msg = "供应商未知问题导致无法注册，请与系统管理员联系"
 		}
 		resp.Code = http.StatusBadRequest
 		return resp, nil
@@ -96,7 +96,7 @@ func (l *AddLogic) Add(req *types.SupplierRequest) (resp *types.BaseResponse, er
 		Contact:                       strings.TrimSpace(req.Contact),
 		Manager:                       strings.TrimSpace(req.Manager),
 		Level:                         req.Level,
-		Status:                        pkg.SupplierStatusCode("pending_approval"), //默认:待审核
+		Status:                        code.SupplierStatusCode("pending_approval"), //默认:待审核
 		Email:                         req.Email,
 		Remark:                        strings.TrimSpace(req.Remark),
 		Creator:                       uObjectID,

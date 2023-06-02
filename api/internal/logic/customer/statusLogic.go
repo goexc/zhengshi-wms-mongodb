@@ -1,7 +1,7 @@
 package customer
 
 import (
-	"api/pkg"
+	"api/pkg/code"
 	"context"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
@@ -58,7 +58,7 @@ func (l *StatusLogic) Status(req *types.CustomerStatusRequest) (resp *types.Base
 	//2.更改客户状态
 	var update = bson.M{
 		"$set": bson.M{
-			"status": pkg.CustomerStatusCode(req.Status),
+			"status": code.CustomerStatusCode(req.Status),
 		},
 	}
 	_, err = l.svcCtx.CustomerModel.UpdateByID(l.ctx, id, &update)

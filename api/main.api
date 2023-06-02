@@ -18,6 +18,8 @@ import (
 	"apis/user.api"
 	"apis/personal.api"
 	"apis/warehouse.api"
+	"apis/warehouse_zone.api"
+	"apis/warehouse_rack.api"
 	"apis/company.api"
 	"apis/supplier.api"
 	"apis/customer.api"
@@ -288,4 +290,79 @@ service main {
 	@doc "修改客户状态/删除客户"
 	@handler status
 	patch /status (CustomerStatusRequest) returns (BaseResponse)
+}
+
+// 仓库管理
+@server(
+	jwt: Auth
+	group: warehouse
+	prefix: warehouse
+)
+
+service main {
+	@doc "仓库分页"
+	@handler list
+	get / (WarehousesRequest) returns (WarehousesResponse)
+	
+	@doc "添加仓库"
+	@handler add
+	post / (WarehouseRequest) returns (BaseResponse)
+	
+	@doc "修改仓库"
+	@handler update
+	put / (WarehouseRequest) returns (BaseResponse)
+	
+	@doc "修改仓库状态/删除仓库"
+	@handler status
+	patch /status (WarehouseStatusRequest) returns (BaseResponse)
+}
+
+// 库区管理
+@server(
+	jwt: Auth
+	group: warehouse_zone
+	prefix: warehouse_zone
+)
+
+service main {
+	@doc "库区分页"
+	@handler list
+	get / (WarehouseZonesRequest) returns (WarehouseZonesResponse)
+	
+	@doc "添加库区"
+	@handler add
+	post / (WarehouseZoneRequest) returns (BaseResponse)
+	
+	@doc "修改库区"
+	@handler update
+	put / (WarehouseZoneRequest) returns (BaseResponse)
+	
+	@doc "修改库区状态/删除库区"
+	@handler status
+	patch /status (WarehouseZoneStatusRequest) returns (BaseResponse)
+}
+
+// 货架管理
+@server(
+	jwt: Auth
+	group: warehouse_rack
+	prefix: warehouse_rack
+)
+
+service main {
+	@doc "货架分页"
+	@handler list
+	get / (WarehouseRacksRequest) returns (WarehouseRacksResponse)
+	
+	@doc "添加货架"
+	@handler add
+	post / (WarehouseRackRequest) returns (BaseResponse)
+	
+	@doc "修改货架"
+	@handler update
+	put / (WarehouseRackRequest) returns (BaseResponse)
+	
+	@doc "修改货架状态/删除货架"
+	@handler status
+	patch /status (WarehouseRackStatusRequest) returns (BaseResponse)
 }
