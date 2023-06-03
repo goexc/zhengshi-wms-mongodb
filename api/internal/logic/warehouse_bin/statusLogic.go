@@ -1,6 +1,8 @@
-package warehouse_rack
+package warehouse_bin
 
 import (
+	"api/internal/svc"
+	"api/internal/types"
 	"api/model"
 	"api/pkg/code"
 	"context"
@@ -9,10 +11,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"net/http"
-	"strings"
-
-	"api/internal/svc"
-	"api/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -31,23 +29,49 @@ func NewStatusLogic(ctx context.Context, svcCtx *svc.ServiceContext) *StatusLogi
 	}
 }
 
-func (l *StatusLogic) Status(req *types.WarehouseRackStatusRequest) (resp *types.BaseResponse, err error) {
+func (l *StatusLogic) Status(req *types.WarehouseBinStatusRequest) (resp *types.BaseResponse, err error) {
 	resp = new(types.BaseResponse)
 
-	//1.货架是否存在
+	//1.货位是否存在
 	id, err := primitive.ObjectIDFromHex(req.Id)
 	if err != nil {
-		fmt.Printf("[Error]货架[%s]id转换：%s\n", req.Id, err.Error())
+		fmt.Printf("[Error]货位[%s]id转换：%s\n", req.Id, err.Error())
 		resp.Code = http.StatusBadRequest
-		resp.Msg = "请选择货架"
+		resp.Msg = "请选择货位"
 		return resp, nil
 	}
-	//i 表示不区分大小写
 	filter := bson.M{
 		"_id":    id,
+		"status": bson.M{"$ne": code.WarehouseBinStatusCode("删除")},
+	}
+	singleRes := l.svcCtx.WarehouseBinModel.FindOne(l.ctx, filter)
+	var bin model.WarehouseBin
+	switch singleRes.Err() {
+	case nil: //货位存在
+		if err = singleRes.Decode(&bin); err != nil {
+			fmt.Printf("[Error]解析重复货位:%s\n", err.Error())
+			resp.Code = http.StatusInternalServerError
+			resp.Msg = "服务器内部错误"
+			return resp, nil
+		}
+
+	case mongo.ErrNoDocuments: //货位不存在
+		resp.Code = http.StatusBadRequest
+		resp.Msg = "货位不存在"
+		return resp, nil
+	default:
+		fmt.Printf("[Error]查询货位[%s]:%s\n", req.Id, singleRes.Err().Error())
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "服务器内部错误"
+		return resp, nil
+	}
+
+	//2.货架是否存在
+	filter = bson.M{
+		"_id":    bin.WarehouseRackId,
 		"status": bson.M{"$ne": code.WarehouseRackStatusCode("删除")},
 	}
-	singleRes := l.svcCtx.WarehouseRackModel.FindOne(l.ctx, filter)
+	singleRes = l.svcCtx.WarehouseRackModel.FindOne(l.ctx, filter)
 	var rack model.WarehouseRack
 	switch singleRes.Err() {
 	case nil: //货架存在
@@ -69,10 +93,10 @@ func (l *StatusLogic) Status(req *types.WarehouseRackStatusRequest) (resp *types
 		return resp, nil
 	}
 
-	//2.库区是否存在
+	//3.库区是否存在
 	//激活状态的库区才可以执行库存管理和操作
 	filter = bson.M{
-		"_id":    rack.WarehouseZoneId,
+		"_id":    bin.WarehouseZoneId,
 		"status": bson.M{"$ne": code.WarehouseZoneStatusCode("删除")},
 	}
 	zoneRes := l.svcCtx.WarehouseZoneModel.FindOne(l.ctx, filter)
@@ -80,7 +104,7 @@ func (l *StatusLogic) Status(req *types.WarehouseRackStatusRequest) (resp *types
 	switch zoneRes.Err() {
 	case nil:
 		if err = zoneRes.Decode(&zone); err != nil {
-			fmt.Printf("[Error]解析库区[%s]:%s\n", rack.WarehouseZoneId, err.Error())
+			fmt.Printf("[Error]解析库区[%s]:%s\n", bin.WarehouseZoneId.Hex(), err.Error())
 			resp.Code = http.StatusInternalServerError
 			resp.Msg = "服务器内部错误"
 			return resp, nil
@@ -98,7 +122,7 @@ func (l *StatusLogic) Status(req *types.WarehouseRackStatusRequest) (resp *types
 		resp.Msg = "所属库区不存在"
 		return resp, nil
 	default:
-		fmt.Printf("[Error]查询库区[%s]：%s\n", rack.WarehouseZoneId.Hex(), zoneRes.Err().Error())
+		fmt.Printf("[Error]查询库区[%s]：%s\n", bin.WarehouseZoneId.Hex(), zoneRes.Err().Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务器内部错误"
 		return resp, nil
@@ -107,7 +131,7 @@ func (l *StatusLogic) Status(req *types.WarehouseRackStatusRequest) (resp *types
 	//3.仓库是否存在
 	//激活状态的仓库才可以执行库存管理和操作
 	filter = bson.M{
-		"_id":    zone.WarehouseId,
+		"_id":    bin.WarehouseId,
 		"status": bson.M{"$ne": code.WarehouseStatusCode("删除")},
 	}
 	warehouseRes := l.svcCtx.WarehouseModel.FindOne(l.ctx, filter)
@@ -115,7 +139,7 @@ func (l *StatusLogic) Status(req *types.WarehouseRackStatusRequest) (resp *types
 	case nil:
 		var warehouse model.Warehouse
 		if err = warehouseRes.Decode(&warehouse); err != nil {
-			fmt.Printf("[Error]解析仓库[%s]:%s\n", zone.WarehouseId.Hex(), err.Error())
+			fmt.Printf("[Error]解析仓库[%s]:%s\n", bin.WarehouseId.Hex(), err.Error())
 			resp.Code = http.StatusInternalServerError
 			resp.Msg = "服务器内部错误"
 			return resp, nil
@@ -133,37 +157,21 @@ func (l *StatusLogic) Status(req *types.WarehouseRackStatusRequest) (resp *types
 		resp.Msg = "所属仓库不存在"
 		return resp, nil
 	default:
-		fmt.Printf("[Error]查询仓库[%s]：%s\n", zone.WarehouseId.Hex(), warehouseRes.Err().Error())
+		fmt.Printf("[Error]查询仓库[%s]：%s\n", bin.WarehouseId.Hex(), warehouseRes.Err().Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务器内部错误"
 		return resp, nil
 	}
 
-	//4.货架状态修改为“删除”时，应该先检测是否存在下级货位。
-	if strings.TrimSpace(req.Status) == "删除" {
-		count, e := l.svcCtx.WarehouseBinModel.CountDocuments(l.ctx, bson.M{"warehouse_rack_id": id})
-		if e != nil {
-			fmt.Printf("[Error]查询货架[%s]是否存在下级货位:%s\n", req.Id, e.Error())
-			resp.Code = http.StatusInternalServerError
-			resp.Msg = "服务器内部错误"
-			return resp, nil
-		}
-		if count > 0 {
-			resp.Code = http.StatusBadRequest
-			resp.Msg = "请先删除绑定的货位"
-			return resp, nil
-		}
-	}
-
-	//5.修改货架状态
+	//4.修改货位状态
 	var update = bson.M{
 		"$set": bson.M{
-			"status": code.WarehouseRackStatusCode(req.Status),
+			"status": code.WarehouseBinStatusCode(req.Status),
 		},
 	}
-	_, err = l.svcCtx.WarehouseZoneModel.UpdateByID(l.ctx, id, &update)
+	_, err = l.svcCtx.WarehouseBinModel.UpdateByID(l.ctx, id, &update)
 	if err != nil {
-		fmt.Printf("[Error]修改货架[%s]状态：%s\n", req.Id, err.Error())
+		fmt.Printf("[Error]修改货位[%s]状态：%s\n", req.Id, err.Error())
 		resp.Msg = "服务器内部错误"
 		resp.Code = http.StatusInternalServerError
 		return resp, nil

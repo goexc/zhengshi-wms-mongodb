@@ -503,6 +503,62 @@ type WarehouseRack struct {
 	UpdatedAt         int64   `json:"updated_at"`              //
 }
 
+type WarehouseBinStatusRequest struct {
+	Id     string `json:"id" validate:"required" comment:"货位"`
+	Status string `json:"status" validate:"required,oneof=激活 禁用 盘点中 关闭 删除" comment:"货位状态"` //货位状态
+}
+
+type WarehouseBinRequest struct {
+	Id              string  `json:"id,optional" validate:"omitempty,mongodb" comment:"货位"`
+	WarehouseRackId string  `json:"warehouse_rack_id,optional" validate:"required,mongodb" comment:"货架"`
+	Name            string  `json:"name,optional" validate:"required" comment:"货位名称"`             //货位名称
+	Code            string  `json:"code,optional" validate:"required" comment:"货位编号"`             //货位编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
+	Capacity        float64 `json:"capacity,optional" validate:"omitempty,gte=0" comment:"货位容量"`  // 货位容量
+	CapacityUnit    string  `json:"capacity_unit,optional" validate:"omitempty" comment:"货位容量单位"` // 货位容量单位：面积、体积或其他度量单位
+	Remark          string  `json:"remark,optional" validate:"omitempty" comment:"备注"`            //备注
+}
+
+type WarehouseBinsRequest struct {
+	Page            int64  `form:"page,optional" validate:"required,gte=1" comment:"页数""`
+	Size            int64  `form:"size,optional" validate:"required,gte=10,lte=100" comment:"条数"`
+	WarehouseId     string `form:"warehouse_id,optional" validate:"omitempty,mongodb" comment:"仓库"`        //仓库Id
+	WarehouseZoneId string `form:"warehouse_zone_id,optional" validate:"omitempty,mongodb" comment:"库区"`   //库区Id
+	WarehouseRackId string `form:"warehouse_rack_id,optional" validate:"omitempty,mongodb" comment:"货架"`   //货架Id
+	Name            string `form:"name,optional" validate:"omitempty" comment:"货位名称"`                      //货位名称
+	Code            string `form:"code,optional" validate:"omitempty" comment:"货位编号"`                      //货位编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
+	Status          string `form:"status,optional" validate:"omitempty,oneof=激活 禁用 盘点中 关闭" comment:"货位状态"` //货位状态：不允许查询已删除的数据库
+}
+
+type WarehouseBinsResponse struct {
+	Code int                  `json:"code"`
+	Msg  string               `json:"msg"`
+	Data WarehouseBinPaginate `json:"data"`
+}
+
+type WarehouseBinPaginate struct {
+	Total int64          `json:"total"`
+	List  []WarehouseBin `json:"list"` //用户列表
+}
+
+type WarehouseBin struct {
+	Id                string  `json:"id"`
+	WarehouseId       string  `json:"warehouse_id,optional"`   //仓库Id
+	WarehouseName     string  `json:"warehouse_name,optional"` //仓库名称
+	WarehouseZoneId   string  `json:"warehouse_zone_id"`       //库区Id
+	WarehouseZoneName string  `json:"warehouse_zone_name"`     //库区名称
+	WarehouseRackId   string  `json:"warehouse_rack_id"`       //货架Id
+	WarehouseRackName string  `json:"warehouse_rack_name"`     //货架名称
+	Name              string  `json:"name"`                    //货位名称
+	Code              string  `json:"code"`                    //货位编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
+	Capacity          float64 `json:"capacity"`                // 货位容量
+	CapacityUnit      string  `json:"capacity_unit"`           // 货位容量单位：面积、体积或其他度量单位
+	Status            string  `json:"status"`                  //货位状态
+	Remark            string  `json:"remark"`                  //备注
+	CreateBy          string  `json:"create_by,optional"`      //创建人
+	CreatedAt         int64   `json:"created_at"`              //
+	UpdatedAt         int64   `json:"updated_at"`              //
+}
+
 type CompanyRequest struct {
 	Name                          string `json:"name" validate:"required" comment:"企业名称"`                                 //企业名称
 	Address                       string `json:"address" validate:"required" comment:"企业地址"`                              //企业地址

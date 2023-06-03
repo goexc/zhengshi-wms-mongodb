@@ -20,6 +20,7 @@ import (
 	"apis/warehouse.api"
 	"apis/warehouse_zone.api"
 	"apis/warehouse_rack.api"
+	"apis/warehouse_bin.api"
 	"apis/company.api"
 	"apis/supplier.api"
 	"apis/customer.api"
@@ -365,4 +366,29 @@ service main {
 	@doc "修改货架状态/删除货架"
 	@handler status
 	patch /status (WarehouseRackStatusRequest) returns (BaseResponse)
+}
+
+// 货位管理
+@server(
+	jwt: Auth
+	group: warehouse_bin
+	prefix: warehouse_bin
+)
+
+service main {
+	@doc "货位分页"
+	@handler list
+	get / (WarehouseBinsRequest) returns (WarehouseBinsResponse)
+	
+	@doc "添加货位"
+	@handler add
+	post / (WarehouseBinRequest) returns (BaseResponse)
+	
+	@doc "修改货位"
+	@handler update
+	put / (WarehouseBinRequest) returns (BaseResponse)
+	
+	@doc "修改货位状态/删除货位"
+	@handler status
+	patch /status (WarehouseBinStatusRequest) returns (BaseResponse)
 }

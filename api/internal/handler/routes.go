@@ -15,6 +15,7 @@ import (
 	supplier "api/internal/handler/supplier"
 	user "api/internal/handler/user"
 	warehouse "api/internal/handler/warehouse"
+	warehouse_bin "api/internal/handler/warehouse_bin"
 	warehouse_rack "api/internal/handler/warehouse_rack"
 	warehouse_zone "api/internal/handler/warehouse_zone"
 	"api/internal/svc"
@@ -391,5 +392,32 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 		},
 		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
 		rest.WithPrefix("/warehouse_rack"),
+	)
+
+	server.AddRoutes(
+		[]rest.Route{
+			{
+				Method:  http.MethodGet,
+				Path:    "/",
+				Handler: warehouse_bin.ListHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/",
+				Handler: warehouse_bin.AddHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPut,
+				Path:    "/",
+				Handler: warehouse_bin.UpdateHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPatch,
+				Path:    "/status",
+				Handler: warehouse_bin.StatusHandler(serverCtx),
+			},
+		},
+		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
+		rest.WithPrefix("/warehouse_bin"),
 	)
 }
