@@ -80,5 +80,5 @@ func (l *StatusLogic) Status(req *types.UserStatusRequest) (resp *types.BaseResp
 	resp.Code = http.StatusOK
 	resp.Msg = "成功"
 
-	return
+	return resp, nil
 }

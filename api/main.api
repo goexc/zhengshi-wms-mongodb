@@ -24,6 +24,8 @@ import (
 	"apis/company.api"
 	"apis/supplier.api"
 	"apis/customer.api"
+	"apis/material.api"
+	"apis/inbound.api"
 )
 
 //身份验证
@@ -391,4 +393,42 @@ service main {
 	@doc "修改货位状态/删除货位"
 	@handler status
 	patch /status (WarehouseBinStatusRequest) returns (BaseResponse)
+}
+
+// 物料管理
+@server(
+	jwt: Auth
+	group: material
+	prefix: material
+)
+
+service main {
+	@doc "添加物料"
+	@handler add
+	post / (MaterialRequest) returns (BaseResponse)
+	
+	@doc "修改物料"
+	@handler update
+	put / (MaterialRequest) returns (BaseResponse)
+	
+	@doc "删除物料"
+	@handler remove
+	delete / (MaterialIdRequest) returns (BaseResponse)
+	
+	@doc "物料分页"
+	@handler list
+	get / (MaterialsRequest) returns (MaterialsResponse)
+}
+
+// 入库管理
+@server(
+	jwt: Auth
+	group: inbound
+	prefix: inbound
+)
+
+service main {
+	@doc "创建采购入库单"
+	@handler procurement
+	post /procurement (ProcurementRequest) returns (BaseResponse)
 }

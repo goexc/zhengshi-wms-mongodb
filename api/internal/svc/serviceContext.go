@@ -35,6 +35,8 @@ type ServiceContext struct {
 	WarehouseZoneModel *mongo.Collection //库区
 	WarehouseRackModel *mongo.Collection //货架
 	WarehouseBinModel  *mongo.Collection //货位
+	MaterialModel      *mongo.Collection //物料表
+	InboundModel       *mongo.Collection //入库单
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -59,6 +61,8 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		WarehouseZoneModel: db.Collection("warehouse_zone"), //库区
 		WarehouseRackModel: db.Collection("warehouse_rack"), //货架
 		WarehouseBinModel:  db.Collection("warehouse_bin"),  //货位
+		MaterialModel:      db.Collection("material"),       //物料表
+		InboundModel:       db.Collection("inbound"),        //入库单
 	}
 
 	//2.角色表添加索引

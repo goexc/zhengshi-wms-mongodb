@@ -114,6 +114,12 @@ goctl model mongo --type User -home ./template --dir ./model --cache
     - [X] 10.4.4 货位列表
 
 
+- [ ] 11.原材料管理
+  - [ ] 11.1 添加原材料
+  - [ ] 11.2 修改原材料
+  - [ ] 11.3 原材料列表
+  - [ ] 11.4 原材料归档[逻辑删除]
+
 
 
 

@@ -1,0 +1,28 @@
+syntax = "v1"
+
+
+info(
+    title: "入库数据结构"
+    desc: "入库数据结构"
+    author: "董咚懂咚"
+    email: "1024071953@qq.com"
+    version: "1.0.1"
+)
+
+//采购物料和数量
+type InboundMaterial {
+    Id string `json:"id,optional" validate:"required,mongodb" comment:"物料"` //物料id
+    Index int `json:"index" validate:"required,gte=0" comment:"物料顺序"`//物料顺序
+    Name string `json:"name,optional" validate:"required" comment:"物料名称"` //物料名称
+    Quantity float64 `json:"quantity,optional" validate:"required,number" comment:"数量"` //物料数量
+}
+
+
+//创建采购入库单
+type ProcurementRequest {
+    Code string `json:"code,optional" validate:"omitempty" comment:"入库单号"` //入库单号
+    Order string `json:"order,optional" validate:"omitempty" comment:"采购订单编号"` //采购订单编号
+    Materials []InboundMaterial `json:"materials" validate:"required" comment:"物料"` //物料
+    SupplierId string `json:"supplier_id" validate:"required,mongodb" comment:"供应商"`//供应商
+    Remark string `json:"remark" validate:"required" comment:"备注"`//备注
+}

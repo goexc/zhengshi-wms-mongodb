@@ -702,3 +702,73 @@ type CustomerRequest struct {
 	Email                         string `json:"email,optional" validate:"omitempty,email" comment:"Email"`                               //Email
 	Remark                        string `json:"remark,optional"`
 }
+
+type MaterialIdRequest struct {
+	Id string `form:"id"`
+}
+
+type MaterialsRequest struct {
+	Page             int64  `form:"page,optional" validate:"required,gte=1" comment:"页数""`
+	Size             int64  `form:"size,optional" validate:"required,gte=10,lte=100" comment:"条数"`
+	Name             string `form:"name,optional" validate:"omitempty" comment:"物料名称"`              //物料名称
+	Code             string `form:"code,optional" validate:"omitempty" comment:"物料编号"`              //物料编号
+	Material         string `form:"material,optional" validate:"omitempty" comment:"材质"`            //材质：碳钢、不锈钢、合金钢等。
+	Specification    string `form:"specification,optional" validate:"omitempty" comment:"规格"`       //规格：包括长度、宽度、厚度等尺寸信息。
+	Model            string `form:"model,optional" validate:"omitempty" comment:"型号"`               //型号：用于唯一标识和区分不同种类的钢材。
+	SurfaceTreatment string `form:"surface_treatment,optional" validate:"omitempty" comment:"表面处理"` //表面处理。钢材经过的表面处理方式，如热镀锌、喷涂等。
+	StrengthGrade    string `form:"strength_grade,optional" validate:"omitempty" comment:"强度等级"`    //强度等级：钢材的强度等级，常见的钢材强度等级：Q235、Q345
+}
+
+type MaterialsResponse struct {
+	Code int              `json:"code"`
+	Msg  string           `json:"msg"`
+	Data MaterialPaginate `json:"data"`
+}
+
+type MaterialPaginate struct {
+	Total int64      `json:"total"`
+	List  []Material `json:"list"` //物料列表
+}
+
+type Material struct {
+	Id               string `json:"id,optional"`
+	Code             string `json:"code"`              //物料编号
+	Name             string `json:"name"`              //物料名称
+	Material         string `json:"material"`          //材质：碳钢、不锈钢、合金钢等。
+	Specification    string `json:"specification"`     //规格：包括长度、宽度、厚度等尺寸信息。
+	Model            string `json:"model"`             //型号：用于唯一标识和区分不同种类的钢材。
+	SurfaceTreatment string `json:"surface_treatment"` //表面处理。钢材经过的表面处理方式，如热镀锌、喷涂等。
+	StrengthGrade    string `json:"strength_grade"`    //强度等级：钢材的强度等级，常见的钢材强度等级：Q235、Q345
+	Unit             string `json:"unit"`              //计量单位
+	Remark           string `json:"remark"`            //备注
+	CreatedAt        int64  `json:"created_at"`
+	UpdatedAt        int64  `json:"updated_at"`
+}
+
+type MaterialRequest struct {
+	Id               string `json:"id,optional" validate:"omitempty,mongodb" comment:"物料"`
+	Code             string `json:"code,optional" validate:"required" comment:"物料编号"`         //物料编号
+	Name             string `json:"name,optional" validate:"required" comment:"物料名称"`         //物料名称
+	Material         string `json:"material" validate:"required" comment:"材质"`                //材质：碳钢、不锈钢、合金钢等。
+	Specification    string `json:"specification,optional" validate:"required" commment:"规格"` //规格：包括长度、宽度、厚度等尺寸信息。
+	Model            string `json:"model" validate:"required" comment:"型号"`                   //型号：用于唯一标识和区分不同种类的钢材。
+	SurfaceTreatment string `json:"surface_treatment" validate:"required" comment:"表面处理"`     //表面处理。钢材经过的表面处理方式，如热镀锌、喷涂等。
+	StrengthGrade    string `json:"strength_grade" validate:"required" comment:"强度等级"`        //强度等级：钢材的强度等级，常见的钢材强度等级：Q235、Q345
+	Unit             string `json:"unit,optional" validate:"required" commment:"计量单位"`        //计量单位
+	Remark           string `json:"remark,optional" validate:"omitempty" comment:"备注"`        //备注
+}
+
+type InboundMaterial struct {
+	Id       string  `json:"id,optional" validate:"required,mongodb" comment:"物料"`      //物料id
+	Index    int     `json:"index" validate:"required,gte=0" comment:"物料顺序"`            //物料顺序
+	Name     string  `json:"name,optional" validate:"required" comment:"物料名称"`          //物料名称
+	Quantity float64 `json:"quantity,optional" validate:"required,number" comment:"数量"` //物料数量
+}
+
+type ProcurementRequest struct {
+	Code       string            `json:"code,optional" validate:"omitempty" comment:"入库单号"`     //入库单号
+	Order      string            `json:"order,optional" validate:"omitempty" comment:"采购订单编号"`  //采购订单编号
+	Materials  []InboundMaterial `json:"materials" validate:"required" comment:"物料"`            //物料
+	SupplierId string            `json:"supplier_id" validate:"required,mongodb" comment:"供应商"` //供应商
+	Remark     string            `json:"remark" validate:"required" comment:"备注"`               //备注
+}
