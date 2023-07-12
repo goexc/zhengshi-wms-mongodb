@@ -40,7 +40,7 @@ func (l *ListLogic) List(req *types.MaterialsRequest) (resp *types.MaterialsResp
 	if name != "" {
 		//i 表示不区分大小写
 		regex := bson.M{"$regex": primitive.Regex{Pattern: ".*" + name + ".*", Options: "i"}}
-		filter["name"] = bson.M{"name": regex}
+		filter["name"] = regex
 	}
 	if strings.TrimSpace(req.Code) != "" {
 		filter["code"] = strings.TrimSpace(req.Code)

@@ -31,8 +31,8 @@ func NewListLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ListLogic {
 	}
 }
 
-func (l *ListLogic) List(req *types.WarehouseZonesRequest) (resp *types.WarehouseZonesResponse, err error) {
-	resp = new(types.WarehouseZonesResponse)
+func (l *ListLogic) List(req *types.WarehouseZoneListRequest) (resp *types.WarehouseZoneListResponse, err error) {
+	resp = new(types.WarehouseZoneListResponse)
 
 	//1.库区分页
 	//1.1 过滤已删除库区
@@ -136,8 +136,6 @@ func (l *ListLogic) List(req *types.WarehouseZonesRequest) (resp *types.Warehous
 		},
 		},
 	}
-	skipStage := bson.D{{"$skip", (req.Page - 1) * req.Size}}
-	limitStage := bson.D{{"$limit", req.Size}}
 
 	pipeline := mongo.Pipeline{
 		matchStage,
@@ -147,8 +145,6 @@ func (l *ListLogic) List(req *types.WarehouseZonesRequest) (resp *types.Warehous
 		unwindWarehouseStage,
 		projectStage,
 		sortStage,
-		skipStage,
-		limitStage,
 	}
 
 	cur, err := l.svcCtx.WarehouseZoneModel.Aggregate(l.ctx, pipeline)
@@ -168,16 +164,6 @@ func (l *ListLogic) List(req *types.WarehouseZonesRequest) (resp *types.Warehous
 		return resp, nil
 	}
 
-	//2.库区总数量
-	total, err := l.svcCtx.WarehouseZoneModel.CountDocuments(l.ctx, filter)
-	if err != nil {
-		fmt.Println("[Error]库区总数量：", err.Error())
-		resp.Code = http.StatusInternalServerError
-		resp.Msg = "服务器内部错误"
-		return resp, nil
-	}
-
-	resp.Data.Total = total
 	resp.Data.List = make([]types.WarehouseZone, 0)
 	for _, zone := range zones {
 		resp.Data.List = append(resp.Data.List, types.WarehouseZone{

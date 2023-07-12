@@ -34,9 +34,12 @@ func NewAddLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AddLogic {
 func (l *AddLogic) Add(req *types.MenuRequest) (resp *types.BaseResponse, err error) {
 	resp = new(types.BaseResponse)
 
-	//1.路径是否重复
+	//1.类型为菜单时，判断路径是否重复
 	filter := bson.M{
-		"path": req.Path,
+		"parent_id": req.ParentId,
+		"type":      req.Type,  //类型：1.菜单，2.按钮
+		"path":      req.Path,  //路径
+		"perms":     req.Perms, //权限标识
 	}
 	singleRes := l.svcCtx.MenuModel.FindOne(l.ctx, filter)
 	switch singleRes.Err() {
@@ -101,6 +104,7 @@ func (l *AddLogic) Add(req *types.MenuRequest) (resp *types.BaseResponse, err er
 		Transition: req.Transition,
 		Hidden:     req.Hidden,
 		Fixed:      req.Fixed,
+		IsFull:     req.IsFull,
 		Perms:      req.Perms,
 		Remark:     req.Remark,
 		CreatedAt:  time.Now().Unix(),

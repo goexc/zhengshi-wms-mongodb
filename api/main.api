@@ -16,7 +16,7 @@ import (
 	"apis/role.api"
 	"apis/department.api"
 	"apis/user.api"
-	"apis/personal.api"
+	"apis/account.api"
 	"apis/warehouse.api"
 	"apis/warehouse_zone.api"
 	"apis/warehouse_rack.api"
@@ -26,6 +26,7 @@ import (
 	"apis/customer.api"
 	"apis/material.api"
 	"apis/inbound.api"
+	"apis/images.api"
 )
 
 //身份验证
@@ -38,10 +39,14 @@ service main{
 	@doc "注册"
 	@handler register
 	post /register(RegisterRequest) returns(RegisterResponse)
-	
+
 	@doc "登录"
 	@handler login
 	post /login(LoginRequest) returns(LoginResponse)
+
+	@doc "退出登录"
+	@handler logout
+	post /logout returns(BaseResponse)
 }
 
 // 菜单管理
@@ -52,18 +57,18 @@ service main{
 )
 
 service main {
-	@doc "菜单分页"
+	@doc "菜单列表"
 	@handler list
-	get / returns (MenusResponse)
-	
+	get /list returns (MenusResponse)
+
 	@doc "添加菜单"
 	@handler add
 	post / (MenuRequest) returns (BaseResponse)
-	
+
 	@doc "修改菜单"
 	@handler update
 	put / (MenuRequest) returns (BaseResponse)
-	
+
 	@doc "删除菜单"
 	@handler remove
 	delete / (MenuRemoveRequest) returns (BaseResponse)
@@ -80,15 +85,15 @@ service main {
 	@doc "api分页"
 	@handler list
 	get / returns (ApisResponse)
-	
+
 	@doc "添加api"
 	@handler add
 	post / (ApiAddRequest) returns (BaseResponse)
-	
+
 	@doc "修改api"
 	@handler update
 	put / (ApiUpdateRequest) returns (BaseResponse)
-	
+
 	@doc "删除api"
 	@handler remove
 	delete / (ApiIdRequest) returns (BaseResponse)
@@ -102,42 +107,46 @@ service main {
 )
 
 service main {
-	@doc "角色分页"
+	@doc "角色列表"
 	@handler list
-	get / (RoleListRequest) returns (RoleListResponse)
-	
+	get /list (RoleListRequest) returns (RoleListResponse)
+
+	@doc "角色分页"
+	@handler paginate
+	get / (RolesRequest) returns (RolesResponse)
+
 	@doc "添加角色"
 	@handler add
 	post / (RoleRequest) returns (BaseResponse)
-	
+
 	@doc "修改角色"
 	@handler update
 	put / (RoleRequest) returns (BaseResponse)
-	
+
 	@doc "删除角色"
 	@handler remove
 	delete / (RoleIdRequest) returns (BaseResponse)
-	
+
 	@doc "更改角色状态"
 	@handler status
 	patch /status (RoleStatusRequest) returns (BaseResponse)
-	
+
 	@doc "角色的菜单列表"
 	@handler menus
 	get /menus (RoleIdRequest) returns (RoleMenusResponse)
-	
+
 	@doc "分配角色菜单"
 	@handler menuDistribute
 	post /menus (RoleMenusRequest) returns (BaseResponse)
-	
+
 	@doc "角色的api列表"
 	@handler apis
 	get /apis (RoleIdRequest) returns (RoleApisResponse)
-	
+
 	@doc "分配角色api"
 	@handler apiDistribute
 	post /apis (RoleApisRequest) returns (BaseResponse)
-	
+
 }
 
 // 部门管理
@@ -151,15 +160,15 @@ service main {
 	@doc "部门列表"
 	@handler list
 	get / returns (DepartmentsResponse)
-	
+
 	@doc "添加部门"
 	@handler add
 	post / (DepartmentRequest) returns (BaseResponse)
-	
+
 	@doc "修改部门"
 	@handler update
 	put / (DepartmentRequest) returns (BaseResponse)
-	
+
 	@doc "删除部门"
 	@handler remove
 	delete / (DepartmentRemoveRequest) returns (BaseResponse)
@@ -174,58 +183,62 @@ service main {
 
 service main {
 	@doc "用户分页"
-	@handler list
-	get / (UserListRequest) returns (UserListResponse)
-	
+	@handler paginate
+	get / (UsersRequest) returns (UsersResponse)
+
 	@doc "添加用户"
 	@handler add
 	post / (UserAddRequest) returns (BaseResponse)
-	
+
 	@doc "修改用户"
 	@handler update
 	put / (UserUpdateRequest) returns (BaseResponse)
-	
+
 	@doc "删除用户"
 	@handler remove
 	delete / (UserIdRequest) returns (BaseResponse)
-	
+
 	@doc "管理员修改用户密码"
 	@handler changePassword
 	patch /password (ChangePasswordRequest) returns (BaseResponse)
-	
+
 	@doc "管理员更改用户状态"
 	@handler status
 	patch /status (UserStatusRequest) returns (BaseResponse)
+
+	@doc "管理员更改用户角色"
+	@handler roles
+	patch /roles (UserRolesRequest) returns (BaseResponse)
 }
 
-// 个人中心
+// 账号中心
 @server(
 	jwt: Auth
-	group: personal
-	prefix: personal
+	group: account
+	prefix: account
 )
 
 service main {
 	@doc "个人信息"
 	@handler profile
 	get /profile returns (ProfileResponse)
-	
+
 	@doc "修改个人信息"
 	@handler editProfile
 	put /profile(ProfileRequest) returns (BaseResponse)
-	
+
 	@doc "修改个人密码"
 	@handler changePassword
 	patch /password(ProfilePasswordRequest) returns (BaseResponse)
-	
+
 	@doc "修改个人头像"
 	@handler changeAvatar
 	patch /avatar(ProfileAvatarRequest) returns (BaseResponse)
-	
+
 	@doc "个人全部菜单"
 	@handler menu
-	get /menu returns (MenusResponse)
-	
+	get /menu returns (AccountMenusResponse)
+
 }
 
 // 企业信息
@@ -239,7 +252,7 @@ service main {
 	@doc "获取企业信息"
 	@handler get
 	get / returns (CompanyResponse)
-	
+
 	@doc "修改企业信息"
 	@handler update
 	put / (CompanyRequest) returns (BaseResponse)
@@ -256,15 +269,15 @@ service main {
 	@doc "供应商分页"
 	@handler list
 	get / (SuppliersRequest) returns (SuppliersResponse)
-	
+
 	@doc "添加供应商"
 	@handler add
 	post / (SupplierRequest) returns (BaseResponse)
-	
+
 	@doc "修改供应商"
 	@handler update
 	put / (SupplierRequest) returns (BaseResponse)
-	
+
 	@doc "修改供应商状态/删除供应商"
 	@handler status
 	patch /status (SupplierStatusRequest) returns (BaseResponse)
@@ -281,15 +294,15 @@ service main {
 	@doc "客户分页"
 	@handler list
 	get / (CustomersRequest) returns (CustomersResponse)
-	
+
 	@doc "添加客户"
 	@handler add
 	post / (CustomerRequest) returns (BaseResponse)
-	
+
 	@doc "修改客户"
 	@handler update
 	put / (CustomerRequest) returns (BaseResponse)
-	
+
 	@doc "修改客户状态/删除客户"
 	@handler status
 	patch /status (CustomerStatusRequest) returns (BaseResponse)
@@ -303,18 +316,22 @@ service main {
 )
 
 service main {
-	@doc "仓库分页"
+	@doc "仓库列表"
 	@handler list
+	get /list (WarehouseListRequest) returns (WarehouseListResponse)
+
+	@doc "仓库分页"
+	@handler paginate
 	get / (WarehousesRequest) returns (WarehousesResponse)
-	
+
 	@doc "添加仓库"
 	@handler add
 	post / (WarehouseRequest) returns (BaseResponse)
-	
+
 	@doc "修改仓库"
 	@handler update
 	put / (WarehouseRequest) returns (BaseResponse)
-	
+
 	@doc "修改仓库状态/删除仓库"
 	@handler status
 	patch /status (WarehouseStatusRequest) returns (BaseResponse)
@@ -328,18 +345,22 @@ service main {
 )
 
 service main {
-	@doc "库区分页"
+	@doc "库区列表"
 	@handler list
+	get /list (WarehouseZoneListRequest) returns (WarehouseZoneListResponse)
+
+	@doc "库区分页"
+	@handler paginate
 	get / (WarehouseZonesRequest) returns (WarehouseZonesResponse)
-	
+
 	@doc "添加库区"
 	@handler add
 	post / (WarehouseZoneRequest) returns (BaseResponse)
-	
+
 	@doc "修改库区"
 	@handler update
 	put / (WarehouseZoneRequest) returns (BaseResponse)
-	
+
 	@doc "修改库区状态/删除库区"
 	@handler status
 	patch /status (WarehouseZoneStatusRequest) returns (BaseResponse)
@@ -353,18 +374,22 @@ service main {
 )
 
 service main {
-	@doc "货架分页"
+	@doc "货架列表"
 	@handler list
+	get /list (WarehouseRackListRequest) returns (WarehouseRackListResponse)
+
+	@doc "货架分页"
+	@handler paginate
 	get / (WarehouseRacksRequest) returns (WarehouseRacksResponse)
-	
+
 	@doc "添加货架"
 	@handler add
 	post / (WarehouseRackRequest) returns (BaseResponse)
-	
+
 	@doc "修改货架"
 	@handler update
 	put / (WarehouseRackRequest) returns (BaseResponse)
-	
+
 	@doc "修改货架状态/删除货架"
 	@handler status
 	patch /status (WarehouseRackStatusRequest) returns (BaseResponse)
@@ -378,18 +403,22 @@ service main {
 )
 
 service main {
-	@doc "货位分页"
+	@doc "货位列表"
 	@handler list
+	get /list (WarehouseBinListRequest) returns (WarehouseBinListResponse)
+
+	@doc "货位分页"
+	@handler paginate
 	get / (WarehouseBinsRequest) returns (WarehouseBinsResponse)
-	
+
 	@doc "添加货位"
 	@handler add
 	post / (WarehouseBinRequest) returns (BaseResponse)
-	
+
 	@doc "修改货位"
 	@handler update
 	put / (WarehouseBinRequest) returns (BaseResponse)
-	
+
 	@doc "修改货位状态/删除货位"
 	@handler status
 	patch /status (WarehouseBinStatusRequest) returns (BaseResponse)
@@ -406,15 +435,15 @@ service main {
 	@doc "添加物料"
 	@handler add
 	post / (MaterialRequest) returns (BaseResponse)
-	
+
 	@doc "修改物料"
 	@handler update
 	put / (MaterialRequest) returns (BaseResponse)
-	
+
 	@doc "删除物料"
 	@handler remove
 	delete / (MaterialIdRequest) returns (BaseResponse)
-	
+
 	@doc "物料分页"
 	@handler list
 	get / (MaterialsRequest) returns (MaterialsResponse)
@@ -431,4 +460,17 @@ service main {
 	@doc "创建采购入库单"
 	@handler procurement
 	post /procurement (ProcurementRequest) returns (BaseResponse)
+}
+
+//图片管理
+@server(
+	jwt: Auth
+	group: images
+	prefix: images
+)
+
+service main {
+	@doc "上传图片"
+	@handler add
+	post / returns (ImageResponse)
 }

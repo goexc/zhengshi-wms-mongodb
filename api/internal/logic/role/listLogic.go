@@ -35,13 +35,15 @@ func (l *ListLogic) List(req *types.RoleListRequest) (resp *types.RoleListRespon
 
 	name := strings.TrimSpace(req.Name)
 	//1.角色分页
-	var filter bson.M
+	var filter = bson.M{}
 	if name != "" {
 		//i 表示不区分大小写
 		regex := bson.M{"$regex": primitive.Regex{Pattern: ".*" + name + ".*", Options: "i"}}
 		filter = bson.M{"name": regex}
 	}
-	var opt = options.Find().SetSort(bson.M{"created_at": 1}).SetSkip((req.Page - 1) * req.Size).SetLimit(req.Size)
+	filter["status"] = bson.M{"$ne": "删除"}
+
+	var opt = options.Find().SetSort(bson.M{"created_at": 1})
 	cur, err := l.svcCtx.RoleModel.Find(l.ctx, filter, opt)
 	if err != nil {
 		fmt.Printf("[Error]查询角色列表:%s\n", err.Error())
@@ -59,23 +61,12 @@ func (l *ListLogic) List(req *types.RoleListRequest) (resp *types.RoleListRespon
 		return resp, nil
 	}
 
-	//2.角色总数量
-	total, err := l.svcCtx.RoleModel.CountDocuments(l.ctx, filter)
-	if err != nil {
-		fmt.Println("[Error]角色总数量：", err.Error())
-		resp.Code = http.StatusInternalServerError
-		resp.Msg = "服务器内部错误"
-		return resp, nil
-	}
-
 	resp.Code = http.StatusOK
 	resp.Msg = "成功"
-	resp.Data.Total = total
 	for _, role := range roles {
 		resp.Data.List = append(resp.Data.List, types.Role{
 			Id:        role.Id.Hex(),
 			ParentId:  role.ParentId,
-			SortId:    role.SortId,
 			Status:    role.Status,
 			Name:      role.Name,
 			Remark:    role.Remark,

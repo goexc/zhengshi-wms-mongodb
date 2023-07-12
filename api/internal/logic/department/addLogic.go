@@ -44,11 +44,6 @@ func (l *AddLogic) Add(req *types.DepartmentRequest) (resp *types.BaseResponse, 
 		case nil: //上级部门存在
 			var parent model.Department
 			err = parentRes.Decode(&parent)
-			if parent.Type <= req.Type {
-				resp.Code = http.StatusBadRequest
-				resp.Msg = "上级部门的类型不能低于下级部门"
-				return resp, nil
-			}
 		case mongo.ErrNoDocuments: //上级部门不存在
 			resp.Code = http.StatusBadRequest
 			resp.Msg = "上级部门不存在"
@@ -61,10 +56,13 @@ func (l *AddLogic) Add(req *types.DepartmentRequest) (resp *types.BaseResponse, 
 		}
 	}
 
-	//2.查询兄弟部门是否重复：name、code
+	//2.查询部门是否重复：name、code
 	var ds = make([]model.Department, 0)
-	var filter = bson.D{
-		{"parent_id", req.ParentId},
+	var filter = bson.M{
+		"$or": []bson.M{
+			{"name": strings.TrimSpace(req.Name)},
+			{"code": strings.TrimSpace(req.Code)},
+		},
 	}
 
 	cur, err := l.svcCtx.DepartmentModel.Find(l.ctx, filter)
@@ -99,7 +97,6 @@ func (l *AddLogic) Add(req *types.DepartmentRequest) (resp *types.BaseResponse, 
 
 	//3.部门入库
 	department := bson.M{
-		"type":       req.Type,
 		"sort_id":    req.SortId,
 		"parent_id":  req.ParentId,
 		"name":       req.Name,

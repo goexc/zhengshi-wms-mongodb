@@ -4,15 +4,16 @@ package handler
 import (
 	"net/http"
 
+	account "api/internal/handler/account"
 	api "api/internal/handler/api"
 	auth "api/internal/handler/auth"
 	company "api/internal/handler/company"
 	customer "api/internal/handler/customer"
 	department "api/internal/handler/department"
+	images "api/internal/handler/images"
 	inbound "api/internal/handler/inbound"
 	material "api/internal/handler/material"
 	menu "api/internal/handler/menu"
-	personal "api/internal/handler/personal"
 	role "api/internal/handler/role"
 	supplier "api/internal/handler/supplier"
 	user "api/internal/handler/user"
@@ -38,6 +39,11 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Path:    "/login",
 				Handler: auth.LoginHandler(serverCtx),
 			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/logout",
+				Handler: auth.LogoutHandler(serverCtx),
+			},
 		},
 		rest.WithPrefix("/auth"),
 	)
@@ -46,7 +52,7 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 		[]rest.Route{
 			{
 				Method:  http.MethodGet,
-				Path:    "/",
+				Path:    "/list",
 				Handler: menu.ListHandler(serverCtx),
 			},
 			{
@@ -100,8 +106,13 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 		[]rest.Route{
 			{
 				Method:  http.MethodGet,
-				Path:    "/",
+				Path:    "/list",
 				Handler: role.ListHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/",
+				Handler: role.PaginateHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodPost,
@@ -180,7 +191,7 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			{
 				Method:  http.MethodGet,
 				Path:    "/",
-				Handler: user.ListHandler(serverCtx),
+				Handler: user.PaginateHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodPost,
@@ -207,6 +218,11 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Path:    "/status",
 				Handler: user.StatusHandler(serverCtx),
 			},
+			{
+				Method:  http.MethodPatch,
+				Path:    "/roles",
+				Handler: user.RolesHandler(serverCtx),
+			},
 		},
 		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
 		rest.WithPrefix("/user"),
@@ -217,31 +233,31 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			{
 				Method:  http.MethodGet,
 				Path:    "/profile",
-				Handler: personal.ProfileHandler(serverCtx),
+				Handler: account.ProfileHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodPut,
 				Path:    "/profile",
-				Handler: personal.EditProfileHandler(serverCtx),
+				Handler: account.EditProfileHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodPatch,
 				Path:    "/password",
-				Handler: personal.ChangePasswordHandler(serverCtx),
+				Handler: account.ChangePasswordHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodPatch,
 				Path:    "/avatar",
-				Handler: personal.ChangeAvatarHandler(serverCtx),
+				Handler: account.ChangeAvatarHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodGet,
 				Path:    "/menu",
-				Handler: personal.MenuHandler(serverCtx),
+				Handler: account.MenuHandler(serverCtx),
 			},
 		},
 		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
-		rest.WithPrefix("/personal"),
+		rest.WithPrefix("/account"),
 	)
 
 	server.AddRoutes(
@@ -319,8 +335,13 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 		[]rest.Route{
 			{
 				Method:  http.MethodGet,
-				Path:    "/",
+				Path:    "/list",
 				Handler: warehouse.ListHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/",
+				Handler: warehouse.PaginateHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodPost,
@@ -346,8 +367,13 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 		[]rest.Route{
 			{
 				Method:  http.MethodGet,
-				Path:    "/",
+				Path:    "/list",
 				Handler: warehouse_zone.ListHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/",
+				Handler: warehouse_zone.PaginateHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodPost,
@@ -373,8 +399,13 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 		[]rest.Route{
 			{
 				Method:  http.MethodGet,
-				Path:    "/",
+				Path:    "/list",
 				Handler: warehouse_rack.ListHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/",
+				Handler: warehouse_rack.PaginateHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodPost,
@@ -400,8 +431,13 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 		[]rest.Route{
 			{
 				Method:  http.MethodGet,
-				Path:    "/",
+				Path:    "/list",
 				Handler: warehouse_bin.ListHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/",
+				Handler: warehouse_bin.PaginateHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodPost,
@@ -460,5 +496,17 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 		},
 		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
 		rest.WithPrefix("/inbound"),
+	)
+
+	server.AddRoutes(
+		[]rest.Route{
+			{
+				Method:  http.MethodPost,
+				Path:    "/",
+				Handler: images.AddHandler(serverCtx),
+			},
+		},
+		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
+		rest.WithPrefix("/images"),
 	)
 }

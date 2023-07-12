@@ -1,0 +1,21 @@
+syntax = "v1"
+
+
+info(
+    title: "图片管理数据结构"
+    desc: "图片管理数据结构"
+    author: "董咚懂咚"
+    email: "1024071953@qq.com"
+    version: "1.0.1"
+)
+
+//上传图片
+type ImageResponse {
+    Code int `json:"code"`
+    Msg string `json:"msg"`
+    Data ImageUrl `json:"data,optional"`
+}
+
+type ImageUrl {
+    Url string `json:"url"`
+}

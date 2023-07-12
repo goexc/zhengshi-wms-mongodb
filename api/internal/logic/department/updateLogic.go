@@ -89,7 +89,6 @@ func (l *UpdateLogic) Update(req *types.DepartmentRequest) (resp *types.BaseResp
 	//2.更新部门信息
 	filter = bson.D{{"_id", id}}
 	department := model.Department{
-		Type:      req.Type,
 		SortId:    req.SortId,
 		ParentId:  req.ParentId,
 		Name:      req.Name,

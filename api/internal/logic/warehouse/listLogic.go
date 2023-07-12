@@ -31,10 +31,10 @@ func NewListLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ListLogic {
 	}
 }
 
-func (l *ListLogic) List(req *types.WarehousesRequest) (resp *types.WarehousesResponse, err error) {
-	resp = new(types.WarehousesResponse)
+func (l *ListLogic) List(req *types.WarehouseListRequest) (resp *types.WarehouseListResponse, err error) {
+	resp = new(types.WarehouseListResponse)
 
-	//1.仓库分页
+	//1.仓库列表
 	//1.1 过滤已删除仓库
 	var filter = bson.M{"status": bson.M{"$ne": code.WarehouseStatusCode("删除")}} //过滤已删除仓库
 	var matchStage = bson.D{}
@@ -97,6 +97,7 @@ func (l *ListLogic) List(req *types.WarehousesRequest) (resp *types.WarehousesRe
 			{"manager", 1},
 			{"level", 1},
 			{"status", 1},
+			{"image", 1},
 			{"remark", 1},
 			{"creator_name", bson.D{
 				//在投影中，使用 $ifNull 操作符检查 user.name 字段，
@@ -115,8 +116,6 @@ func (l *ListLogic) List(req *types.WarehousesRequest) (resp *types.WarehousesRe
 		},
 		},
 	}
-	skipStage := bson.D{{"$skip", (req.Page - 1) * req.Size}}
-	limitStage := bson.D{{"$limit", req.Size}}
 
 	pipeline := mongo.Pipeline{
 		matchStage,
@@ -124,8 +123,6 @@ func (l *ListLogic) List(req *types.WarehousesRequest) (resp *types.WarehousesRe
 		unwindStage,
 		projectStage,
 		sortStage,
-		skipStage,
-		limitStage,
 	}
 
 	cur, err := l.svcCtx.WarehouseModel.Aggregate(l.ctx, pipeline)
@@ -144,18 +141,7 @@ func (l *ListLogic) List(req *types.WarehousesRequest) (resp *types.WarehousesRe
 		resp.Msg = "服务器内部错误"
 		return resp, nil
 	}
-	fmt.Printf("仓库数量:%d\n", len(warehouses))
 
-	//2.仓库总数量
-	total, err := l.svcCtx.WarehouseModel.CountDocuments(l.ctx, filter)
-	if err != nil {
-		fmt.Println("[Error]仓库总数量：", err.Error())
-		resp.Code = http.StatusInternalServerError
-		resp.Msg = "服务器内部错误"
-		return resp, nil
-	}
-
-	resp.Data.Total = total
 	resp.Data.List = make([]types.Warehouse, 0)
 	for _, warehouse := range warehouses {
 		resp.Data.List = append(resp.Data.List, types.Warehouse{
@@ -167,6 +153,7 @@ func (l *ListLogic) List(req *types.WarehousesRequest) (resp *types.WarehousesRe
 			Contact:   warehouse.Contact,
 			Manager:   warehouse.Manager,
 			Status:    code.WarehouseStatusText(warehouse.Status),
+			Image:     warehouse.Image,
 			Remark:    warehouse.Remark,
 			CreateBy:  warehouse.CreatorName,
 			CreatedAt: warehouse.CreatedAt,

@@ -15,28 +15,28 @@ type UserIdRequest {
 
 //添加用户
 type UserAddRequest {
-    Name string `json:"name" validate:"required" comment:"账号名称"`                             //账号名称
+    Name string `json:"name" validate:"required,gte=2,lte=21" comment:"账号名称"`                      //账号名称
     Password string `json:"password" validate:"required,gte=6" comment:"密码"`                         //用户密码
     Sex string `json:"sex" validate:"required,oneof=男 女" comment:"性别"`                             //性别
     DepartmentId string `json:"department_id" validate:"mongodb,required" comment:"部门"`              //部门id
     RolesId []string `json:"roles_id" validate:"gt=0,dive,required,mongodb" comment:"角色"`            //角色id
     Mobile string `json:"mobile,optional" validate:"required,e164" comment:"手机号码"`                 //手机号码
     Email string `json:"email,optional"  validate:"omitempty,email" comment:"Email"`                   //邮箱
-    Status int `json:"status,optional" validate:"oneof=0 20 50" comment:"状态"`                        //用户状态：0.未启用，20.启用，50.禁用
+    Status string `json:"status,optional" validate:"oneof=启用" comment:"状态"`                        //用户状态：启用
     Remark string `json:"remark,optional" validate:"omitempty,gte=2" comment:"备注"`                   //备注
 }
 
 //修改用户
 type UserUpdateRequest {
     Id string `json:"id,optional" validate:"omitempty,mongodb" comment:"账号"`
-    Name string `json:"name" validate:"required" comment:"账号名称"`                             //账号名称
-    Sex string `json:"sex" validate:"required,oneof=男 女" comment:"性别"`                             //性别
-    DepartmentId string `json:"department_id" validate:"mongodb,required" comment:"部门"`              //部门id
-    RolesId []string `json:"roles_id" validate:"gt=0,dive,required,mongodb" comment:"角色"`            //角色id
-    Mobile string `json:"mobile,optional" validate:"required,e164" comment:"手机号码"`                 //手机号码
-    Email string `json:"email,optional"  validate:"omitempty,email" comment:"Email"`                   //邮箱
-    Status int `json:"status,optional" validate:"oneof=0 20 50" comment:"状态"`                        //用户状态：0.未启用，20.启用，50.禁用
-    Remark string `json:"remark,optional" validate:"omitempty,gte=2" comment:"备注"`                   //备注
+    Name string `json:"name" validate:"required,gte=2,lte=21" comment:"账号名称"`                                          //账号名称
+    Sex string `json:"sex" validate:"required,oneof=男 女" comment:"性别"`                                                 //性别
+    DepartmentId string `json:"department_id" validate:"mongodb,required" comment:"部门"`                                  //部门id
+    RolesId []string `json:"roles_id" validate:"gt=0,dive,required,mongodb" comment:"角色"`                                //角色id
+    Mobile string `json:"mobile,optional" validate:"required,e164" comment:"手机号码"`                                     //手机号码
+    Email string `json:"email,optional"  validate:"omitempty,email" comment:"Email"`                                       //邮箱
+    Status string `json:"status,optional" validate:"oneof=启用 禁用 删除" comment:"状态"`                                  //用户状态：启用，禁用，删除
+    Remark string `json:"remark,optional" validate:"omitempty,gte=2" comment:"备注"`                                       //备注
 }
 
 //重置用户密码
@@ -47,19 +47,19 @@ type ChangePasswordRequest {
 
 //用户状态请求
 type UserStatusRequest {
-    Id string `json:"id" validate:"required" comment:"用户"`
-    Status int `json:"status,optional" validate:"oneof=20 50" comment:"状态"`               //用户状态：0.未启用[初始化，不可用于修改]，20.启用，50.禁用
+    Id []string `json:"id,optional" validate:"required,gte=1,dive,required,mongodb" comment:"用户"`
+    Status string `json:"status,optional" validate:"oneof=启用 禁用 删除" comment:"状态"`               //用户状态：启用，禁用，删除
 }
 
 //用户列表
-type UserListRequest {
+type UsersRequest {
     Page int64 `form:"page,optional" validate:"required,gte=1" comment:"页数""`
     Size int64 `form:"size,optional" validate:"required,gte=10,lte=100" comment:"条数"`
-    Name string `form:"name,optional"`       //搜索关键词：用户名
+    Name string `form:"name,optional"`             //搜索关键词：用户名
     Mobile string `form:"mobile,optional"`         //搜索关键词：手机号码
 }
 
-type UserListResponse {
+type UsersResponse {
     Code int `json:"code"`
     Msg string `json:"msg"`
     Data UserPaginate `json:"data"`
@@ -72,16 +72,22 @@ type UserPaginate {
 
 type User {
     Id string `json:"id,optional" validate:"omitempty,mongodb" comment:"账号"`
-    Name string `json:"name" validate:"required" comment:"账号名称"`                             //账号名称
-    Password string `json:"password" validate:"required,gte=6" comment:"密码"`                         //用户密码
-    Sex string `json:"sex" validate:"required,oneof=男 女" comment:"性别"`                             //性别
-    DepartmentId string `json:"department_id" validate:"mongodb,required" comment:"部门"`              //部门id
-    DepartmentName string `json:"department_name,optional"`                                            //部门名称
-    RolesId []string `json:"roles_id" validate:"gt=0,dive,required,mongodb" comment:"角色"`            //角色id
-    Mobile string `json:"mobile,optional" validate:"required,e164" comment:"手机号码"`                 //手机号码
-    Email string `json:"email,optional"  validate:"omitempty,email" comment:"Email"`                   //邮箱
-    Status int `json:"status,optional" validate:"oneof=0 20 50" comment:"状态"`                        //用户状态：0.未启用，20.启用，50.禁用
-    Remark string `json:"remark,optional" validate:"omitempty,gte=2" comment:"备注"`                   //备注
+    Name string `json:"name" validate:"required" comment:"账号名称"`                                               //账号名称
+    Sex string `json:"sex" validate:"required,oneof=男 女" comment:"性别"`                                         //性别
+    DepartmentId string `json:"department_id" validate:"mongodb,required" comment:"部门"`                          //部门id
+    DepartmentName string `json:"department_name,optional"`                                                        //部门名称
+    RolesId []string `json:"roles_id" validate:"gt=0,dive,required,mongodb" comment:"角色id"`                      //角色id
+    RolesName []string `json:"roles_name" validate:"gt=0,dive,required" comment:"角色名称"`                        //角色名称
+    Mobile string `json:"mobile,optional" validate:"required,e164" comment:"手机号码"`                             //手机号码
+    Email string `json:"email,optional"  validate:"omitempty,email" comment:"Email"`                               //邮箱
+    Status string `json:"status,optional" validate:"oneof=启用 禁用 删除" comment:"状态"`                          //用户状态：启用，禁用，删除
+    Remark string `json:"remark,optional" validate:"omitempty,gte=2" comment:"备注"`                               //备注
     CreatedAt int64 `json:"created_at,optional"`
     UpdatedAt int64 `json:"updated_at,optional"`
+}
+
+//分配角色
+type UserRolesRequest {
+    Id string `json:"id,optional" validate:"omitempty,mongodb" comment:"账号"`
+    RolesId []string `json:"roles_id" validate:"required,gt=0,dive,required,mongodb" comment:"角色"`  //角色id
 }

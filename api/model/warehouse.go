@@ -33,6 +33,7 @@ type Warehouse struct {
 	Status      int                `json:"status" bson:"status"`                      //仓库状态
 	Manager     string             `json:"manager" bson:"manager"`                    //负责人
 	Contact     string             `json:"contact" bson:"contact"`                    //联系方式
+	Image       string             `json:"image" bson:"image"`                        //图片
 	Remark      string             `json:"remark" bson:"remark"`                      //备注
 	Creator     primitive.ObjectID `json:"creator" bson:"creator"`                    //创建人
 	CreatorName string             `json:"creator_name,optional" bson:"creator_name"` //创建人

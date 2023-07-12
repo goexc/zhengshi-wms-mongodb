@@ -48,4 +48,6 @@ type Api {
     Method string `json:"method,options=|GET|POST|PUT|PATCH|DELETE"` //请求方法
     Name string `json:"name"`                                        //名称
     Remark string `json:"remark,optional"`                           //备注
+    CreatedAt int64 `json:"created_at"`
+    UpdatedAt int64 `json:"updated_at"`
 }

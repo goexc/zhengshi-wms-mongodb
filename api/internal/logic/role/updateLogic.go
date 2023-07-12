@@ -46,7 +46,6 @@ func (l *UpdateLogic) Update(req *types.RoleRequest) (resp *types.BaseResponse, 
 	var role = model.Role{
 		Name:      req.Name,
 		ParentId:  req.ParentId,
-		SortId:    req.SortId,
 		Status:    req.Status,
 		Remark:    req.Remark,
 		UpdatedAt: time.Now().Unix(),

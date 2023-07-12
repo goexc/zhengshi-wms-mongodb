@@ -56,7 +56,6 @@ func (l *ListLogic) List() (resp *types.DepartmentsResponse, err error) {
 	for _, one := range departments {
 		list = append(list, types.Department{
 			Id:        one.Id.Hex(),
-			Type:      one.Type,
 			SortId:    one.SortId,
 			ParentId:  one.ParentId,
 			Name:      one.Name,
@@ -66,7 +65,26 @@ func (l *ListLogic) List() (resp *types.DepartmentsResponse, err error) {
 			UpdatedAt: one.UpdatedAt,
 		})
 	}
-	resp.Data = list
+
+	//3.构造树形数据结构
+	departmentMap := make(map[string]*types.Department)
+
+	//遍历 departments 切片，将每个 department 添加到 map 中
+	for i := range list {
+		departmentMap[list[i].Id] = &list[i]
+	}
+
+	//遍历 list 切片，构建树形结构
+	var rootDepartment = make([]*types.Department, 0)
+	for i := range list {
+		if parent, ok := departmentMap[list[i].ParentId]; ok {
+			parent.Children = append(parent.Children, &list[i])
+		} else {
+			rootDepartment = append(rootDepartment, &list[i])
+		}
+	}
+
+	resp.Data = rootDepartment
 	resp.Code = http.StatusOK
 	resp.Msg = "成功"
 

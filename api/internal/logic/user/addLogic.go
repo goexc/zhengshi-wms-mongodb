@@ -45,7 +45,8 @@ func (l *AddLogic) Add(req *types.UserAddRequest) (resp *types.BaseResponse, err
 	}
 
 	var filter = bson.M{
-		"$or": or,
+		"$or":    or,
+		"status": bson.M{"$ne": "删除"},
 	}
 
 	singleRes := l.svcCtx.UserModel.FindOne(l.ctx, filter)
@@ -78,7 +79,41 @@ func (l *AddLogic) Add(req *types.UserAddRequest) (resp *types.BaseResponse, err
 		return resp, nil
 	}
 
-	//2.部门是否存在
+	//2.角色是否存在
+	if len(req.RolesId) == 0 {
+		resp.Msg = "请选择角色"
+		resp.Code = http.StatusBadRequest
+		return resp, nil
+	}
+
+	var rolesId = make([]primitive.ObjectID, 0)
+	for _, one := range req.RolesId {
+		roleId, e := primitive.ObjectIDFromHex(strings.TrimSpace(one))
+		if e != nil {
+			fmt.Printf("[Error]解析角色id[%s]：%s\n", one, e.Error())
+			resp.Msg = "角色参数错误"
+			resp.Code = http.StatusBadRequest
+			return resp, nil
+		}
+
+		rolesId = append(rolesId, roleId)
+	}
+
+	filter = bson.M{"_id": bson.M{"$in": rolesId}}
+	count, err := l.svcCtx.RoleModel.CountDocuments(l.ctx, filter)
+	if err != nil {
+		fmt.Printf("[Error]查询用户角色是否存在:%s\n", err.Error())
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "服务器内部错误"
+		return resp, nil
+	}
+	if count != int64(len(req.RolesId)) {
+		resp.Code = http.StatusBadRequest
+		resp.Msg = "部分角色不存在"
+		return resp, nil
+	}
+
+	//3.部门是否存在
 	departmentId, err := primitive.ObjectIDFromHex(strings.TrimSpace(req.DepartmentId))
 	if err != nil {
 		fmt.Printf("[Error]解析部门id[%s]：%s\n", req.DepartmentId, err.Error())
@@ -111,34 +146,7 @@ func (l *AddLogic) Add(req *types.UserAddRequest) (resp *types.BaseResponse, err
 		return resp, nil
 	}
 
-	//3.角色是否存在
-	var rolesId bson.A
-	for _, one := range req.RolesId {
-		roleId, e := primitive.ObjectIDFromHex(strings.TrimSpace(one))
-		if e != nil {
-			fmt.Printf("[Error]解析角色id[%s]：%s\n", req.DepartmentId, e.Error())
-			resp.Msg = "角色参数错误"
-			resp.Code = http.StatusBadRequest
-			return resp, nil
-		}
-		rolesId = append(rolesId, roleId)
-	}
-
-	filter = bson.M{"_id": bson.M{"$in": rolesId}}
-	count, err := l.svcCtx.RoleModel.CountDocuments(l.ctx, filter)
-	if err != nil {
-		fmt.Printf("[Error]查询角色列表是否存在:%s\n", err.Error())
-		resp.Code = http.StatusInternalServerError
-		resp.Msg = "服务器内部错误"
-		return resp, nil
-	}
-	if count != int64(len(req.RolesId)) {
-		resp.Code = http.StatusBadRequest
-		resp.Msg = "部分角色不存在"
-		return resp, nil
-	}
-
-	//5.添加用户
+	//4.添加用户
 	insert := bson.D{
 		{"name", strings.TrimSpace(req.Name)},
 		{"password", cryptx.PasswordEncrypt(l.svcCtx.Config.Salt, req.Password)},
@@ -146,14 +154,15 @@ func (l *AddLogic) Add(req *types.UserAddRequest) (resp *types.BaseResponse, err
 		{"email", req.Email},
 		{"avatar", l.svcCtx.Config.Avatar},
 		{"sex", req.Sex},
-		{"status", 0},
+		{"status", "启用"},
 		{"department_id", strings.TrimSpace(req.DepartmentId)},
 		{"department_name", department.Name},
+		{"remark", req.Remark},
 		{"created_at", time.Now().Unix()},
 		{"updated_at", time.Now().Unix()},
 	}
 
-	insertRes, err := l.svcCtx.UserModel.InsertOne(l.ctx, &insert)
+	result, err := l.svcCtx.UserModel.InsertOne(l.ctx, &insert)
 	if err != nil {
 		fmt.Printf("[Error]新增用户入库：%s\n", err.Error())
 		resp.Code = http.StatusInternalServerError
@@ -161,19 +170,23 @@ func (l *AddLogic) Add(req *types.UserAddRequest) (resp *types.BaseResponse, err
 		return resp, nil
 	}
 
-	var userId = insertRes.InsertedID.(primitive.ObjectID).Hex()
+	fmt.Println("新增用户：", result.InsertedID)
+	userId := result.InsertedID.(primitive.ObjectID).Hex()
 
-	//5.录入角色
-	var groupPolicies = make([][]string, 0)
+	//5.绑定新角色
+	var roles []string
 	for _, roleId := range req.RolesId {
-		groupPolicies = append(groupPolicies, []string{fmt.Sprintf("user_%s", userId), fmt.Sprintf("role_%s", roleId)})
+		roles = append(roles, fmt.Sprintf("role_%s", roleId))
 	}
-	_, err = l.svcCtx.Enforcer.AddGroupingPoliciesEx(groupPolicies)
-	if err != nil {
-		fmt.Printf("[Error]用户[%s]分配角色:%s\n", userId, err.Error())
-		resp.Code = http.StatusInternalServerError
-		resp.Msg = "服务内部错误"
-		return resp, nil
+
+	if len(roles) > 0 {
+		_, err = l.svcCtx.Enforcer.AddRolesForUser(fmt.Sprintf("user_%s", userId), roles)
+		if err != nil {
+			fmt.Printf("[Error]用户[%s]分配角色:%s\n", userId, err.Error())
+			resp.Code = http.StatusInternalServerError
+			resp.Msg = "服务内部错误"
+			return resp, nil
+		}
 	}
 
 	resp.Code = http.StatusOK

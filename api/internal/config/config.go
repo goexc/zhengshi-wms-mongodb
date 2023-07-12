@@ -43,4 +43,11 @@ type Config struct {
 		RoleMenu   string
 		Supplier   string
 	}
+	OSS struct {
+		EndPoint        string
+		AccessKeyID     string
+		AccessKeySecret string
+		Bucket          string
+		Domain          string
+	}
 }

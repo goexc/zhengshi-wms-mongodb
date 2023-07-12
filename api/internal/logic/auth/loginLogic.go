@@ -41,6 +41,7 @@ func (l *LoginLogic) Login(req *types.LoginRequest) (resp *types.LoginResponse, 
 	filter := bson.M{
 		"name": req.Name,
 		//"password": req.Password,
+		"status": bson.M{"$ne": "删除"},
 	}
 	res := l.svcCtx.UserModel.FindOne(l.ctx, filter)
 
@@ -80,12 +81,8 @@ func (l *LoginLogic) Login(req *types.LoginRequest) (resp *types.LoginResponse, 
 	}
 
 	switch user.Status {
-	case 0:
-		resp.Code = http.StatusBadRequest
-		resp.Msg = "账号未启用"
-		return resp, nil
-	case 20: //启用
-	case 50: //禁用
+	case "启用": //启用
+	case "禁用": //禁用
 		resp.Code = http.StatusBadRequest
 		resp.Msg = "账号已禁用"
 		return resp, nil

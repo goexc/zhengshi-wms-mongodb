@@ -34,12 +34,12 @@ func (l *MenuDistributeLogic) MenuDistribute(req *types.RoleMenusRequest) (resp 
 	resp = new(types.BaseResponse)
 
 	//1.角色是否存在
-	id, _ := primitive.ObjectIDFromHex(strings.TrimSpace(req.RoleId))
+	role_id, _ := primitive.ObjectIDFromHex(strings.TrimSpace(req.Id))
 	var filter bson.M
-	filter = bson.M{"_id": id}
+	filter = bson.M{"_id": role_id}
 	count, err := l.svcCtx.RoleModel.CountDocuments(l.ctx, filter)
 	if err != nil {
-		fmt.Printf("[Error]查询角色[%s]是否存在:%s\n", req.RoleId, err.Error())
+		fmt.Printf("[Error]查询角色[%s]是否存在:%s\n", req.Id, err.Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务器内部错误"
 		return resp, nil
@@ -73,10 +73,10 @@ func (l *MenuDistributeLogic) MenuDistribute(req *types.RoleMenusRequest) (resp 
 	}
 
 	//3.删除角色对应的菜单
-	filter = bson.M{"role_id": strings.TrimSpace(req.RoleId)}
+	filter = bson.M{"role_id": role_id}
 	_, err = l.svcCtx.RoleMenuModel.DeleteMany(l.ctx, filter)
 	if err != nil {
-		fmt.Printf("[Error]删除角色[%s]对应的菜单:%s\n", req.RoleId, err.Error())
+		fmt.Printf("[Error]删除角色[%s]对应的菜单:%s\n", req.Id, err.Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务器内部错误"
 		return resp, nil
@@ -85,17 +85,17 @@ func (l *MenuDistributeLogic) MenuDistribute(req *types.RoleMenusRequest) (resp 
 	//4.角色绑定菜单
 	var now = time.Now()
 	var docs []interface{}
-	for _, menuId := range req.MenusId {
+	for _, menuId := range menusId {
 		docs = append(docs, model.RoleMenu{
-			RoleId:    req.RoleId,
-			MenuId:    menuId,
+			RoleId:    role_id,
+			MenuId:    menuId.(primitive.ObjectID),
 			CreatedAt: now.Unix(),
 		})
 	}
 
 	_, err = l.svcCtx.RoleMenuModel.InsertMany(l.ctx, docs)
 	if err != nil {
-		fmt.Printf("[Error]角色[%s]绑定菜单列表:%s\n", req.RoleId, err.Error())
+		fmt.Printf("[Error]角色[%s]绑定菜单列表:%s\n", req.Id, err.Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务器内部错误"
 		return resp, nil

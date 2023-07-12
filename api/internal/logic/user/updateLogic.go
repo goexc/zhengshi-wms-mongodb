@@ -75,10 +75,9 @@ func (l *UpdateLogic) Update(req *types.UserUpdateRequest) (resp *types.BaseResp
 	}
 
 	filter = bson.M{
-		"_id": bson.M{
-			"$ne": id,
-		},
-		"$or": or,
+		"_id":    bson.M{"$ne": id},
+		"status": bson.M{"$ne": "删除"},
+		"$or":    or,
 	}
 
 	singleRes = l.svcCtx.UserModel.FindOne(l.ctx, filter)
@@ -150,7 +149,7 @@ func (l *UpdateLogic) Update(req *types.UserUpdateRequest) (resp *types.BaseResp
 	for _, one := range req.RolesId {
 		roleId, e := primitive.ObjectIDFromHex(strings.TrimSpace(one))
 		if e != nil {
-			fmt.Printf("[Error]解析角色id[%s]：%s\n", req.DepartmentId, e.Error())
+			fmt.Printf("[Error]解析角色id[%s]：%s\n", one, e.Error())
 			resp.Msg = "角色参数错误"
 			resp.Code = http.StatusBadRequest
 			return resp, nil
@@ -172,7 +171,31 @@ func (l *UpdateLogic) Update(req *types.UserUpdateRequest) (resp *types.BaseResp
 		return resp, nil
 	}
 
-	//解绑旧角色,绑定新角色
+	//5.更新：密码单独更新
+	update := bson.M{
+		"$set": bson.M{
+			"name": strings.TrimSpace(req.Name),
+			//"password":        cryptx.PasswordEncrypt(l.svcCtx.Config.Salt, req.Password),
+			"mobile":          req.Mobile,
+			"email":           req.Email,
+			"avatar":          l.svcCtx.Config.Avatar,
+			"sex":             req.Sex,
+			"status":          req.Status,
+			"department_id":   strings.TrimSpace(req.DepartmentId),
+			"department_name": department.Name,
+			"remark":          req.Remark,
+			"updated_at":      time.Now().Unix(),
+		},
+	}
+	_, err = l.svcCtx.UserModel.UpdateByID(l.ctx, id, &update)
+	if err != nil {
+		fmt.Printf("[Error]更新用户[%s]信息：%s\n", req.Id, err.Error())
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "服务器内部错误"
+		return resp, nil
+	}
+
+	//6.解绑旧角色,绑定新角色
 	var roles []string
 	for _, roleId := range req.RolesId {
 		roles = append(roles, fmt.Sprintf("role_%s", roleId))
@@ -194,29 +217,6 @@ func (l *UpdateLogic) Update(req *types.UserUpdateRequest) (resp *types.BaseResp
 			resp.Msg = "服务内部错误"
 			return resp, nil
 		}
-	}
-
-	//6.更新：密码单独更新
-	update := bson.M{
-		"$set": bson.M{
-			"name": strings.TrimSpace(req.Name),
-			//"password":        cryptx.PasswordEncrypt(l.svcCtx.Config.Salt, req.Password),
-			"mobile":          req.Mobile,
-			"email":           req.Email,
-			"avatar":          l.svcCtx.Config.Avatar,
-			"sex":             req.Sex,
-			"status":          req.Status,
-			"department_id":   strings.TrimSpace(req.DepartmentId),
-			"department_name": department.Name,
-			"updated_at":      time.Now().Unix(),
-		},
-	}
-	_, err = l.svcCtx.UserModel.UpdateByID(l.ctx, id, &update)
-	if err != nil {
-		fmt.Printf("[Error]更新用户[%s]信息：%s\n", req.Id, err.Error())
-		resp.Code = http.StatusInternalServerError
-		resp.Msg = "服务器内部错误"
-		return resp, nil
 	}
 
 	resp.Code = http.StatusOK

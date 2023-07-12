@@ -79,7 +79,6 @@ func (l *AddLogic) Add(req *types.RoleRequest) (resp *types.BaseResponse, err er
 	role := model.Role{
 		Name:      req.Name,
 		ParentId:  req.ParentId,
-		SortId:    req.SortId,
 		Status:    req.Status,
 		Remark:    req.Remark,
 		CreatedBy: uid,

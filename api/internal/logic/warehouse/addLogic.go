@@ -93,6 +93,7 @@ func (l *AddLogic) Add(req *types.WarehouseRequest) (resp *types.BaseResponse, e
 		Status:       code.WarehouseStatusCode("激活"),
 		Manager:      strings.TrimSpace(req.Manager),
 		Contact:      strings.TrimSpace(req.Contact),
+		Image:        strings.TrimSpace(req.Image),
 		Remark:       strings.TrimSpace(req.Remark),
 		Creator:      uObjectID,
 		CreatedAt:    time.Now().Unix(),

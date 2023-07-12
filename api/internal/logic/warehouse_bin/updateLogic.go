@@ -175,6 +175,7 @@ func (l *UpdateLogic) Update(req *types.WarehouseBinRequest) (resp *types.BaseRe
 			{"code": strings.TrimSpace(req.Code)},
 		},
 		"warehouse_rack_id": bin.WarehouseRackId,
+		"_id":               bson.M{"$ne": id},
 		"status":            bson.M{"$ne": code.WarehouseBinStatusCode("删除")},
 	}
 	singleRes = l.svcCtx.WarehouseBinModel.FindOne(l.ctx, filter)

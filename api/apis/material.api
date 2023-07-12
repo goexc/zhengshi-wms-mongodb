@@ -46,7 +46,7 @@ type Material {
     Model string `json:"model"`                        //型号：用于唯一标识和区分不同种类的钢材。
     SurfaceTreatment string `json:"surface_treatment"` //表面处理。钢材经过的表面处理方式，如热镀锌、喷涂等。
     StrengthGrade string `json:"strength_grade"`       //强度等级：钢材的强度等级，常见的钢材强度等级：Q235、Q345
-    Unit string `json:"unit"`                          //计量单位
+    Unit string `json:"unit"`                          //计量单位，如个、箱、千克等
     Remark string `json:"remark"`                      //备注
     CreatedAt int64 `json:"created_at"`
     UpdatedAt int64 `json:"updated_at"`

@@ -33,9 +33,9 @@ func (l *MenusLogic) Menus(req *types.RoleIdRequest) (resp *types.RoleMenusRespo
 	resp = new(types.RoleMenusResponse)
 
 	//1.角色是否存在
-	id, _ := primitive.ObjectIDFromHex(strings.TrimSpace(req.Id))
+	roleId, _ := primitive.ObjectIDFromHex(strings.TrimSpace(req.Id))
 	var filter bson.M
-	filter = bson.M{"_id": id}
+	filter = bson.M{"_id": roleId}
 	count, err := l.svcCtx.RoleModel.CountDocuments(l.ctx, filter)
 	if err != nil {
 		fmt.Printf("[Error]查询角色[%s]是否存在:%s\n", req.Id, err.Error())
@@ -50,7 +50,7 @@ func (l *MenusLogic) Menus(req *types.RoleIdRequest) (resp *types.RoleMenusRespo
 	}
 
 	//2.角色对应的菜单
-	filter = bson.M{"role_id": strings.TrimSpace(req.Id)}
+	filter = bson.M{"role_id": roleId}
 	cur, err := l.svcCtx.RoleMenuModel.Find(l.ctx, filter)
 	if err != nil {
 		fmt.Printf("[Error]查询角色[%s]菜单:%s\n", req.Id, err.Error())
@@ -70,7 +70,7 @@ func (l *MenusLogic) Menus(req *types.RoleIdRequest) (resp *types.RoleMenusRespo
 
 	resp.Data = make([]string, 0)
 	for _, one := range menus {
-		resp.Data = append(resp.Data, one.MenuId)
+		resp.Data = append(resp.Data, one.MenuId.Hex())
 	}
 	resp.Code = http.StatusOK
 	resp.Msg = "成功"

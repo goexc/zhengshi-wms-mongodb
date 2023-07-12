@@ -5,6 +5,7 @@ import (
 	"api/model"
 	"context"
 	"fmt"
+	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/casbin/casbin/v2"
 	redisadapter "github.com/casbin/redis-adapter/v3"
 	"github.com/zeromicro/go-zero/core/stores/cache"
@@ -21,7 +22,9 @@ type ServiceContext struct {
 	Config             config.Config
 	Cache              cache.Cache
 	Enforcer           *casbin.SyncedEnforcer
+	OSS                *oss.Client
 	SystemInitModel    *mongo.Collection
+	ImageModel         *mongo.Collection
 	CompanyModel       *mongo.Collection
 	UserModel          *mongo.Collection
 	ApiModel           *mongo.Collection
@@ -47,7 +50,9 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		Config:             c,
 		Cache:              cache.New(c.CacheRedis, syncx.NewSingleFlight(), cache.NewStat(""), mongo.ErrNoDocuments),
 		Enforcer:           InitCasbin(c),
+		OSS:                InitOSS(c),
 		SystemInitModel:    db.Collection("system_init"),
+		ImageModel:         db.Collection("image"),
 		CompanyModel:       db.Collection("company"),
 		UserModel:          db.Collection("user"),
 		ApiModel:           db.Collection("api"),
@@ -132,6 +137,15 @@ func InitCasbin(c config.Config) *casbin.SyncedEnforcer {
 	enforcer.StartAutoLoadPolicy(time.Minute)
 
 	return enforcer
+}
+
+func InitOSS(c config.Config) *oss.Client {
+	client, err := oss.New(c.OSS.EndPoint, c.OSS.AccessKeyID, c.OSS.AccessKeySecret)
+	if err != nil {
+		panic("oss初始化失败:" + err.Error())
+	}
+
+	return client
 }
 
 func SystemInit(ctx *ServiceContext) {

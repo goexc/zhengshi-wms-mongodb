@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
 	"net/http"
 	"strings"
 
@@ -31,34 +30,36 @@ func NewStatusLogic(ctx context.Context, svcCtx *svc.ServiceContext) *StatusLogi
 func (l *StatusLogic) Status(req *types.UserStatusRequest) (resp *types.BaseResponse, err error) {
 	resp = new(types.BaseResponse)
 
-	if strings.TrimSpace(req.Id) == "" {
+	if len(req.Id) == 0 {
 		resp.Code = http.StatusBadRequest
 		resp.Msg = "请选择用户"
 		return resp, nil
 	}
 
 	// 1.用户是否存在
-	id, err := primitive.ObjectIDFromHex(strings.TrimSpace(req.Id))
-	if err != nil {
-		fmt.Printf("[Error]角色[%s]id转换：%s\n", req.Id, err.Error())
-		resp.Code = http.StatusBadRequest
-		resp.Msg = "参数错误"
-		return resp, nil
+	var ids = make([]primitive.ObjectID, 0)
+	for _, id := range req.Id {
+		userId, e := primitive.ObjectIDFromHex(strings.TrimSpace(id))
+		if e != nil {
+			fmt.Printf("[Error]角色[%s]id转换：%s\n", req.Id, e.Error())
+			resp.Code = http.StatusBadRequest
+			resp.Msg = "参数错误"
+			return resp, nil
+		}
+		ids = append(ids, userId)
 	}
 
-	var filter = bson.M{"_id": id}
-	singleRes := l.svcCtx.UserModel.FindOne(l.ctx, filter)
-	switch singleRes.Err() {
-	case nil: //用户存在
-	case mongo.ErrNoDocuments: //用户不存在
-		fmt.Printf("[Error]用户[%s]不存在\n", req.Id)
-		resp.Code = http.StatusBadRequest
-		resp.Msg = "用户不存在"
-		return resp, nil
-	default: //其他错误
-		fmt.Printf("[Error]查询用户[%s]是否存在:%s\n", req.Id, err.Error())
+	var filter = bson.M{"_id": bson.M{"$in": ids}, "status": bson.M{"$ne": "删除"}}
+	count, err := l.svcCtx.UserModel.CountDocuments(l.ctx, filter)
+	if err != nil {
+		fmt.Printf("[Error]查询用户[%s]是否存在:%s\n", strings.Join(req.Id, ","), err.Error())
 		resp.Code = http.StatusInternalServerError
-		resp.Msg = "服务内部错误"
+		resp.Msg = "服务器内部错误"
+		return resp, nil
+	}
+	if count < int64(len(req.Id)) {
+		resp.Code = http.StatusBadRequest
+		resp.Msg = "部分用户不存在"
 		return resp, nil
 	}
 
@@ -69,9 +70,9 @@ func (l *StatusLogic) Status(req *types.UserStatusRequest) (resp *types.BaseResp
 		},
 	}
 
-	_, err = l.svcCtx.UserModel.UpdateByID(l.ctx, id, &update)
+	_, err = l.svcCtx.UserModel.UpdateMany(l.ctx, filter, &update)
 	if err != nil {
-		fmt.Printf("[Error]更新用户[%s]信息：%s\n", req.Id, err.Error())
+		fmt.Printf("[Error]更新用户[%s]状态：%s\n", req.Id, err.Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务器内部错误"
 		return resp, nil

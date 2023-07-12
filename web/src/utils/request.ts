@@ -1,0 +1,56 @@
+import axios, { AxiosResponse } from "axios";
+import { ElMessage } from "element-plus";
+import useUserStore from "@/store/module/account.ts";
+//创建axios实例
+const request = axios.create({
+  // baseURL: import.meta.env.VITE_BASE_API,
+  baseURL: import.meta.env.VITE_SERVER,
+  timeout: 5000,
+});
+
+//请求拦截器
+request.interceptors.request.use((config) => {
+  //config配置对象，headers属性请求头，经常给服务器端携带公共参数
+  const userStore = useUserStore();
+  if (userStore.token) {
+    config.headers.Authorization = userStore.token;
+  }
+  return config;
+});
+//响应拦截器
+request.interceptors.response.use(
+  (response: AxiosResponse) => {
+    return response.data;
+  },
+  (error) => {
+    //处理网络错误
+    let msg = "";
+    const status = error.response.status;
+    switch (status) {
+      case 400:
+        console.log("参数错误：", error.response.data);
+        msg = error.response.data;
+        break;
+      case 401:
+        msg = "token过期";
+        break;
+      case 403:
+        msg = "无权访问";
+        break;
+      case 404:
+        msg = "请求地址错误";
+        break;
+      case 500:
+        msg = "服务器出现问题";
+        break;
+      default:
+        msg = "无网络";
+    }
+    ElMessage({
+      type: "error",
+      message: msg,
+    });
+    return Promise.reject(error);
+  }
+);
+export default request;
