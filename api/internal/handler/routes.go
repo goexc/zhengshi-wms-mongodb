@@ -505,6 +505,11 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Path:    "/",
 				Handler: images.AddHandler(serverCtx),
 			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/",
+				Handler: images.PageHandler(serverCtx),
+			},
 		},
 		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
 		rest.WithPrefix("/images"),

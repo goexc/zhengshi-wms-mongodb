@@ -29,7 +29,7 @@ const label = ref<string>('') //按钮显示文本
 const icon = ref<string>('')
 const emit = defineEmits(['action'])
 const handleClick = () => {
-  console.log('子组件向父组件传递消息')
+  // console.log('子组件向父组件传递消息')
   emit('action')
 }
 /*

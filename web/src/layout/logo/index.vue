@@ -1,7 +1,7 @@
 <script setup lang="ts">
 //引入标题与logo配置文件
 import setting from "@/setting";
-import useLayoutSettingStore from "@/store/module/layout";
+import useLayoutSettingStore from "@/store/modules/layout";
 
 defineOptions({
   name:"LayoutLogo"
@@ -14,7 +14,7 @@ const layoutSettingStore = useLayoutSettingStore()
 <template>
   <div class="logo" v-if="setting.logoHidden">
     <img :src="setting.logo" alt="">
-    <p v-if="!layoutSettingStore.collapse">{{ setting.title }}</p>
+    <el-text v-if="!layoutSettingStore.collapse">{{ setting.title }}</el-text>
   </div>
 </template>
 
@@ -32,7 +32,7 @@ const layoutSettingStore = useLayoutSettingStore()
   }
 
   p{
-    color: white;
+    //color: white;
     font-size: $base-logo-title-fontsize;
     margin-left: 10px;
   }

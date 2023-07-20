@@ -384,12 +384,12 @@ const statusType = (status: string) => {
               <el-button type="primary" plain size="small" icon="Menu" @click="setApis(row)">分配API</el-button>
               <el-button type="primary" plain size="small" icon="Edit" @click="editRole(row)">编辑</el-button>
               <el-popconfirm
+                  v-if="row.status==='启用'"
                   :title="`确认删除角色 [${row.name}] 吗？`"
                   @confirm="removeRole(row)"
                   width="360px"
               >
                 <template #reference>
-<!--                  <el-button type="danger" plain size="small" icon="Delete">删除</el-button>-->
                   <perms-button
                       perms="privilege:role:delete"
                       :type="Types.danger"

@@ -8,6 +8,8 @@ info(
     version: "1.0.1"
 )
 
+import "base.api"
+
 type ProfilePasswordRequest {
     Password string `json:"password,optional" validate:"required,gte=6" comment:"密码"`  //用户密码
 }
@@ -38,21 +40,13 @@ type Profile {
     Sex string `json:"sex"`                        //性别
     DepartmentId string `json:"department_id"`     //部门id
     DepartmentName string `json:"department_name"` //部门名称
-    RolesId []ProfileRole `json:"roles_id"`        //角色id
     Mobile string `json:"mobile,optional"`         //手机号码
     Email string `json:"email,optional"`           //邮箱
     Status string `json:"status,optional"`         //用户状态：启用，禁用，删除
     Avatar string `json:"avatar"`                  //头像
     Remark string `json:"remark,optional"`         //备注
-    Routes []*Route `json:"routes"`                 //账号的角色对应的路由
-    Buttons []Button `json:"buttons"`              //账号的角色对应的按钮权限
     CreatedAt int64 `json:"created_at,optional"`
     UpdatedAt int64 `json:"updated_at,optional"`
-}
-
-type ProfileRole {
-    RoleId string `json:"role_id"`
-    RoleName string `json:"role_name"`
 }
 
 type Button {
@@ -61,31 +55,16 @@ type Button {
     Perms string `json:"perms"` //按钮权限
 }
 
-//菜单列表
-type AccountMenusResponse {
+
+
+//用户菜单、按钮权限
+type AccountPermsResponse {
     Code int `json:"code"`
     Msg string `json:"msg"`
-    Data []string `json:"data,optional"`//菜单id
+    Data Perms `json:"data,optional"`//
 }
 
-//路由，等同于menu.api中的Menu
-type Route {
-    Id string `json:"id"`
-    Type int64 `json:"type"`                                //路由类型：1.菜单，2.按钮
-    SortId int64 `json:"sort_id"`                           //排序
-    ParentId string `json:"parent_id"`                      //父路由id
-    Path string `json:"path,optional"`                      //路由路径
-    Name string `json:"name,optional"`                      //路由名称
-
-    Component string `json:"component,optional"`            //路由组件
-    Icon string `json:"icon"`                               //元信息：图标
-    Transition string `json:"transition"`                   //元信息：过渡动画
-    Hidden bool `json:"hidden"`                             //元信息：是否隐藏
-    Fixed bool `json:"fixed"`                               //元信息：是否固定
-    IsFull bool `json:"is_full"`                           //元信息：是否全屏
-    Perms string `json:"perms,optional"`                    //权限标识
-    Remark string `json:"remark"`                           //备注
-    Children []*Route `json:"children,optional"`
-    CreatedAt int64 `json:"created_at"`
-    UpdatedAt int64 `json:"updated_at"`
+type Perms {
+    Menus []*Menu `json:"menus"`
+    Buttons []Button `json:"buttons"`
 }

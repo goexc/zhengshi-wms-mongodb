@@ -26,6 +26,7 @@ type WarehouseZoneRequest {
     WarehouseId string `json:"warehouse_id,optional" validate:"required,mongodb" comment:"仓库"`
     Name string `json:"name,optional" validate:"required" comment:"库区名称"`                                     //库区名称
     Code string `json:"code,optional" validate:"required" comment:"库区编号"`                                     //库区编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
+    Image string `json:"image,optional" validate:"required" comment:"库区图片"`                                   //库区图片
     Capacity float64 `json:"capacity,optional" validate:"omitempty,gte=0" comment:"库区容量"`                     // 库区容量
     CapacityUnit string `json:"capacity_unit,optional" validate:"omitempty" comment:"库区容量单位"`               // 库区容量单位：面积、体积或其他度量单位
     Manager string `json:"manager,optional" validate:"omitempty" comment:"负责人"`                                //负责人
@@ -35,8 +36,8 @@ type WarehouseZoneRequest {
 
 //库区列表
 type WarehouseZoneListRequest {
-    WarehouseId string `form:"warehouse_id,optional" validate:"required,mongodb" comment:"仓库"`                                                                                                                             //仓库Id
-    Type string `form:"type,optional" validate:"omitempty,oneof=分销中心 生产库区 跨境库区 电商库区 冷链库区 合规库区 专用库区 跨渠道库区 自动化库区 第三方物流库区" comment:"库区类型"`                                     //库区类型
+    WarehouseId string `form:"warehouse_id,optional" validate:"omitempty,mongodb" comment:"仓库"`                                                                                                                             //仓库Id
+    Type string `form:"type,optional" validate:"omitempty,oneof=分销中心 生产库区 跨境库区 电商库区 冷链库区 合规库区 专用库区 跨渠道库区 自动化库区 第三方物流库区" comment:"库区类型"`                                      //库区类型
     Name string `form:"name,optional" validate:"omitempty" comment:"库区名称"`                                                                                                                                                //库区名称
     Code string `form:"code,optional" validate:"omitempty" comment:"库区编号"`                                                                                                                                                //库区编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
     Status string `form:"status,optional" validate:"omitempty,oneof=激活 禁用 盘点中 关闭" comment:"库区状态"`                                                                                                                //库区状态：不允许查询已删除的数据库
@@ -53,7 +54,7 @@ type WarehouseZonesRequest {
     Page int64 `form:"page,optional" validate:"required,gte=1" comment:"页数""`
     Size int64 `form:"size,optional" validate:"required,gte=10,lte=100" comment:"条数"`
     WarehouseId string `form:"warehouse_id,optional" validate:"omitempty,mongodb" comment:"仓库"`                                                                                                                             //仓库Id
-    Type string `form:"type,optional" validate:"omitempty,oneof=分销中心 生产库区 跨境库区 电商库区 冷链库区 合规库区 专用库区 跨渠道库区 自动化库区 第三方物流库区" comment:"库区类型"`                                     //库区类型
+    Type string `form:"type,optional" validate:"omitempty,oneof=分销中心 生产库区 跨境库区 电商库区 冷链库区 合规库区 专用库区 跨渠道库区 自动化库区 第三方物流库区" comment:"库区类型"`                                      //库区类型
     Name string `form:"name,optional" validate:"omitempty" comment:"库区名称"`                                                                                                                                                //库区名称
     Code string `form:"code,optional" validate:"omitempty" comment:"库区编号"`                                                                                                                                                //库区编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
     Status string `form:"status,optional" validate:"omitempty,oneof=激活 禁用 盘点中 关闭" comment:"库区状态"`                                                                                                                //库区状态：不允许查询已删除的数据库
@@ -75,8 +76,8 @@ type WarehouseZone {
     WarehouseId string `json:"warehouse_id,optional"`                             //仓库Id
     WarehouseName string `json:"warehouse_name,optional"`                         //仓库名称
     Name string `json:"name,optional"`                                            //库区名称
-    Type string `json:"type,optional"`                                            //库区类型：分销中心 生产库区 跨境库区 电商库区 冷链库区 合规库区 专用库区 跨渠道库区 自动化库区 第三方物流库区
     Code string `json:"code,optional"`                                            //库区编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
+    Image string `json:"image,optional"`                                          //库区图片
     Capacity float64 `json:"capacity,optional"`                                   // 库区容量
     CapacityUnit string `json:"capacity_unit,optional"`                           // 库区容量单位：面积、体积或其他度量单位
     Status string `json:"status,optional"`                                        //库区状态

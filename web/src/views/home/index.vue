@@ -1,6 +1,6 @@
 <script setup lang="ts">
 
-import useUserStore from "@/store/module/account.ts";
+import {useUserStore} from "@/store/modules/user.ts";
 import {ref} from "vue";
 
 const userStore = useUserStore()
@@ -11,9 +11,9 @@ const title = ref<string>(import.meta.env.VITE_TITLE)
   <div>
     <el-card>
       <div class="box">
-        <el-image class="avatar" :src="userStore.avatar"/>
+        <el-image class="avatar" :src="userStore.account.avatar"/>
         <div class="user">
-          <h2>{{ userStore.name }}</h2>
+          <h2>{{ userStore.account.name }}</h2>
           <p>{{ title }}</p>
         </div>
       </div>

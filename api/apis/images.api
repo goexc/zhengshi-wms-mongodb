@@ -19,3 +19,20 @@ type ImageResponse {
 type ImageUrl {
     Url string `json:"url"`
 }
+
+//图片分页
+type ImagesRequest {
+    Page int64 `form:"page,optional" validate:"required,gte=1" comment:"页数""`
+    Size int64 `form:"size,optional" validate:"required,gte=10,lte=100" comment:"条数"`
+}
+
+type ImagesResponse {
+    Code int `json:"code"`
+    Msg string `json:"msg"`
+    Data ImagePaginate `json:"data"`
+}
+
+type ImagePaginate {
+    Total int64 `json:"total"`
+    List []string `json:"list"` //图片列表
+}

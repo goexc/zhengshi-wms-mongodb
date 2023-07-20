@@ -1,0 +1,53 @@
+[
+  {
+    "_id": "647962e17882a620b88a8ef3",
+    "address": "",
+    "capacity": "0",
+    "capacity_unit": "",
+    "code": "SDJCJSCLYXGS",
+    "contact": "+8617361081269",
+    "created_at": "1685676769",
+    "creator": "647557da38030e59bbcc1b1a",
+    "creator_name": "",
+    "manager": "陈总2",
+    "name": "诸城市长益汽车部件有限公司1",
+    "remark": "",
+    "status": "10",
+    "type": "20",
+    "updated_at": "1687278420"
+  },
+  {
+    "_id": "6479638a7882a620b88a8ef4",
+    "address": "",
+    "capacity": "2000",
+    "capacity_unit": "㎡",
+    "code": "YL3",
+    "contact": "+8617361081269",
+    "created_at": "1685676938",
+    "creator": "647557da38030e59bbcc1b1a",
+    "creator_name": "",
+    "manager": "陈总",
+    "name": "原料库3",
+    "remark": "",
+    "status": "10",
+    "type": "20",
+    "updated_at": "1685693818"
+  },
+  {
+    "_id": "647965d47882a620b88a8ef5",
+    "address": "",
+    "capacity": "2000",
+    "capacity_unit": "㎡",
+    "code": "YL2",
+    "contact": "+8617361081269",
+    "created_at": "1685677524",
+    "creator": "647557da38030e59bbcc1b1a",
+    "creator_name": "",
+    "manager": "陈总",
+    "name": "原料库2",
+    "remark": "",
+    "status": "10",
+    "type": "20",
+    "updated_at": "1685677524"
+  }
+]

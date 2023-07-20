@@ -10,6 +10,7 @@ type Menu struct {
 	ParentId   string             `json:"parent_id" bson:"parent_id"`             //父路由id
 	SortId     int64              `json:"sort_id" bson:"sort_id"`                 //排序
 	Component  string             `json:"component" bson:"component"`             //路由组件
+	Title      string             `json:"title" bson:"title"`                     //标题
 	Icon       string             `json:"icon" bson:"icon"`                       //图标
 	Transition string             `json:"transition" bson:"transition"`           //过渡动画
 	Hidden     bool               `json:"hidden" bson:"hidden"`                   //是否隐藏

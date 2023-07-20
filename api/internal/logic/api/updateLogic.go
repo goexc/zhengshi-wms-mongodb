@@ -31,7 +31,7 @@ func NewUpdateLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UpdateLogi
 	}
 }
 
-func (l *UpdateLogic) Update(req *types.ApiUpdateRequest) (resp *types.BaseResponse, err error) {
+func (l *UpdateLogic) Update(req *types.ApiRequest) (resp *types.BaseResponse, err error) {
 	resp = new(types.BaseResponse)
 
 	//1.api是否存在

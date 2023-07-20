@@ -131,7 +131,7 @@ func InitCasbin(c config.Config) *casbin.SyncedEnforcer {
 		panic("enforcer初始化失败:" + err.Error())
 	}
 
-	enforcer.EnableLog(true)
+	enforcer.EnableLog(false)
 
 	//2.3 casbin auto load
 	enforcer.StartAutoLoadPolicy(time.Minute)

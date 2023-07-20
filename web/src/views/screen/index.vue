@@ -19,7 +19,6 @@ let screenRef = ref()
 const getScale = (w: number = 1920, h: number = 1080) => {
   const ww = window.innerWidth / w;
   const wh = window.innerHeight / h;
-  console.log('ww:', ww, '; wh:', wh)
   return ww < wh ? ww : wh;
 }
 

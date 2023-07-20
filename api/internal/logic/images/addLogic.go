@@ -3,9 +3,9 @@ package images
 import (
 	"api/internal/svc"
 	"api/internal/types"
+	"api/model"
 	"context"
 	"fmt"
-	"go.mongodb.org/mongo-driver/bson"
 	"math/rand"
 	"net/http"
 	"path/filepath"
@@ -72,9 +72,10 @@ func (l *AddLogic) Add(r *http.Request) (resp *types.ImageResponse, err error) {
 	}
 
 	//入库
-	image := bson.M{
-		"object_key": objectKey,
-		"created_at": time.Now().Unix(),
+	image := model.Image{
+		ObjectKey: objectKey,
+		Size:      h.Size / 1024,
+		CreatedAt: time.Now().Unix(),
 	}
 	_, err = l.svcCtx.ImageModel.InsertOne(l.ctx, &image)
 	if err != nil {
@@ -86,6 +87,7 @@ func (l *AddLogic) Add(r *http.Request) (resp *types.ImageResponse, err error) {
 
 	resp.Code = http.StatusOK
 	resp.Msg = "成功"
-	resp.Data.Url = fmt.Sprintf("%s/%s", l.svcCtx.Config.OSS.Domain, objectKey)
+	//resp.Data.Url = fmt.Sprintf("%s/%s", l.svcCtx.Config.OSS.Domain, objectKey)
+	resp.Data.Url = objectKey
 	return resp, nil
 }

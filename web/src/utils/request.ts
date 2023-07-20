@@ -1,6 +1,6 @@
 import axios, { AxiosResponse } from "axios";
 import { ElMessage } from "element-plus";
-import useUserStore from "@/store/module/account.ts";
+import { useUserStore } from "@/store/modules/user.ts";
 //创建axios实例
 const request = axios.create({
   // baseURL: import.meta.env.VITE_BASE_API,
@@ -51,6 +51,6 @@ request.interceptors.response.use(
       message: msg,
     });
     return Promise.reject(error);
-  }
+  },
 );
 export default request;

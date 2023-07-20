@@ -2,9 +2,9 @@
 import {PropType, ref} from "vue";
 import {Sizes, Types} from "@/utils/enum";
 import {Menu} from "@/api/acl/menu/types";
-import useUserStore from "@/store/module/account.ts";
+import {useAuthStore} from "@/store/modules/auth.ts";
 
-const userStore = useUserStore()
+const authStore = useAuthStore()
 
 defineProps({
   type: {//按钮类型
@@ -45,12 +45,12 @@ const label = ref<string>('') //按钮显示文本
 const btnIcon = ref<string>('')
 const emit = defineEmits(['action'])
 const handleClick = () => {
-  console.log('子组件向父组件传递消息')
+  // console.log('子组件向父组件传递消息')
   emit('action')
 }
 
 const hasPerms = (perms: string) => {
-  let res = userStore.buttons.filter((b) => b.perms === perms)
+  let res = authStore.authButtonListGet.filter((b) => b.perms === perms)
   if (res.length < 1) {
     return false
   } else {

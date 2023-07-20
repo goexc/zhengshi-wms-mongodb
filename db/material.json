@@ -1,0 +1,30 @@
+[
+  {
+    "_id": "647d90088745e509f764a794",
+    "code": "1000100003",
+    "created_at": "1685950472",
+    "material": "碳钢",
+    "model": "11111111111",
+    "name": "螺丝 M12x150 镀锌",
+    "remark": "总公司",
+    "specification": "M12x50",
+    "strength_grade": "Q235",
+    "surface_treatment": "镀锌无",
+    "unit": "吨",
+    "updated_at": "1685954203"
+  },
+  {
+    "_id": "647d90328745e509f764a795",
+    "code": "1000100002",
+    "created_at": "1685950514",
+    "material": "碳钢",
+    "model": "11111111111",
+    "name": "螺丝 M12x50 镀锌",
+    "remark": "总公司",
+    "specification": "M12x50",
+    "strength_grade": "Q235",
+    "surface_treatment": "镀锌",
+    "unit": "吨",
+    "updated_at": "1685950514"
+  }
+]

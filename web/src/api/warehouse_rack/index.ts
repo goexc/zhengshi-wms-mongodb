@@ -1,5 +1,5 @@
 //货架相关api
-import request from "@/utils/request";
+import request from "@/utils/request.ts";
 import {
   WarehouseRackListRequest,
   WarehouseRackListResponse,
@@ -9,12 +9,8 @@ import {
 enum API {
   //获取货架列表接口
   RACK_LIST_URL = "/warehouse_rack/list",
-  //获取货架分页接口
-  RACKS_URL = "/warehouse_rack",
-  //添加货架
-  ADD_RACK_URL = "/warehouse_rack",
-  //修改货架
-  UPDATE_RACK_URL = "/warehouse_rack",
+  //添加货架、修改货架、获取货架分页接口
+  RACK_URL = "/warehouse_rack",
   //修改货架状态
   RACK_STATUS_URL = "/warehouse_rack/status",
 }

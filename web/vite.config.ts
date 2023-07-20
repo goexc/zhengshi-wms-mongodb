@@ -1,11 +1,8 @@
-// import {fileURLToPath, URL} from 'node:url'
 import {ConfigEnv, defineConfig, loadEnv, UserConfigExport} from "vite";
 import vue from "@vitejs/plugin-vue";
 import path from 'path'
 import {createSvgIconsPlugin} from 'vite-plugin-svg-icons'
-import {viteMockServe} from "vite-plugin-mock";
 import vueJsx from '@vitejs/plugin-vue-jsx'
-import {fileURLToPath} from "url";
 
 // https://vitejs.dev/config/
 export default defineConfig(({mode}: ConfigEnv) => {

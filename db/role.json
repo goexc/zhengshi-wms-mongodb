@@ -1,0 +1,145 @@
+[
+  {
+    "_id": "6472101cbf3beb2563ff8fa0",
+    "created_at": "1685587799",
+    "created_by": null,
+    "name": "系统管理",
+    "parent_id": "",
+    "remark": "拥有系统所有权限",
+    "sort_id": null,
+    "status": "启用",
+    "updated_at": "1685587799"
+  },
+  {
+    "_id": "64971a75516079cb8e17f7db",
+    "created_at": "1687624309",
+    "created_by": "647557da38030e59bbcc1b1a",
+    "name": "运维",
+    "parent_id": "",
+    "remark": "运维部门专用",
+    "sort_id": null,
+    "status": "启用",
+    "updated_at": "1687624324"
+  },
+  {
+    "_id": "64971b45516079cb8e17f7dc",
+    "created_at": "1687624517",
+    "created_by": "647557da38030e59bbcc1b1a",
+    "name": "财务",
+    "parent_id": "",
+    "remark": "财务部门专用",
+    "sort_id": null,
+    "status": "启用",
+    "updated_at": "1687624517"
+  },
+  {
+    "_id": "64971b64516079cb8e17f7dd",
+    "created_at": "1687624548",
+    "created_by": "647557da38030e59bbcc1b1a",
+    "name": "运营",
+    "parent_id": "",
+    "remark": "品牌营销部门专用",
+    "sort_id": null,
+    "status": "启用",
+    "updated_at": "1687624548"
+  },
+  {
+    "_id": "64971b74516079cb8e17f7de",
+    "created_at": "1687624564",
+    "created_by": "647557da38030e59bbcc1b1a",
+    "name": "销售华东大区",
+    "parent_id": "",
+    "remark": "",
+    "sort_id": "0",
+    "status": "启用",
+    "updated_at": "1687626611"
+  },
+  {
+    "_id": "64971b7c516079cb8e17f7df",
+    "created_at": "1687624572",
+    "created_by": "647557da38030e59bbcc1b1a",
+    "name": "销售二区",
+    "parent_id": "",
+    "remark": "",
+    "sort_id": null,
+    "status": "启用",
+    "updated_at": "1687625435"
+  },
+  {
+    "_id": "64971b84516079cb8e17f7e0",
+    "created_at": "1687624580",
+    "created_by": "647557da38030e59bbcc1b1a",
+    "name": "销售三区",
+    "parent_id": "",
+    "remark": "",
+    "sort_id": null,
+    "status": "启用",
+    "updated_at": "1687625566"
+  },
+  {
+    "_id": "64971b8c516079cb8e17f7e1",
+    "created_at": "1687624588",
+    "created_by": "647557da38030e59bbcc1b1a",
+    "name": "销售四区",
+    "parent_id": "",
+    "remark": "",
+    "sort_id": null,
+    "status": "启用",
+    "updated_at": "1687625711"
+  },
+  {
+    "_id": "64971b96516079cb8e17f7e2",
+    "created_at": "1687624598",
+    "created_by": "647557da38030e59bbcc1b1a",
+    "name": "销售五区",
+    "parent_id": "",
+    "remark": "",
+    "sort_id": null,
+    "status": "启用",
+    "updated_at": "1687625732"
+  },
+  {
+    "_id": "64971ba3516079cb8e17f7e3",
+    "created_at": "1687624611",
+    "created_by": "647557da38030e59bbcc1b1a",
+    "name": "销售六区",
+    "parent_id": "",
+    "remark": "",
+    "sort_id": null,
+    "status": "删除",
+    "updated_at": "1688047607"
+  },
+  {
+    "_id": "64971bb0516079cb8e17f7e4",
+    "created_at": "1687624624",
+    "created_by": "647557da38030e59bbcc1b1a",
+    "name": "销售七区",
+    "parent_id": "",
+    "remark": "",
+    "sort_id": null,
+    "status": "启用",
+    "updated_at": "1687625750"
+  },
+  {
+    "_id": "64971bb6516079cb8e17f7e5",
+    "created_at": "1687624630",
+    "created_by": "647557da38030e59bbcc1b1a",
+    "name": "销售八区",
+    "parent_id": "",
+    "remark": "",
+    "sort_id": null,
+    "status": "启用",
+    "updated_at": "1687625741"
+  },
+  {
+    "_id": "64971bc0516079cb8e17f7e6",
+    "created_at": "1687624640",
+    "created_by": "647557da38030e59bbcc1b1a",
+    "name": "销售九区",
+    "parent_id": "",
+    "remark": "",
+    "sort_id": null,
+    "status": "启用",
+    "updated_at": "1687625750"
+  }
+]

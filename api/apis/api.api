@@ -8,21 +8,16 @@ info(
     version: "1.0.1"
 )
 
-//添加api
-type ApiAddRequest {
-    Type int64 `json:"type,options=1|2"`                             //类型：1.模块，2.API
-    SortId int64 `json:"sort_id,range=[0:]"`                         //排序
-    ParentId string `json:"parent_id"`                     //上级id
-    Uri string `json:"uri,optional"`                                 //请求路径
-    Method string `json:"method,options=|GET|POST|PUT|PATCH|DELETE"` //请求方法
-    Name string `json:"name"`                                        //名称
-    Remark string `json:"remark,optional"`                           //备注
-}
-
-
-//修改api
-type ApiUpdateRequest {
-    Api
+//添加api、修改api
+type ApiRequest {
+    Id string `json:"id,optional" validate:"omitempty,mongodb" comment:"api"`  //
+    ParentId string `json:"parent_id"`                                         //上级id
+    Type int64 `json:"type,options=1|2"`                                       //类型：1.模块，2.API
+    SortId int64 `json:"sort_id,range=[0:]"`                                   //排序
+    Uri string `json:"uri,optional"`                                           //请求路径
+    Method string `json:"method,options=|GET|POST|PUT|PATCH|DELETE"`           //请求方法
+    Name string `json:"name"`                                                  //名称
+    Remark string `json:"remark,optional"`                                     //备注
 }
 
 //删除api
@@ -35,19 +30,20 @@ type ApiIdRequest {
 type ApisResponse {
     Code int `json:"code"`
     Msg string `json:"msg"`
-    Data []Api `json:"data"`
+    Data []*Api `json:"data"`
 }
 
 //api
 type Api {
-    Id string `json:"id"`                                  //
+    Id string `json:"id"`                                            //
     Type int64 `json:"type,options=1|2"`                             //类型：1.模块，2.API
     SortId int64 `json:"sort_id,range=[0:]"`                         //排序
-    ParentId string `json:"parent_id"`                     //上级id
+    ParentId string `json:"parent_id"`                               //上级id
     Uri string `json:"uri,optional"`                                 //请求路径
     Method string `json:"method,options=|GET|POST|PUT|PATCH|DELETE"` //请求方法
     Name string `json:"name"`                                        //名称
     Remark string `json:"remark,optional"`                           //备注
     CreatedAt int64 `json:"created_at"`
     UpdatedAt int64 `json:"updated_at"`
+    Children []*Api `json:"children,optional"`
 }

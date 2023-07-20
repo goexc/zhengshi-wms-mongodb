@@ -63,11 +63,11 @@ service main {
 
 	@doc "添加菜单"
 	@handler add
-	post / (MenuRequest) returns (BaseResponse)
+	post / (Menu) returns (BaseResponse)
 
 	@doc "修改菜单"
 	@handler update
-	put / (MenuRequest) returns (BaseResponse)
+	put / (Menu) returns (BaseResponse)
 
 	@doc "删除菜单"
 	@handler remove
@@ -82,17 +82,17 @@ service main {
 )
 
 service main {
-	@doc "api分页"
+	@doc "api列表"
 	@handler list
 	get / returns (ApisResponse)
 
 	@doc "添加api"
 	@handler add
-	post / (ApiAddRequest) returns (BaseResponse)
+	post / (ApiRequest) returns (BaseResponse)
 
 	@doc "修改api"
 	@handler update
-	put / (ApiUpdateRequest) returns (BaseResponse)
+	put / (ApiRequest) returns (BaseResponse)
 
 	@doc "删除api"
 	@handler remove
@@ -235,9 +235,9 @@ service main {
 	@handler changeAvatar
 	patch /avatar(ProfileAvatarRequest) returns (BaseResponse)
 
-	@doc "个人全部菜单"
+	@doc "获取菜单列表"
 	@handler menu
-	get /menu returns (AccountMenusResponse)
+	get /menu returns (AccountPermsResponse)
 
 }
 
@@ -473,4 +473,9 @@ service main {
 	@doc "上传图片"
 	@handler add
 	post / returns (ImageResponse)
+
+	@doc "图片分页"
+	@handler page
+	get / (ImagesRequest) returns (ImagesResponse)
+
 }

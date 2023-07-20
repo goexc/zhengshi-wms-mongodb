@@ -18,7 +18,7 @@ defineOptions({
           <component :is="menu.meta.icon"></component>
         </el-icon>
         <template #title>
-          <span>{{ menu.meta.title }}</span>
+          <span>{{ menu.name }}</span>
         </template>
       </el-menu-item>
 
@@ -28,7 +28,7 @@ defineOptions({
           <component :is="menu.children[0].meta.icon"></component>
         </el-icon>
         <template #title>
-          <span>{{ menu.children[0].meta.title }}</span>
+          <span>{{ menu.children[0].name }}</span>
         </template>
       </el-menu-item>
       <!--  有多个子路由  -->
@@ -37,7 +37,7 @@ defineOptions({
           <el-icon>
             <component :is="menu.meta.icon"></component>
           </el-icon>
-          <span>{{ menu.meta.title }}</span>
+          <span>{{ menu.name }}</span>
         </template>
         <!--   递归调用   -->
         <LayoutMenu :menus="menu.children"></LayoutMenu>
@@ -46,6 +46,21 @@ defineOptions({
   </template>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
+.el-menu-item.is-active{
+  color: #009688 !important;
+  background-color: #e6f5f3 !important;
+
+  &::before {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 4px;
+    content: "";
+    background-color: #009688;
+  }
+
+}
 
 </style>

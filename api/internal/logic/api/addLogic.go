@@ -31,7 +31,7 @@ func NewAddLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AddLogic {
 	}
 }
 
-func (l *AddLogic) Add(req *types.ApiAddRequest) (resp *types.BaseResponse, err error) {
+func (l *AddLogic) Add(req *types.ApiRequest) (resp *types.BaseResponse, err error) {
 	resp = new(types.BaseResponse)
 
 	//1.api是否重复
@@ -45,10 +45,10 @@ func (l *AddLogic) Add(req *types.ApiAddRequest) (resp *types.BaseResponse, err 
 	}
 
 	var filter = bson.M{
-		"$or": []bson.M{
-			{"name": name},
-			{"uri": uri, "method": method},
-		},
+		"type":   req.Type,
+		"name":   name,
+		"uri":    uri,
+		"method": method,
 	}
 
 	singleRes := l.svcCtx.ApiModel.FindOne(l.ctx, filter)

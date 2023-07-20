@@ -1,6 +1,6 @@
 //用户相关api
 import { baseResponse } from "@/api/types";
-import request from "@/utils/request";
+import request from "@/utils/request.ts";
 import {
   UserRequest,
   UserRolesRequest,
@@ -11,12 +11,8 @@ import {
 
 //用户管理模块接口地址
 enum API {
-  //获取用户分页接口
-  USERS_URL = "/user",
-  //添加用户
-  ADD_USER_URL = "/user",
-  //修改用户
-  UPDATE_USER_URL = "/user",
+  //添加用户、修改用户、获取用户分页接口
+  USER_URL = "/user",
   //修改用户状态
   USER_STATUS_URL = "/user/status",
   //修改用户角色
@@ -25,16 +21,16 @@ enum API {
 
 //获取用户分页的接口方法
 export const reqUsers = (req: UsersRequest) =>
-  request.get<any, UsersResponse>(API.USERS_URL, { params: req });
+  request.get<any, UsersResponse>(API.USER_URL, { params: req });
 
 //添加或修改用户的接口方法
 export const reqAddOrUpdateUser = (data: UserRequest) => {
   if (data.id.trim().length === 0) {
     //添加
-    return request.post<any, baseResponse>(API.ADD_USER_URL, data);
+    return request.post<any, baseResponse>(API.USER_URL, data);
   } else {
     //修改
-    return request.put<any, baseResponse>(API.UPDATE_USER_URL, data);
+    return request.put<any, baseResponse>(API.USER_URL, data);
   }
 };
 

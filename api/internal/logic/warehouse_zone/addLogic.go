@@ -131,6 +131,7 @@ func (l *AddLogic) Add(req *types.WarehouseZoneRequest) (resp *types.BaseRespons
 		WarehouseId:  warehouseId,
 		Name:         strings.TrimSpace(req.Name),
 		Code:         strings.TrimSpace(req.Code),
+		Image:        strings.TrimSpace(req.Image),
 		Capacity:     req.Capacity,
 		CapacityUnit: strings.TrimSpace(req.CapacityUnit),
 		Status:       code.WarehouseZoneStatusCode("激活"),

@@ -1,0 +1,32 @@
+[
+  {
+    "_id": "647a00624a11f6bb06aa5330",
+    "capacity": "500",
+    "capacity_unit": "㎡",
+    "code": "HJ10",
+    "created_at": "1685717090",
+    "creator": "647557da38030e59bbcc1b1a",
+    "name": "螺纹套货架10",
+    "remark": "",
+    "status": "10",
+    "type": "10",
+    "updated_at": "1685719031",
+    "warehouse_id": "6479638a7882a620b88a8ef4",
+    "warehouse_zone_id": "6479b04126951c379eabd013"
+  },
+  {
+    "_id": "647a070d6da77971d10f55c4",
+    "capacity": "500",
+    "capacity_unit": "㎡",
+    "code": "HJ2",
+    "created_at": "1685718797",
+    "creator": "647557da38030e59bbcc1b1a",
+    "name": "螺纹套货架",
+    "remark": "",
+    "status": "10",
+    "type": "10",
+    "updated_at": "1685718797",
+    "warehouse_id": "6479638a7882a620b88a8ef4",
+    "warehouse_zone_id": "6479b04126951c379eabd013"
+  }
+]

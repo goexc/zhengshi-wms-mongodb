@@ -32,7 +32,6 @@ func NewPaginateLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Paginate
 
 func (l *PaginateLogic) Paginate(req *types.RolesRequest) (resp *types.RolesResponse, err error) {
 	resp = new(types.RolesResponse)
-	fmt.Println("============角色分页")
 
 	name := strings.TrimSpace(req.Name)
 	//1.角色分页

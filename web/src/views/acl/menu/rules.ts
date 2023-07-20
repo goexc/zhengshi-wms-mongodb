@@ -27,7 +27,7 @@ export const rules = reactive<FormRules>({
       trigger: ["blur", "change"],
     },
   ],
-  icon: [
+  'meta.icon': [
     {
       required: true,
       message: "必选",
@@ -49,7 +49,7 @@ export const rules = reactive<FormRules>({
       trigger: ["blur", "change"],
     },
   ],
-  fixed: [
+  'meta.fixed': [
     {
       required: true,
       message: "必填",
@@ -57,7 +57,7 @@ export const rules = reactive<FormRules>({
       trigger: ["blur", "change"],
     },
   ],
-  hidden: [
+  'meta.hidden': [
     {
       required: true,
       message: "必填",

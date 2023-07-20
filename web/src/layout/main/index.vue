@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import useLayoutSettingStore from "@/store/module/layout";
+import useLayoutSettingStore from "@/store/modules/layout";
 import {nextTick, ref, watch} from "vue";
 
 defineOptions({
@@ -22,16 +22,23 @@ watch(()=>layoutSettingStore.refresh, ()=>{
 </script>
 
 <template>
-  <!-- 路由组件出口位置 -->
-  <router-view v-slot="{ Component }">
-    <transition name="fade">
-      <!--   渲染layout一级路由组件的子路由   -->
-      <component :is="Component" v-if="flag"/>
-    </transition>
-  </router-view>
+  <div class="main">
+    <!-- 路由组件出口位置 -->
+    <router-view v-slot="{ Component }">
+      <transition name="fade">
+        <!--   渲染layout一级路由组件的子路由   -->
+        <component :is="Component" v-if="flag"/>
+      </transition>
+    </router-view>
+  </div>
+
 </template>
 
 <style scoped lang="scss">
+.main{
+//  margin-bottom: 60px;
+//  min-width: 1000px;
+}
 .fade-enter-from{
   opacity: 0;
   transform: scale(0);

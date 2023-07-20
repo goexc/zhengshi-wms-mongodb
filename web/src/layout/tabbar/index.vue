@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import useLayoutSettingStore from "@/store/module/layout";
+import useLayoutSettingStore from "@/store/modules/layout";
 import {useRoute, useRouter} from "vue-router";
-import useUserStore from "@/store/module/account.ts";
+import {useUserStore} from "@/store/modules/user.ts";
 import {ref} from "vue";
-import useSettingStore from "@/store/module/setting.ts";
+import useSettingStore from "@/store/modules/setting.ts";
 
 defineOptions({
   name: "LayoutTabBar"
@@ -130,8 +130,8 @@ const changeColor = () => {
       </el-popover>
       <el-dropdown>
     <span class="el-dropdown-link">
-      <img :src="userStore.avatar" alt="" style="width: 32px;height: 32px;border-radius: 32px">
-      {{ userStore.name }}
+      <img :src="userStore.account.avatar" alt="" style="width: 32px;height: 32px;border-radius: 32px">
+      {{ userStore.account.name }}
       <el-icon class="el-icon--right">
         <arrow-down/>
       </el-icon>

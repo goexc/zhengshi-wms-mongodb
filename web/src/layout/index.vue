@@ -4,23 +4,26 @@ import LayoutMenu from '@/layout/menu/index.vue'
 import LayoutMain from '@/layout/main/index.vue'
 import LayoutTabBar from '@/layout/tabbar/index.vue'
 //获取用户相关的小仓库
-import useUserStore from "@/store/module/account.ts";
 import {useRoute} from "vue-router";
-import useLayoutSettingStore from "../store/module/layout";
+import useLayoutSettingStore from "@/store/modules/layout";
+import {useAuthStore} from "@/store/modules/auth.ts";
+import {computed} from "vue";
 
 defineOptions({
   name:"Layout"
 })
 
-let userStore = useUserStore()
+let authStore = useAuthStore()
 const route = useRoute()
 const layoutSettingStore = useLayoutSettingStore()
+// const menus = computed(() => authStore.showMenuListGet);
+const menus = computed(() => authStore.authMenuListGet);
 </script>
 
 <template>
   <div class="layout_container">
     <!-- 左侧菜单栏 -->
-    <div class="layout_slider" :class="{ collapse: layoutSettingStore.collapse ? true : false }">
+    <div class="layout_slider" :class="{ collapse: !!layoutSettingStore.collapse }">
       <LayoutLogo></LayoutLogo>
       <!-- 展示菜单 -->
       <!--滚动组件-->
@@ -29,23 +32,22 @@ const layoutSettingStore = useLayoutSettingStore()
         <el-menu
             mode="vertical"
             :default-active="route.path"
-            background-color="#001529"
-            text-color="white"
             :router="true"
             :collapse="layoutSettingStore.collapse"
             :collapse-transition="false"
         >
           <!--    动态生成菜单      -->
-          <LayoutMenu :menus="userStore.menuRoutes"></LayoutMenu>
+<!--          <LayoutMenu :menus="userStore.menuRoutes"></LayoutMenu>-->
+          <LayoutMenu :menus="menus"></LayoutMenu>
         </el-menu>
       </el-scrollbar>
     </div>
     <!-- 顶部导航 -->
-    <div class="layout_tabbar" :class="{ collapse: layoutSettingStore.collapse ? true : false }">
+    <div class="layout_tabbar" :class="{ collapse: !!layoutSettingStore.collapse }">
       <LayoutTabBar></LayoutTabBar>
     </div>
     <!-- 内容展示区域 -->
-    <div class="layout_main" :class="{ collapse: layoutSettingStore.collapse ? true : false }">
+    <div class="layout_main" :class="{ collapse: !!layoutSettingStore.collapse }">
       <LayoutMain></LayoutMain>
     </div>
   </div>
@@ -63,6 +65,7 @@ const layoutSettingStore = useLayoutSettingStore()
     background: $base-menu-background;
     color: white;
     //transition: all 0.3s;
+    border-right: 1px solid #e4e7ed;
 
     &.collapse {
       width: $base-menu-min-width;

@@ -7,6 +7,7 @@ info(
     email: "1024071953@qq.com"
     version: "1.0.1"
 )
+import "base.api"
 
 //路由信息
 type MenuRemoveRequest {
@@ -37,23 +38,25 @@ type MenusResponse {
     Data []*Menu `json:"data,optional"`
 }
 
-type Menu {
-    Id string `json:"id"`
-    Type int64 `json:"type"`                                //路由类型：1.菜单，2.按钮
-    SortId int64 `json:"sort_id"`                           //排序
-    ParentId string `json:"parent_id"`                      //父路由id
-    Path string `json:"path,optional"`                      //路由路径
-    Name string `json:"name,optional"`                      //路由名称
+//type Menu {
+//    Id string `json:"id"`
+//    Type int64 `json:"type"`                                //路由类型：1.菜单，2.按钮
+//    SortId int64 `json:"sort_id"`                           //排序
+//    ParentId string `json:"parent_id"`                      //父路由id
+//    Path string `json:"path,optional"`                      //路由路径
+//    Name string `json:"name,optional"`                      //路由名称
+//
+//    Component string `json:"component,optional"`            //路由组件
+//    Icon string `json:"icon"`                               //元信息：图标
+//    Transition string `json:"transition"`                   //元信息：过渡动画
+//    Hidden bool `json:"hidden"`                             //元信息：是否隐藏
+//    Fixed bool `json:"fixed"`                               //元信息：是否固定
+//    IsFull bool `json:"is_full"`                           //元信息：是否全屏
+//    Perms string `json:"perms,optional"`                    //权限标识
+//    Remark string `json:"remark"`                           //备注
+//    Children []*Menu `json:"children,optional"`
+//    CreatedAt int64 `json:"created_at"`
+//    UpdatedAt int64 `json:"updated_at"`
+//}
 
-    Component string `json:"component,optional"`            //路由组件
-    Icon string `json:"icon"`                               //元信息：图标
-    Transition string `json:"transition"`                   //元信息：过渡动画
-    Hidden bool `json:"hidden"`                             //元信息：是否隐藏
-    Fixed bool `json:"fixed"`                               //元信息：是否固定
-    IsFull bool `json:"is_full"`                           //元信息：是否全屏
-    Perms string `json:"perms,optional"`                    //权限标识
-    Remark string `json:"remark"`                           //备注
-    Children []*Menu `json:"children,optional"`
-    CreatedAt int64 `json:"created_at"`
-    UpdatedAt int64 `json:"updated_at"`
-}
+

@@ -29,7 +29,7 @@ func NewUpdateLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UpdateLogi
 	}
 }
 
-func (l *UpdateLogic) Update(req *types.MenuRequest) (resp *types.BaseResponse, err error) {
+func (l *UpdateLogic) Update(req *types.Menu) (resp *types.BaseResponse, err error) {
 	resp = new(types.BaseResponse)
 
 	//1.当前菜单id、上级id是否存在
@@ -94,12 +94,12 @@ func (l *UpdateLogic) Update(req *types.MenuRequest) (resp *types.BaseResponse, 
 		ParentId:   req.ParentId,
 		SortId:     req.SortId,
 		Component:  req.Component,
-		Icon:       req.Icon,
-		Transition: req.Transition,
-		Hidden:     req.Hidden,
-		Fixed:      req.Fixed,
-		IsFull:     req.IsFull,
-		Perms:      req.Perms,
+		Icon:       req.Meta.Icon,
+		Transition: req.Meta.Transition,
+		Hidden:     req.Meta.Hidden,
+		Fixed:      req.Meta.Fixed,
+		IsFull:     req.Meta.IsFull,
+		Perms:      req.Meta.Perms,
 		Remark:     req.Remark,
 		UpdatedAt:  time.Now().Unix(),
 	}

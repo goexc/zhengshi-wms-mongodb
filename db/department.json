@@ -1,0 +1,79 @@
+[
+  {
+    "_id": "6471cd7b48b3511a06094793",
+    "code": "",
+    "created_at": "1685587799",
+    "name": "诸城市正时",
+    "parent_id": "",
+    "remark": "",
+    "sort_id": "0",
+    "type": null,
+    "updated_at": "1685587799"
+  },
+  {
+    "_id": "64ad0872fff15e70e19b31d0",
+    "code": "SXJX",
+    "created_at": "1689061490",
+    "name": "诸城市双喜机械有限公司",
+    "parent_id": "6471cd7b48b3511a06094793",
+    "remark": "",
+    "sort_id": "0",
+    "type": null,
+    "updated_at": "1689061490"
+  },
+  {
+    "_id": "64ad1916d1baca547a621cd8",
+    "code": "CW",
+    "created_at": "1689065750",
+    "name": "财务部",
+    "parent_id": "64ad0872fff15e70e19b31d0",
+    "remark": "",
+    "sort_id": "1",
+    "type": "0",
+    "updated_at": "1689065759"
+  },
+  {
+    "_id": "64ad1928d1baca547a621cd9",
+    "code": "CW1",
+    "created_at": "1689065768",
+    "name": "财务一部",
+    "parent_id": "64ad1916d1baca547a621cd8",
+    "remark": "",
+    "sort_id": "1",
+    "type": null,
+    "updated_at": "1689065768"
+  },
+  {
+    "_id": "64ad1ef2c6b928838876084d",
+    "code": "CW2",
+    "created_at": "1689067250",
+    "name": "财务二部",
+    "parent_id": "64ad1916d1baca547a621cd8",
+    "remark": "",
+    "sort_id": "2",
+    "type": null,
+    "updated_at": "1689067250"
+  },
+  {
+    "_id": "64ad209dc6b928838876084e",
+    "code": "CW3",
+    "created_at": "1689067677",
+    "name": "财务三部",
+    "parent_id": "64ad1916d1baca547a621cd8",
+    "remark": "",
+    "sort_id": "3",
+    "type": "0",
+    "updated_at": "1689068401"
+  },
+  {
+    "_id": "64ad21ffc6b928838876084f",
+    "code": "CW4",
+    "created_at": "1689068031",
+    "name": "财务四部",
+    "parent_id": "64ad1916d1baca547a621cd8",
+    "remark": "",
+    "sort_id": "4",
+    "type": null,
+    "updated_at": "1689068031"
+  }
+]

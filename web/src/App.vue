@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {onMounted} from "vue";
-import useSettingStore from "@/store/module/setting.ts";
+import useSettingStore from "@/store/modules/setting.ts";
 
 const settingStore = useSettingStore()
 

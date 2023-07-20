@@ -1,5 +1,5 @@
-import {reactive} from "vue";
-import {FormRules} from "element-plus";
+import { reactive } from "vue";
+import { FormRules } from "element-plus";
 
 export const rules = reactive<FormRules>({
   name: [
@@ -26,4 +26,4 @@ export const rules = reactive<FormRules>({
       trigger: ["blur", "change"],
     },
   ],
-})
+});

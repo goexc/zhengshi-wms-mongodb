@@ -9,6 +9,7 @@ type WarehouseZone struct {
 	WarehouseName string             `json:"warehouse_name" bson:"warehouse_name"` // 仓库名称
 	Name          string             `json:"name" bson:"name"`                     // 库区名称
 	Code          string             `json:"code" bson:"code"`                     // 库区编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
+	Image         string             `json:"image" bson:"image"`                   // 库区图片
 	Capacity      float64            `json:"capacity" bson:"capacity"`             // 库区容量
 	CapacityUnit  string             `json:"capacity_unit" bson:"capacity_unit"`   // 库区容量单位：面积、体积或其他度量单位
 	//库区状态

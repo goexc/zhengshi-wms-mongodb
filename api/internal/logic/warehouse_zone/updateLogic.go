@@ -121,6 +121,7 @@ func (l *UpdateLogic) Update(req *types.WarehouseZoneRequest) (resp *types.BaseR
 			{"code": strings.TrimSpace(req.Code)},
 		},
 		"warehouse_id": zone.WarehouseId,
+		"_id":          bson.M{"$ne": zoneId},
 		"status":       bson.M{"$ne": code.WarehouseZoneStatusCode("删除")},
 	}
 	singleRes = l.svcCtx.WarehouseZoneModel.FindOne(l.ctx, filter)
@@ -157,6 +158,7 @@ func (l *UpdateLogic) Update(req *types.WarehouseZoneRequest) (resp *types.BaseR
 		"$set": bson.M{
 			"name":          strings.TrimSpace(req.Name),
 			"code":          strings.TrimSpace(req.Code),
+			"image":         strings.TrimSpace(req.Image),
 			"capacity":      req.Capacity,
 			"capacity_unit": strings.TrimSpace(req.CapacityUnit),
 			"manager":       strings.TrimSpace(req.Manager),

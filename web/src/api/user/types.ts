@@ -26,23 +26,23 @@ export interface userInfo {
   token: string;
 }
 
-export interface role {
-  role_id: string;
-  role_name: string;
-}
+// export interface role {
+//   role_id: string;
+//   role_name: string;
+// }
 
-export interface button {
-  name: string;
-  icon: string;
-  perms: string;
-}
+// export interface button {
+//   name: string;
+//   icon: string;
+//   perms: string;
+// }
 
-export interface user {
+export interface Account {
   name: string;
   avatar: string;
   desc: string;
-  roles: role[];
-  buttons: button[];
+  // roles: role[];
+  // buttons: button[];
   routes: string[];
 }
 
@@ -50,7 +50,7 @@ export interface user {
 export interface accountInfoResponse {
   code: number;
   msg: string;
-  data: user;
+  data: Account;
 }
 
 //用户的菜单id列表

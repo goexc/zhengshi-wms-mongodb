@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import {reactive, ref} from "vue";
-import useUserStore from "@/store/module/account.ts";
+import {onMounted, reactive, ref} from "vue";
 import {useRoute, useRouter} from "vue-router";
-import {ElNotification, FormInstance, FormRules} from "element-plus";
+import {ElMessage, ElNotification, FormInstance, FormRules} from "element-plus";
+import {useUserStore} from "@/store/modules/user.ts";
+import {reqAccountInfo, reqLogin} from "@/api/user";
+import {initDynamicRouter} from "@/router/modules/dynamicRouter.ts";
+import {HOME_URL} from "@/config";
 
 let loading = ref<boolean>(false)
 
@@ -48,11 +51,30 @@ const login = async () => {
 
   loading.value = true
   try {
-    //保证登录成功
-     await userStore.login(loginForm)
+    // 1.执行登录接口
+   let res =  await reqLogin(loginForm)
+   if(res.code != 200){
+     ElMessage.error(res.msg)
+     return
+   }
+    userStore.setToken(res.data.token);
 
+    // 2.获取用户信息
+    let { data } = await reqAccountInfo()
+    userStore.setAccount(data)
+
+    // 3.添加动态路由
+    await initDynamicRouter();
+
+
+
+    // 3.清空 tabs、keepAlive 数据
+    // tabsStore.closeMultipleTab();
+    // keepAliveStore.setKeepAliveName();
+
+    // 4.跳转到首页
     let redirect = route.query.redirect as string
-    await router.push({path: redirect||'/'})
+    await router.push({path: redirect||HOME_URL})
 
     ElNotification({
       type: 'success',
@@ -67,9 +89,22 @@ const login = async () => {
       type: 'error',
       message: (e as Error).message
     })
+  } finally {
+    loading.value = false;
   }
 
 }
+
+onMounted(()=>{
+  // 监听 enter 事件（调用登录）
+  document.onkeydown = (e: KeyboardEvent) => {
+    e = (window.event as KeyboardEvent) || e;
+    if (e.code === "Enter" || e.code === "enter" || e.code === "NumpadEnter") {
+      if (loading.value) return;
+      login()
+    }
+  };
+})
 </script>
 
 <template>

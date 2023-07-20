@@ -6,6 +6,31 @@ type BaseResponse struct {
 	Msg  string `json:"msg"`
 }
 
+type Menu struct {
+	Id        string    `json:"id"`
+	Type      int64     `json:"type"`               //路由类型：1.菜单，2.按钮
+	SortId    int64     `json:"sort_id"`            //排序
+	ParentId  string    `json:"parent_id"`          //父路由id
+	Path      string    `json:"path,optional"`      //路由路径
+	Name      string    `json:"name,optional"`      //路由名称
+	Component string    `json:"component,optional"` //路由组件
+	Meta      MetaProps `json:"meta"`
+	Remark    string    `json:"remark"` //备注
+	CreatedAt int64     `json:"created_at,optional"`
+	UpdatedAt int64     `json:"updated_at,optional"`
+	Children  []*Menu   `json:"children,optional"`
+}
+
+type MetaProps struct {
+	Title      string `json:"title,optional"` //路由标题
+	Icon       string `json:"icon"`           //元信息：图标
+	Transition string `json:"transition"`     //元信息：过渡动画
+	Hidden     bool   `json:"hidden"`         //元信息：是否隐藏
+	Fixed      bool   `json:"fixed"`          //元信息：是否固定
+	IsFull     bool   `json:"is_full"`        //元信息：是否全屏
+	Perms      string `json:"perms,optional"` //权限标识
+}
+
 type RegisterRequest struct {
 	Company  string `json:"company,optional" validate:"required" comment:"企业名称"`       //公司名称，顶级部门名称
 	Name     string `json:"name,optional" validate:"required" comment:"账号名称"`          //账号名称
@@ -36,18 +61,15 @@ type LoginData struct {
 	Exp   int64  `json:"exp,optional"`   //过期时间戳
 }
 
-type ApiAddRequest struct {
-	Type     int64  `json:"type,options=1|2"`                          //类型：1.模块，2.API
-	SortId   int64  `json:"sort_id,range=[0:]"`                        //排序
-	ParentId string `json:"parent_id"`                                 //上级id
-	Uri      string `json:"uri,optional"`                              //请求路径
-	Method   string `json:"method,options=|GET|POST|PUT|PATCH|DELETE"` //请求方法
-	Name     string `json:"name"`                                      //名称
-	Remark   string `json:"remark,optional"`                           //备注
-}
-
-type ApiUpdateRequest struct {
-	Api
+type ApiRequest struct {
+	Id       string `json:"id,optional" validate:"omitempty,mongodb" comment:"api"` //
+	ParentId string `json:"parent_id"`                                              //上级id
+	Type     int64  `json:"type,options=1|2"`                                       //类型：1.模块，2.API
+	SortId   int64  `json:"sort_id,range=[0:]"`                                     //排序
+	Uri      string `json:"uri,optional"`                                           //请求路径
+	Method   string `json:"method,options=|GET|POST|PUT|PATCH|DELETE"`              //请求方法
+	Name     string `json:"name"`                                                   //名称
+	Remark   string `json:"remark,optional"`                                        //备注
 }
 
 type ApiIdRequest struct {
@@ -57,7 +79,7 @@ type ApiIdRequest struct {
 type ApisResponse struct {
 	Code int    `json:"code"`
 	Msg  string `json:"msg"`
-	Data []Api  `json:"data"`
+	Data []*Api `json:"data"`
 }
 
 type Api struct {
@@ -71,6 +93,7 @@ type Api struct {
 	Remark    string `json:"remark,optional"`                           //备注
 	CreatedAt int64  `json:"created_at"`
 	UpdatedAt int64  `json:"updated_at"`
+	Children  []*Api `json:"children,optional"`
 }
 
 type MenuRemoveRequest struct {
@@ -98,26 +121,6 @@ type MenusResponse struct {
 	Code int     `json:"code"`
 	Msg  string  `json:"msg"`
 	Data []*Menu `json:"data,optional"`
-}
-
-type Menu struct {
-	Id         string  `json:"id"`
-	Type       int64   `json:"type"`               //路由类型：1.菜单，2.按钮
-	SortId     int64   `json:"sort_id"`            //排序
-	ParentId   string  `json:"parent_id"`          //父路由id
-	Path       string  `json:"path,optional"`      //路由路径
-	Name       string  `json:"name,optional"`      //路由名称
-	Component  string  `json:"component,optional"` //路由组件
-	Icon       string  `json:"icon"`               //元信息：图标
-	Transition string  `json:"transition"`         //元信息：过渡动画
-	Hidden     bool    `json:"hidden"`             //元信息：是否隐藏
-	Fixed      bool    `json:"fixed"`              //元信息：是否固定
-	IsFull     bool    `json:"is_full"`            //元信息：是否全屏
-	Perms      string  `json:"perms,optional"`     //权限标识
-	Remark     string  `json:"remark"`             //备注
-	Children   []*Menu `json:"children,optional"`
-	CreatedAt  int64   `json:"created_at"`
-	UpdatedAt  int64   `json:"updated_at"`
 }
 
 type RoleIdRequest struct {
@@ -337,25 +340,17 @@ type ProfileResponse struct {
 }
 
 type Profile struct {
-	Name           string        `json:"name"`            //账号名称
-	Sex            string        `json:"sex"`             //性别
-	DepartmentId   string        `json:"department_id"`   //部门id
-	DepartmentName string        `json:"department_name"` //部门名称
-	RolesId        []ProfileRole `json:"roles_id"`        //角色id
-	Mobile         string        `json:"mobile,optional"` //手机号码
-	Email          string        `json:"email,optional"`  //邮箱
-	Status         string        `json:"status,optional"` //用户状态：启用，禁用，删除
-	Avatar         string        `json:"avatar"`          //头像
-	Remark         string        `json:"remark,optional"` //备注
-	Routes         []*Route      `json:"routes"`          //账号的角色对应的路由
-	Buttons        []Button      `json:"buttons"`         //账号的角色对应的按钮权限
-	CreatedAt      int64         `json:"created_at,optional"`
-	UpdatedAt      int64         `json:"updated_at,optional"`
-}
-
-type ProfileRole struct {
-	RoleId   string `json:"role_id"`
-	RoleName string `json:"role_name"`
+	Name           string `json:"name"`            //账号名称
+	Sex            string `json:"sex"`             //性别
+	DepartmentId   string `json:"department_id"`   //部门id
+	DepartmentName string `json:"department_name"` //部门名称
+	Mobile         string `json:"mobile,optional"` //手机号码
+	Email          string `json:"email,optional"`  //邮箱
+	Status         string `json:"status,optional"` //用户状态：启用，禁用，删除
+	Avatar         string `json:"avatar"`          //头像
+	Remark         string `json:"remark,optional"` //备注
+	CreatedAt      int64  `json:"created_at,optional"`
+	UpdatedAt      int64  `json:"updated_at,optional"`
 }
 
 type Button struct {
@@ -364,30 +359,15 @@ type Button struct {
 	Perms string `json:"perms"` //按钮权限
 }
 
-type AccountMenusResponse struct {
-	Code int      `json:"code"`
-	Msg  string   `json:"msg"`
-	Data []string `json:"data,optional"` //菜单id
+type AccountPermsResponse struct {
+	Code int    `json:"code"`
+	Msg  string `json:"msg"`
+	Data Perms  `json:"data,optional"` //
 }
 
-type Route struct {
-	Id         string   `json:"id"`
-	Type       int64    `json:"type"`               //路由类型：1.菜单，2.按钮
-	SortId     int64    `json:"sort_id"`            //排序
-	ParentId   string   `json:"parent_id"`          //父路由id
-	Path       string   `json:"path,optional"`      //路由路径
-	Name       string   `json:"name,optional"`      //路由名称
-	Component  string   `json:"component,optional"` //路由组件
-	Icon       string   `json:"icon"`               //元信息：图标
-	Transition string   `json:"transition"`         //元信息：过渡动画
-	Hidden     bool     `json:"hidden"`             //元信息：是否隐藏
-	Fixed      bool     `json:"fixed"`              //元信息：是否固定
-	IsFull     bool     `json:"is_full"`            //元信息：是否全屏
-	Perms      string   `json:"perms,optional"`     //权限标识
-	Remark     string   `json:"remark"`             //备注
-	Children   []*Route `json:"children,optional"`
-	CreatedAt  int64    `json:"created_at"`
-	UpdatedAt  int64    `json:"updated_at"`
+type Perms struct {
+	Menus   []*Menu  `json:"menus"`
+	Buttons []Button `json:"buttons"`
 }
 
 type WarehouseStatusRequest struct {
@@ -400,12 +380,12 @@ type WarehouseRequest struct {
 	Type         string  `json:"type,optional" validate:"required,oneof=分销中心 生产仓库 跨境仓库 电商仓库 冷链仓库 合规仓库 专用仓库 跨渠道仓库 自动化仓库 第三方物流仓库 " comment:"仓库类型"` //仓库类型
 	Name         string  `json:"name,optional" validate:"required" comment:"仓库名称"`                                                               //仓库名称
 	Code         string  `json:"code,optional" validate:"required" comment:"仓库编号"`                                                               //仓库编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
+	Image        string  `json:"image,optional" validate:"omitempty" comment:"图片"`                                                               //图片
 	Address      string  `json:"address,optional" validate:"omitempty" comment:"仓库地址"`                                                           //仓库地址
 	Capacity     float64 `json:"capacity,optional" validate:"omitempty,gte=0" comment:"仓库容量"`                                                    // 仓库容量
 	CapacityUnit string  `json:"capacity_unit,optional" validate:"omitempty" comment:"仓库容量单位"`                                                   // 仓库容量单位：面积、体积或其他度量单位
 	Manager      string  `json:"manager,optional" validate:"omitempty" comment:"负责人"`                                                            //负责人
 	Contact      string  `json:"contact,optional" validate:"omitempty,e164" comment:"联系方式"`                                                      //联系方式
-	Image        string  `json:"image,optional" validate:"omitempty,url" comment:"图片"`                                                           //图片
 	Remark       string  `json:"remark,optional" validate:"omitempty" comment:"备注"`                                                              //备注
 }
 
@@ -470,6 +450,7 @@ type WarehouseZoneRequest struct {
 	WarehouseId  string  `json:"warehouse_id,optional" validate:"required,mongodb" comment:"仓库"`
 	Name         string  `json:"name,optional" validate:"required" comment:"库区名称"`             //库区名称
 	Code         string  `json:"code,optional" validate:"required" comment:"库区编号"`             //库区编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
+	Image        string  `json:"image,optional" validate:"required" comment:"库区图片"`            //库区图片
 	Capacity     float64 `json:"capacity,optional" validate:"omitempty,gte=0" comment:"库区容量"`  // 库区容量
 	CapacityUnit string  `json:"capacity_unit,optional" validate:"omitempty" comment:"库区容量单位"` // 库区容量单位：面积、体积或其他度量单位
 	Manager      string  `json:"manager,optional" validate:"omitempty" comment:"负责人"`          //负责人
@@ -478,7 +459,7 @@ type WarehouseZoneRequest struct {
 }
 
 type WarehouseZoneListRequest struct {
-	WarehouseId string `form:"warehouse_id,optional" validate:"required,mongodb" comment:"仓库"`                                                 //仓库Id
+	WarehouseId string `form:"warehouse_id,optional" validate:"omitempty,mongodb" comment:"仓库"`                                                //仓库Id
 	Type        string `form:"type,optional" validate:"omitempty,oneof=分销中心 生产库区 跨境库区 电商库区 冷链库区 合规库区 专用库区 跨渠道库区 自动化库区 第三方物流库区" comment:"库区类型"` //库区类型
 	Name        string `form:"name,optional" validate:"omitempty" comment:"库区名称"`                                                              //库区名称
 	Code        string `form:"code,optional" validate:"omitempty" comment:"库区编号"`                                                              //库区编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
@@ -517,8 +498,8 @@ type WarehouseZone struct {
 	WarehouseId   string  `json:"warehouse_id,optional"`   //仓库Id
 	WarehouseName string  `json:"warehouse_name,optional"` //仓库名称
 	Name          string  `json:"name,optional"`           //库区名称
-	Type          string  `json:"type,optional"`           //库区类型：分销中心 生产库区 跨境库区 电商库区 冷链库区 合规库区 专用库区 跨渠道库区 自动化库区 第三方物流库区
 	Code          string  `json:"code,optional"`           //库区编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
+	Image         string  `json:"image,optional"`          //库区图片
 	Capacity      float64 `json:"capacity,optional"`       // 库区容量
 	CapacityUnit  string  `json:"capacity_unit,optional"`  // 库区容量单位：面积、体积或其他度量单位
 	Status        string  `json:"status,optional"`         //库区状态
@@ -908,4 +889,20 @@ type ImageResponse struct {
 
 type ImageUrl struct {
 	Url string `json:"url"`
+}
+
+type ImagesRequest struct {
+	Page int64 `form:"page,optional" validate:"required,gte=1" comment:"页数""`
+	Size int64 `form:"size,optional" validate:"required,gte=10,lte=100" comment:"条数"`
+}
+
+type ImagesResponse struct {
+	Code int           `json:"code"`
+	Msg  string        `json:"msg"`
+	Data ImagePaginate `json:"data"`
+}
+
+type ImagePaginate struct {
+	Total int64    `json:"total"`
+	List  []string `json:"list"` //图片列表
 }

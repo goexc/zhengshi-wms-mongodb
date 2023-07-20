@@ -29,6 +29,7 @@ func NewListLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ListLogic {
 
 func (l *ListLogic) List() (resp *types.ApisResponse, err error) {
 	resp = new(types.ApisResponse)
+	resp.Data = make([]*types.Api, 0)
 
 	var apis []model.Api
 	cur, err := l.svcCtx.ApiModel.Find(l.ctx, bson.M{})
@@ -46,20 +47,38 @@ func (l *ListLogic) List() (resp *types.ApisResponse, err error) {
 		resp.Msg = "服务内部错误"
 		return resp, nil
 	}
-	resp.Data = make([]types.Api, 0)
+
+	var list []types.Api
 	for _, one := range apis {
-		resp.Data = append(resp.Data, types.Api{
-			Id:       one.Id.Hex(),
-			Type:     one.Type,
-			SortId:   one.SortId,
-			ParentId: one.ParentId,
-			Uri:      one.Uri,
-			Method:   one.Method,
-			Name:     one.Name,
-			Remark:   one.Remark,
+		list = append(list, types.Api{
+			Id:        one.Id.Hex(),
+			Type:      one.Type,
+			SortId:    one.SortId,
+			ParentId:  one.ParentId,
+			Uri:       one.Uri,
+			Method:    one.Method,
+			Name:      one.Name,
+			Remark:    one.Remark,
+			CreatedAt: one.CreatedAt,
+			UpdatedAt: one.UpdatedAt,
 		})
 	}
 
+	var apiMap = make(map[string]*types.Api)
+	for i, one := range list {
+		apiMap[one.Id] = &list[i]
+	}
+
+	var rootApi = make([]*types.Api, 0)
+	for i := range list {
+		if parent, ok := apiMap[list[i].ParentId]; ok {
+			parent.Children = append(parent.Children, &list[i])
+		} else {
+			rootApi = append(rootApi, &list[i])
+		}
+	}
+
+	resp.Data = rootApi
 	resp.Code = http.StatusOK
 	resp.Msg = "成功"
 	return resp, nil

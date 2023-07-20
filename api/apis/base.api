@@ -14,3 +14,27 @@ type BaseResponse {
     Msg string `json:"msg"`
 }
 
+type Menu {
+    Id string `json:"id"`
+    Type int64 `json:"type"`                       //路由类型：1.菜单，2.按钮
+    SortId int64 `json:"sort_id"`                  //排序
+    ParentId string `json:"parent_id"`             //父路由id
+    Path string `json:"path,optional"`             //路由路径
+    Name string `json:"name,optional"`             //路由名称
+    Component string `json:"component,optional"`   //路由组件
+    Meta MetaProps `json:"meta"`
+    Remark string `json:"remark"`                  //备注
+    CreatedAt int64 `json:"created_at,optional"`
+    UpdatedAt int64 `json:"updated_at,optional"`
+    Children []*Menu `json:"children,optional"`
+}
+
+type MetaProps {
+    Title string `json:"title,optional"`                   //路由标题
+    Icon string `json:"icon"`                               //元信息：图标
+    Transition string `json:"transition"`                   //元信息：过渡动画
+    Hidden bool `json:"hidden"`                             //元信息：是否隐藏
+    Fixed bool `json:"fixed"`                               //元信息：是否固定
+    IsFull bool `json:"is_full"`                            //元信息：是否全屏
+    Perms string `json:"perms,optional"`                    //权限标识
+}

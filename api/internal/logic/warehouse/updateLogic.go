@@ -35,15 +35,6 @@ func NewUpdateLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UpdateLogi
 func (l *UpdateLogic) Update(req *types.WarehouseRequest) (resp *types.BaseResponse, err error) {
 	resp = new(types.BaseResponse)
 
-	//todo:用于操作记录
-	//uid := l.ctx.Value("uid").(string)
-	//uObjectID, err := primitive.ObjectIDFromHex(uid)
-	//if err != nil {
-	//	fmt.Printf("[Error]uid[%s]id转换：%s\n", uid, err.Error())
-	//	resp.Code = http.StatusBadRequest
-	//	resp.Msg = "参数错误"
-	//	return resp, nil
-	//}
 	//1.仓库是否存在
 	id, err := primitive.ObjectIDFromHex(strings.TrimSpace(req.Id))
 	if err != nil {
@@ -55,25 +46,41 @@ func (l *UpdateLogic) Update(req *types.WarehouseRequest) (resp *types.BaseRespo
 	//排除已删除的仓库
 	filter := bson.M{
 		"_id":    id,
-		"status": bson.M{"$ne": 100},
+		"status": bson.M{"$ne": code.WarehouseStatusCode("删除")},
 	}
-	count, err := l.svcCtx.WarehouseModel.CountDocuments(l.ctx, filter)
-	if err != nil {
-		fmt.Printf("[Error]查询仓库[%s]是否存在:%s\n", req.Id, err.Error())
-		resp.Code = http.StatusInternalServerError
-		resp.Msg = "服务器内部错误"
-		return resp, nil
-	}
-	if count == 0 {
+	warehouseRes := l.svcCtx.WarehouseModel.FindOne(l.ctx, filter)
+	switch warehouseRes.Err() {
+	case nil:
+		var warehouse model.Warehouse
+		if err = warehouseRes.Decode(&warehouse); err != nil {
+			fmt.Printf("[Error]解析仓库[%s]:%s\n", req.Id, err.Error())
+			resp.Code = http.StatusInternalServerError
+			resp.Msg = "服务器内部错误"
+			return resp, nil
+		}
+		//仓库是否在激活状态
+		switch warehouse.Status {
+		case 10: //激活
+		default: //非激活状态不能执行库存管理和操作
+			resp.Code = http.StatusBadRequest
+			resp.Msg = fmt.Sprintf("仓库%s，无法执行操作", code.WarehouseStatusText(warehouse.Status))
+			return resp, nil
+		}
+	case mongo.ErrNoDocuments:
 		resp.Code = http.StatusBadRequest
 		resp.Msg = "仓库不存在"
+		return resp, nil
+	default:
+		fmt.Printf("[Error]查询仓库[%s]：%s\n", req.Id, warehouseRes.Err().Error())
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "服务器内部错误"
 		return resp, nil
 	}
 
 	//2.仓库名称是否重复
 	filter = bson.M{
 		"_id":    bson.M{"$ne": id},
-		"status": bson.M{"$ne": 100},
+		"status": bson.M{"$ne": code.WarehouseStatusCode("删除")},
 		"$or": []bson.M{
 			{"name": strings.TrimSpace(req.Name)},
 			{"code": strings.TrimSpace(req.Code)},
@@ -114,6 +121,7 @@ func (l *UpdateLogic) Update(req *types.WarehouseRequest) (resp *types.BaseRespo
 			"type":          code.WarehouseTypeCode(req.Type),
 			"name":          strings.TrimSpace(req.Name),
 			"code":          strings.TrimSpace(req.Code),
+			"image":         strings.TrimSpace(req.Image),
 			"address":       strings.TrimSpace(req.Address),
 			"capacity":      req.Capacity,
 			"capacity_unit": strings.TrimSpace(req.CapacityUnit),

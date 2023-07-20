@@ -26,12 +26,13 @@ type WarehouseRequest {
     Type string `json:"type,optional" validate:"required,oneof=分销中心 生产仓库 跨境仓库 电商仓库 冷链仓库 合规仓库 专用仓库 跨渠道仓库 自动化仓库 第三方物流仓库 " comment:"仓库类型"`                                     //仓库类型
     Name string `json:"name,optional" validate:"required" comment:"仓库名称"`                                                                                                                                                //仓库名称
     Code string `json:"code,optional" validate:"required" comment:"仓库编号"`                                                                                                                                                //仓库编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
+//    Image string `json:"image,optional" validate:"omitempty,url" comment:"图片"`                                                                                                                                             //图片
+    Image string `json:"image,optional" validate:"omitempty" comment:"图片"`                                                                                                                                             //图片
     Address string `json:"address,optional" validate:"omitempty" comment:"仓库地址"`                                                                                                                                            //仓库地址
     Capacity float64 `json:"capacity,optional" validate:"omitempty,gte=0" comment:"仓库容量"`                                                                                                                                // 仓库容量
     CapacityUnit string `json:"capacity_unit,optional" validate:"omitempty" comment:"仓库容量单位"`                                                                                                                          // 仓库容量单位：面积、体积或其他度量单位
     Manager string `json:"manager,optional" validate:"omitempty" comment:"负责人"`                                                                                                                                           //负责人
     Contact string `json:"contact,optional" validate:"omitempty,e164" comment:"联系方式"`                                                                                                                                    //联系方式
-    Image string `json:"image,optional" validate:"omitempty,url" comment:"图片"`                                                                                                                                             //图片
     Remark string `json:"remark,optional" validate:"omitempty" comment:"备注"`                                                                                                                                               //备注
 }
 

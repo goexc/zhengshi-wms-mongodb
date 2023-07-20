@@ -31,15 +31,15 @@ func NewAddLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AddLogic {
 	}
 }
 
-func (l *AddLogic) Add(req *types.MenuRequest) (resp *types.BaseResponse, err error) {
+func (l *AddLogic) Add(req *types.Menu) (resp *types.BaseResponse, err error) {
 	resp = new(types.BaseResponse)
 
 	//1.类型为菜单时，判断路径是否重复
 	filter := bson.M{
 		"parent_id": req.ParentId,
-		"type":      req.Type,  //类型：1.菜单，2.按钮
-		"path":      req.Path,  //路径
-		"perms":     req.Perms, //权限标识
+		"type":      req.Type,       //类型：1.菜单，2.按钮
+		"path":      req.Path,       //路径
+		"perms":     req.Meta.Perms, //权限标识
 	}
 	singleRes := l.svcCtx.MenuModel.FindOne(l.ctx, filter)
 	switch singleRes.Err() {
@@ -100,12 +100,12 @@ func (l *AddLogic) Add(req *types.MenuRequest) (resp *types.BaseResponse, err er
 		ParentId:   req.ParentId,
 		SortId:     req.SortId,
 		Component:  req.Component,
-		Icon:       req.Icon,
-		Transition: req.Transition,
-		Hidden:     req.Hidden,
-		Fixed:      req.Fixed,
-		IsFull:     req.IsFull,
-		Perms:      req.Perms,
+		Icon:       req.Meta.Icon,
+		Transition: req.Meta.Transition,
+		Hidden:     req.Meta.Hidden,
+		Fixed:      req.Meta.Fixed,
+		IsFull:     req.Meta.IsFull,
+		Perms:      req.Meta.Perms,
 		Remark:     req.Remark,
 		CreatedAt:  time.Now().Unix(),
 		UpdatedAt:  time.Now().Unix(),

@@ -1,0 +1,170 @@
+[
+  {
+    "_id": "64ad19ded1baca547a621cdb",
+    "created_at": "1689065950",
+    "menu_id": "6473472a9a05052fdce5b9e8",
+    "role_id": "6472101cbf3beb2563ff8fa0"
+  },
+  {
+    "_id": "64ad19ded1baca547a621cdc",
+    "created_at": "1689065950",
+    "menu_id": "649805fd5f80fa587be8fac4",
+    "role_id": "6472101cbf3beb2563ff8fa0"
+  },
+  {
+    "_id": "64ad19ded1baca547a621cdd",
+    "created_at": "1689065950",
+    "menu_id": "64abcae9412e8109c68051f5",
+    "role_id": "6472101cbf3beb2563ff8fa0"
+  },
+  {
+    "_id": "64ad19ded1baca547a621cde",
+    "created_at": "1689065950",
+    "menu_id": "64a447897ddcfbc10b5a174c",
+    "role_id": "6472101cbf3beb2563ff8fa0"
+  },
+  {
+    "_id": "64ad19ded1baca547a621cdf",
+    "created_at": "1689065950",
+    "menu_id": "64a448217ddcfbc10b5a174d",
+    "role_id": "6472101cbf3beb2563ff8fa0"
+  },
+  {
+    "_id": "64ad19ded1baca547a621ce0",
+    "created_at": "1689065950",
+    "menu_id": "64a448d67ddcfbc10b5a174e",
+    "role_id": "6472101cbf3beb2563ff8fa0"
+  },
+  {
+    "_id": "64ad19ded1baca547a621ce1",
+    "created_at": "1689065950",
+    "menu_id": "64a449197ddcfbc10b5a174f",
+    "role_id": "6472101cbf3beb2563ff8fa0"
+  },
+  {
+    "_id": "64ad19ded1baca547a621ce2",
+    "created_at": "1689065950",
+    "menu_id": "64a449377ddcfbc10b5a1750",
+    "role_id": "6472101cbf3beb2563ff8fa0"
+  },
+  {
+    "_id": "64ad19ded1baca547a621ce3",
+    "created_at": "1689065950",
+    "menu_id": "6497fec8beee6aae745a4316",
+    "role_id": "6472101cbf3beb2563ff8fa0"
+  },
+  {
+    "_id": "64ad19ded1baca547a621ce4",
+    "created_at": "1689065950",
+    "menu_id": "649823a8dcc11ad605c9136f",
+    "role_id": "6472101cbf3beb2563ff8fa0"
+  },
+  {
+    "_id": "64ad19ded1baca547a621ce5",
+    "created_at": "1689065950",
+    "menu_id": "649d9213b0b3269a3eaba11f",
+    "role_id": "6472101cbf3beb2563ff8fa0"
+  },
+  {
+    "_id": "64ad19ded1baca547a621ce6",
+    "created_at": "1689065950",
+    "menu_id": "649842434bd51aaab6db1e1a",
+    "role_id": "6472101cbf3beb2563ff8fa0"
+  },
+  {
+    "_id": "64ad19ded1baca547a621ce7",
+    "created_at": "1689065950",
+    "menu_id": "649d9242b0b3269a3eaba120",
+    "role_id": "6472101cbf3beb2563ff8fa0"
+  },
+  {
+    "_id": "64ad19ded1baca547a621ce8",
+    "created_at": "1689065950",
+    "menu_id": "649836a6a4d899936195bec8",
+    "role_id": "6472101cbf3beb2563ff8fa0"
+  },
+  {
+    "_id": "64ad19ded1baca547a621ce9",
+    "created_at": "1689065950",
+    "menu_id": "649d909cb0b3269a3eaba11b",
+    "role_id": "6472101cbf3beb2563ff8fa0"
+  },
+  {
+    "_id": "64ad19ded1baca547a621cea",
+    "created_at": "1689065950",
+    "menu_id": "649d9101b0b3269a3eaba11c",
+    "role_id": "6472101cbf3beb2563ff8fa0"
+  },
+  {
+    "_id": "64ad19ded1baca547a621ceb",
+    "created_at": "1689065950",
+    "menu_id": "64ad0935fff15e70e19b31d1",
+    "role_id": "6472101cbf3beb2563ff8fa0"
+  },
+  {
+    "_id": "64ad19ded1baca547a621cec",
+    "created_at": "1689065950",
+    "menu_id": "64ad19c7d1baca547a621cda",
+    "role_id": "6472101cbf3beb2563ff8fa0"
+  },
+  {
+    "_id": "64ad19ded1baca547a621ced",
+    "created_at": "1689065950",
+    "menu_id": "649d9176b0b3269a3eaba11d",
+    "role_id": "6472101cbf3beb2563ff8fa0"
+  },
+  {
+    "_id": "64ad19ded1baca547a621cee",
+    "created_at": "1689065950",
+    "menu_id": "64a15f446f0829e80e37d041",
+    "role_id": "6472101cbf3beb2563ff8fa0"
+  },
+  {
+    "_id": "64ad19ded1baca547a621cef",
+    "created_at": "1689065950",
+    "menu_id": "64a15e8e6f0829e80e37d033",
+    "role_id": "6472101cbf3beb2563ff8fa0"
+  },
+  {
+    "_id": "64ad19ded1baca547a621cf0",
+    "created_at": "1689065950",
+    "menu_id": "649d919eb0b3269a3eaba11e",
+    "role_id": "6472101cbf3beb2563ff8fa0"
+  },
+  {
+    "_id": "64ae14bc12fc3d08cf0b3d26",
+    "created_at": "1689130172",
+    "menu_id": "649805fd5f80fa587be8fac4",
+    "role_id": "64971a75516079cb8e17f7db"
+  },
+  {
+    "_id": "64ae14bc12fc3d08cf0b3d27",
+    "created_at": "1689130172",
+    "menu_id": "64abcae9412e8109c68051f5",
+    "role_id": "64971a75516079cb8e17f7db"
+  },
+  {
+    "_id": "64ae14bc12fc3d08cf0b3d28",
+    "created_at": "1689130172",
+    "menu_id": "649d9213b0b3269a3eaba11f",
+    "role_id": "64971a75516079cb8e17f7db"
+  },
+  {
+    "_id": "64ae14bc12fc3d08cf0b3d29",
+    "created_at": "1689130172",
+    "menu_id": "6473472a9a05052fdce5b9e8",
+    "role_id": "64971a75516079cb8e17f7db"
+  },
+  {
+    "_id": "64ae14bc12fc3d08cf0b3d2a",
+    "created_at": "1689130172",
+    "menu_id": "6497fec8beee6aae745a4316",
+    "role_id": "64971a75516079cb8e17f7db"
+  },
+  {
+    "_id": "64ae14bc12fc3d08cf0b3d2b",
+    "created_at": "1689130172",
+    "menu_id": "649823a8dcc11ad605c9136f",
+    "role_id": "64971a75516079cb8e17f7db"
+  }
+]

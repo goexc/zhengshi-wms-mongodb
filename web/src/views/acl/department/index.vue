@@ -188,8 +188,20 @@ onMounted(() => {
       <el-table-column prop="code" label="编码" min-width="220px" fixed/>
       <el-table-column label="操作" width="300px" fixed="right">
         <template #default="{row}">
-          <el-button type="primary" plain size="small" icon="Plus" @click="addDepartment(row)">添加子部门</el-button>
-          <el-button type="warning" plain size="small" icon="Edit" @click="editDepartment(row)">编辑</el-button>
+          <perms-button
+              perms="privilege:department:add"
+              :type="Types.primary"
+              :size="Sizes.small"
+              :plain="true"
+              @action="addDepartment(row)"/>
+<!--          <el-button type="primary" plain size="small" icon="Plus" @click="addDepartment(row)">添加子部门</el-button>-->
+          <perms-button
+              perms="privilege:department:edit"
+              :type="Types.warning"
+              :size="Sizes.small"
+              :plain="true"
+              @action="editDepartment(row)"/>
+<!--          <el-button type="warning" plain size="small" icon="Edit" @click="editDepartment(row)">编辑</el-button>-->
           <el-popconfirm
               :title="`确定删除部门[${row.name}]吗?`"
               icon="InfoFilled"

@@ -1,0 +1,34 @@
+[
+  {
+    "_id": "6479b04126951c379eabd013",
+    "capacity": "500",
+    "capacity_unit": "㎡",
+    "code": "KQ1",
+    "contact": "+8617361081269",
+    "created_at": "1685696577",
+    "creator": "647557da38030e59bbcc1b1a",
+    "creator_name": "",
+    "manager": "陈总",
+    "name": "管材库区2",
+    "remark": "",
+    "status": "10",
+    "updated_at": "1685696577",
+    "warehouse_id": "6479638a7882a620b88a8ef4"
+  },
+  {
+    "_id": "6479b05426951c379eabd014",
+    "capacity": "500",
+    "capacity_unit": "㎡",
+    "code": "KQ1",
+    "contact": "+8617361081269",
+    "created_at": "1685696596",
+    "creator": "647557da38030e59bbcc1b1a",
+    "creator_name": "",
+    "manager": "陈总",
+    "name": "管材库区1",
+    "remark": "",
+    "status": "30",
+    "updated_at": "1685696596",
+    "warehouse_id": "647962e17882a620b88a8ef3"
+  }
+]

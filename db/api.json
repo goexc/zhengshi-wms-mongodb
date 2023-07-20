@@ -1,0 +1,38 @@
+[
+  {
+    "_id": "64736e7fd3db0b1d805f52c8",
+    "created_at": "1685286527",
+    "method": "",
+    "name": "菜单管理",
+    "parent_id": "",
+    "remark": "",
+    "sort_id": "1",
+    "type": "1",
+    "updated_at": "1685286527",
+    "uri": ""
+  },
+  {
+    "_id": "647375cba1d3f975d82e15f6",
+    "created_at": "1685288395",
+    "method": "POST",
+    "name": "添加菜单",
+    "parent_id": "",
+    "remark": "",
+    "sort_id": "1",
+    "type": "1",
+    "updated_at": "1685288395",
+    "uri": "/menu"
+  },
+  {
+    "_id": "6473811c343cb46d075758c0",
+    "created_at": "1685291292",
+    "method": "POST",
+    "name": "添加API",
+    "parent_id": "",
+    "remark": "",
+    "sort_id": "1",
+    "type": "2",
+    "updated_at": "1685291292",
+    "uri": "/api"
+  }
+]
