@@ -83,18 +83,34 @@ func (l *AddLogic) Add(req *types.ApiRequest) (resp *types.BaseResponse, err err
 	if strings.TrimSpace(req.ParentId) != "" {
 		parentId, _ := primitive.ObjectIDFromHex(strings.TrimSpace(req.ParentId))
 		filter = bson.M{"_id": parentId}
-		count, err := l.svcCtx.ApiModel.CountDocuments(l.ctx, filter)
-		if err != nil {
-			fmt.Printf("[Error]查询api上级id[%s]:%s\n", req.ParentId, err.Error())
-			resp.Msg = "服务器内部错误"
-			resp.Code = http.StatusInternalServerError
-			return resp, nil
-		}
+		singleRes = l.svcCtx.ApiModel.FindOne(l.ctx, filter)
 
-		if count == 0 {
+		switch singleRes.Err() {
+		case nil: //上级api存在
+			var parent model.Api
+			if err = singleRes.Decode(&parent); err != nil {
+				fmt.Printf("[Error]解析上级api[%s]:%s\n", req.ParentId, err.Error())
+				resp.Code = http.StatusInternalServerError
+				resp.Msg = "服务器内部错误"
+				return resp, nil
+			}
+			//上级api必须是菜单类型，不能是api类型
+			if parent.Type != 1 {
+				resp.Msg = "上级api必须是菜单类型"
+				resp.Code = http.StatusBadRequest
+				return resp, nil
+			}
+
+		case mongo.ErrNoDocuments: //上级api不存在
 			resp.Msg = "上级api不存在"
 			resp.Code = http.StatusBadRequest
 			return resp, nil
+		default:
+			fmt.Printf("[Error]查询api上级id[%s]:%s\n", req.ParentId, singleRes.Err().Error())
+			resp.Msg = "服务器内部错误"
+			resp.Code = http.StatusInternalServerError
+			return resp, nil
+
 		}
 	}
 

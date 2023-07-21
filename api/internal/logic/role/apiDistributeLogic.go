@@ -31,10 +31,10 @@ func (l *ApiDistributeLogic) ApiDistribute(req *types.RoleApisRequest) (resp *ty
 	resp = new(types.BaseResponse)
 
 	//Api权限写入casbin
-	//1.Api是否存在
-	id, err := primitive.ObjectIDFromHex(req.RoleId)
+	//1.角色是否存在
+	id, err := primitive.ObjectIDFromHex(req.Id)
 	if err != nil {
-		fmt.Printf("[Error]Api[%s]id转换：%s\n", req.RoleId, err.Error())
+		fmt.Printf("[Error]角色[%s]id转换：%s\n", req.Id, err.Error())
 		resp.Code = http.StatusBadRequest
 		resp.Msg = "参数错误"
 		return resp, nil
@@ -43,14 +43,14 @@ func (l *ApiDistributeLogic) ApiDistribute(req *types.RoleApisRequest) (resp *ty
 	var filter = bson.M{"_id": id}
 	count, err := l.svcCtx.RoleModel.CountDocuments(l.ctx, filter)
 	if err != nil {
-		fmt.Printf("[Error]查询Api[%s]:%s\n", req.RoleId, err.Error())
+		fmt.Printf("[Error]查询角色[%s]:%s\n", req.Id, err.Error())
 		resp.Msg = "服务器内部错误"
 		resp.Code = http.StatusInternalServerError
 		return resp, nil
 	}
 
 	if count == 0 {
-		resp.Msg = "Api不存在"
+		resp.Msg = "角色不存在"
 		resp.Code = http.StatusBadRequest
 		return resp, nil
 	}
@@ -87,9 +87,9 @@ func (l *ApiDistributeLogic) ApiDistribute(req *types.RoleApisRequest) (resp *ty
 	}
 
 	//3.删除角色绑定的api
-	_, err = l.svcCtx.Enforcer.DeletePermissionsForUser(fmt.Sprintf("role_%s", strings.TrimSpace(req.RoleId)))
+	_, err = l.svcCtx.Enforcer.DeletePermissionsForUser(fmt.Sprintf("role_%s", strings.TrimSpace(req.Id)))
 	if err != nil {
-		fmt.Printf("[Error]删除角色[%s]的api:%s\n", strings.TrimSpace(req.RoleId), err.Error())
+		fmt.Printf("[Error]删除角色[%s]的api:%s\n", strings.TrimSpace(req.Id), err.Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务内部错误"
 		return resp, nil
@@ -103,7 +103,7 @@ func (l *ApiDistributeLogic) ApiDistribute(req *types.RoleApisRequest) (resp *ty
 			continue
 		}
 
-		permissions = append(permissions, []string{fmt.Sprintf("role_%s", req.RoleId), api.Uri, api.Method})
+		permissions = append(permissions, []string{fmt.Sprintf("role_%s", req.Id), api.Uri, api.Method})
 	}
 
 	fmt.Println("待添加权限：", permissions)
@@ -114,14 +114,14 @@ func (l *ApiDistributeLogic) ApiDistribute(req *types.RoleApisRequest) (resp *ty
 	}
 	_, err = l.svcCtx.Enforcer.AddPolicies(permissions)
 	if err != nil {
-		fmt.Printf("[Error]角色[%s]添加权限:%s\n", req.RoleId, err.Error())
+		fmt.Printf("[Error]角色[%s]添加权限:%s\n", req.Id, err.Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务内部错误"
 		return resp, nil
 	}
 
 	if err = l.svcCtx.Enforcer.SavePolicy(); err != nil {
-		fmt.Printf("[Error]角色[%s]保存权限:%s\n", req.RoleId, err.Error())
+		fmt.Printf("[Error]角色[%s]保存权限:%s\n", req.Id, err.Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务内部错误"
 		return resp, nil

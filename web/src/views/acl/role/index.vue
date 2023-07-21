@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {nextTick, onMounted, ref} from "vue";
-import {reqRoles} from "@/api/acl/role";
+import {reqChangeRoleApis, reqRoleApis, reqRoles} from "@/api/acl/role";
 import {roleRules} from "./rules";
 import {ElMessage, FormInstance} from "element-plus";
 import {reqAddOrUpdateRole} from "@/api/acl/role";
@@ -11,7 +11,7 @@ import {reqChangeRoleStatus, reqRoleMenus} from "@/api/acl/role";
 import {Menu, MenuListResponse} from "@/api/acl/menu/types.ts";
 import {reqMenuList} from "@/api/acl/menu";
 import {
-  Role,
+  Role, RoleApisResponse,
   RoleMenusRequest,
   RoleMenusResponse,
   RoleRequest,
@@ -19,6 +19,8 @@ import {
   RolesResponse, RoleStatusRequest
 } from "@/api/acl/role/types.ts";
 import {Sizes, Types} from "@/utils/enum.ts";
+import {Api, ApiListResponse} from "@/api/acl/api/types.ts";
+import {reqApiList} from "@/api/acl/api";
 
 const page = ref<number>(1)
 const size = ref<number>(10)
@@ -156,6 +158,24 @@ const confirm = async () => {
   }
 }
 
+//角色状态样式
+const statusType = (status: string) => {
+  let t = ''
+  switch (status) {
+    case '启用':
+      t = 'success'
+      break
+    case '禁用':
+      t = 'warning'
+      break
+    case '删除':
+      t = 'danger'
+      break
+    default:
+      t = ''
+  }
+  return t
+}
 
 //分配菜单
 const initRoles = () => {
@@ -170,6 +190,7 @@ const rolesForm = ref(initRoles())
 const menus = ref<Menu[]>([])//菜单列表
 const menusId = ref<string[]>([])
 const menusVisible = ref<boolean>(false)
+const menuTreeRef = ref<FormInstance>()
 
 //给角色分配菜单
 const setMenus = async (row: Role) => {
@@ -193,16 +214,8 @@ const menusClose = () => {
   menusVisible.value = false
 }
 
-//给角色分配api
-const setApis = async (row: Role) => {
-  console.log('给角色分配api:', row)
-}
-
-const menuTreeRef = ref()
-
 //保存角色菜单
 const menusConfirm = async () => {
-
   //(leafOnly) 接收一个布尔类型参数，默认为 false.
   // 如果参数是 true, 它只返回当前选择的子节点数组。
   //  menusId.value =  menuTreeRef.value.getCheckedKeys(true)
@@ -289,24 +302,105 @@ const batchRemoveRole = async () => {
   }
 }
 
-//角色状态样式
-const statusType = (status: string) => {
-  let t = ''
-  switch (status) {
-    case '启用':
-      t = 'success'
-      break
-    case '禁用':
-      t = 'warning'
-      break
-    case '删除':
-      t = 'danger'
-      break
-    default:
-      t = ''
+const apis = ref<Api[]>([])//菜单列表
+const apisId = ref<string[]>([])
+const apisVisible = ref<boolean>(false)
+const apiTreeRef = ref<FormInstance>()
+
+
+
+//查询API列表
+const getApis = async () => {
+  let res: ApiListResponse = await reqApiList()
+  apis.value = []
+  if (res.code === 200) {
+    apis.value = res.data
+  } else {
+    ElMessage.error(res.msg)
   }
-  return t
 }
+
+//查询角色的API列表
+const getRoleApis = async (id: string) => {
+  let res: RoleApisResponse = await reqRoleApis({id: id})
+  apisId.value = []
+  if (res.code === 200) {
+    //计算叶子节点
+    let allNodes  = apiTreeRef.value.store._getAllNodes()
+    let allLeaf = allNodes.filter((item:any)=>item.isLeaf).map((item:any)=>item.data.id)
+    //只筛选叶子节点
+    apisId.value = res.data.filter(apiId=>allLeaf.includes(apiId))
+  } else {
+    ElMessage.error(res.msg)
+  }
+}
+
+
+
+//给角色分配api
+const setApis = async (row: Role) => {
+  console.log('给角色分配api:', row)
+  apisVisible.value = true
+
+  //查询API树
+  await getApis()
+  //查询角色的菜单列表
+  await getRoleApis(row.id)
+
+  rolesForm.value.id = row.id
+  rolesForm.value.name = row.name
+}
+
+const apisClose = () => {
+  //清空选中的节点。
+  //setCheckedKeys	设置目前选中的节点，
+  // 使用此方法必须设置 node-key 属性	(keys, leafOnly) 接收两个参数:
+  // 1. 一个需要被选中的多节点 key 的数组
+  // 2. 布尔类型的值 如果设置为 true，将只设置选中的叶子节点状态。 默认值是 false.
+  apiTreeRef.value.setCheckedKeys([], false)
+  apisVisible.value = false
+}
+
+
+//保存角色API
+const apisConfirm = async () => {
+  //(leafOnly) 接收一个布尔类型参数，默认为 false.
+  // 如果参数是 true, 它只返回当前选择的子节点数组。
+  //  apisId.value =  apiTreeRef.value.getCheckedKeys(true)
+  let leafKeys = apiTreeRef.value.getCheckedKeys() as string[]
+  let halfKeys = apiTreeRef.value.getHalfCheckedKeys() as string[]
+  let asId = []
+  asId.push(...leafKeys)
+  asId.push(...halfKeys)
+  console.log('叶子节点：', leafKeys)
+  console.log('半选中节点：', halfKeys)
+  console.log('全部节点：', asId)
+  // return
+  if (asId.length === 0) {
+    ElMessage({
+      type: "warning",
+      message: '请选择至少 1 个API'
+    })
+    return
+  }
+  let req = <RoleMenusRequest>({id: rolesForm.value.id, apis_id: asId})
+  let res: baseResponse = await reqChangeRoleApis(req)
+  if (res.code === 200) {
+    apisClose()
+    ElMessage({
+      type: "success",
+      message: res.msg
+    })
+  } else {
+    ElMessage({
+      type: "error",
+      message: res.msg
+    })
+  }
+}
+
+
+
 </script>
 
 <template>
@@ -492,6 +586,42 @@ const statusType = (status: string) => {
         <div>
           <el-button plain @click="menusClose">取消</el-button>
           <el-button type="primary" plain @click="menusConfirm">保存</el-button>
+        </div>
+      </template>
+    </el-drawer>
+
+    <!--  分配API  -->
+    <el-drawer
+        direction="rtl"
+        v-model="apisVisible"
+        title="分配API"
+        :before-close="apisClose"
+    >
+      <template #default>
+        <el-form label-width="80px">
+          <el-form-item label="角色名称">
+            {{ rolesForm.name }}
+          </el-form-item>
+          <el-form-item label="API列表">
+            <el-tree
+                ref="apiTreeRef"
+                :data="apis"
+                show-checkbox
+                node-key="id"
+                default-expand-all
+                :default-checked-keys="apisId"
+                :props="{children:'children', label:'name'}"
+                :check-strictly="false"
+            >
+
+            </el-tree>
+          </el-form-item>
+        </el-form>
+      </template>
+      <template #footer>
+        <div>
+          <el-button plain @click="apisClose">取消</el-button>
+          <el-button type="primary" plain @click="apisConfirm">保存</el-button>
         </div>
       </template>
     </el-drawer>

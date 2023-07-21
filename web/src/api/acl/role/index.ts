@@ -2,6 +2,8 @@
 import { baseResponse } from "@/api/types";
 import request from "@/utils/request.ts";
 import {
+  RoleApisRequest,
+  RoleApisResponse,
   RoleIdRequest,
   RoleListRequest,
   RoleListResponse,
@@ -23,6 +25,8 @@ enum API {
   ROLE_STATUS_URL = "/role/status",
   //分配角色菜单、角色菜单列表
   ROLE_MENUS_URL = "/role/menus",
+  //分配角色API、角色API列表
+  ROLE_APIS_URL = "/role/apis",
 }
 
 //获取角色列表的接口方法
@@ -55,3 +59,13 @@ export const reqChangeRoleMenus = (data: RoleMenusRequest) =>
 //查询角色菜单列表
 export const reqRoleMenus = (req: RoleIdRequest) =>
   request.get<any, RoleMenusResponse>(API.ROLE_MENUS_URL, { params: req });
+
+
+//分配角色API
+export const reqChangeRoleApis = (data: RoleApisRequest) =>
+  request.post<any, baseResponse>(API.ROLE_APIS_URL, data);
+
+
+//查询角色API列表
+export const reqRoleApis = (req: RoleIdRequest) =>
+  request.get<any, RoleApisResponse>(API.ROLE_APIS_URL, { params: req });

@@ -189,8 +189,8 @@ type RoleMenusResponse struct {
 }
 
 type RoleApisRequest struct {
-	RoleId string   `json:"role_id" validate:"required" comment:"角色"`                      //角色id
-	ApisId []string `json:"apis_id" validate:"required,gte=1,dive,required" comment:"Api"` //api id
+	Id     string   `json:"id,optional" validate:"required,mongodb" comment:"角色"`                   //角色id
+	ApisId []string `json:"apis_id,optional" validate:"required,gte=1,dive,required" comment:"Api"` //api id
 }
 
 type RoleApisResponse struct {

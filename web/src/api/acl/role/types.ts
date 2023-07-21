@@ -68,3 +68,17 @@ export interface RoleMenusResponse {
   msg: string;
   data: string[]; //menu_id数组
 }
+
+
+//分配角色API
+export interface RoleApisRequest {
+  id: string;
+  apis_id: string[]; //菜单id
+}
+
+//角色API列表
+export interface RoleApisResponse {
+  code: number;
+  msg: string;
+  data: string[]; //api_id数组
+}

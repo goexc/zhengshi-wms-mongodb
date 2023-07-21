@@ -42,7 +42,7 @@ const fullscreen = () => {
 const logout = async () => {
   //1.向服务器发出退出登录的请求
   //2.清空仓库中的相关数据[token|name|avatar]
-  await userStore.logout()
+  await userStore.setToken('')
   //3.跳转到登录页面
   await router.push({path: '/login', query: {redirect: route.path}})
 }

@@ -39,6 +39,14 @@ func (l *ApisLogic) Apis(req *types.RoleIdRequest) (resp *types.RoleApisResponse
 	for _, perm := range perms {
 		ums = append(ums, bson.M{"uri": perm[1], "method": perm[2]})
 	}
+
+	if len(ums) == 0 {
+		resp.Data = make([]string, 0)
+		resp.Code = http.StatusOK
+		resp.Msg = "成功"
+		return resp, nil
+	}
+
 	var filter = bson.M{"$or": ums}
 	cur, err := l.svcCtx.ApiModel.Find(l.ctx, filter)
 	if err != nil {

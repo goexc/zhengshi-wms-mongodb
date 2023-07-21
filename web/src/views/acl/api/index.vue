@@ -132,8 +132,8 @@ const handleClose = () => {
 <template>
   <div class="container">
     <div id="auth">
-      <el-button plain @click="switchExpand(true)" size="default" icon="ArrowUp">展开全部</el-button>
-      <el-button plain @click="switchExpand(false)" size="default" icon="ArrowDown">折叠全部</el-button>
+      <el-button plain @click="switchExpand(true)" size="default" icon="ArrowDown">展开全部</el-button>
+      <el-button plain @click="switchExpand(false)" size="default" icon="ArrowUp">折叠全部</el-button>
 
       <perms-button
           perms="privilege:api:add"
@@ -164,11 +164,15 @@ const handleClose = () => {
             <el-link :icon="row.icon">{{ row.name }}</el-link>
           </template>
         </el-table-column>
+        <el-table-column label="类型" prop="type" width="90px" align="center">
+          <template #default="{row}">
+            <el-tag size="default" :type="row.type===1?'success':'warning'">{{row.type===1?'菜单':'API'}}</el-tag>
+          </template>
+        </el-table-column>
         <el-table-column label="排序" prop="sort_id" width="80px" align="center"></el-table-column>
         <el-table-column label="URI" prop="uri" width="220px"></el-table-column>
-        <el-table-column label="必选" prop="required" width="220px"></el-table-column>
-        <el-table-column label="权限标识" prop="perms" width="220px"></el-table-column>
         <el-table-column label="方法" prop="method" align="center" width="90px"></el-table-column>
+        <el-table-column label="必选" prop="required" width="220px"></el-table-column>
         <el-table-column label="备注" prop="remark" min-width="120px"></el-table-column>
         <el-table-column label="创建时间" prop="created_at" width="180px">
           <template #default="{row}">
@@ -180,9 +184,10 @@ const handleClose = () => {
             {{ TimeFormat(row.updated_at) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" min-width="300px" fixed="right">
+        <el-table-column label="操作" width="280px" fixed="right">
           <template #default="{row}">
             <perms-button
+                v-if="row.type === 1"
                 perms="privilege:api:add"
                 :type="Types.primary"
                 :size="Sizes.small"
@@ -254,14 +259,14 @@ const handleClose = () => {
           <el-divider/>
           <el-row>
             <el-col :xs="24" :sm="24" :md="12" :lg="12" :xl="12">
-              <el-form-item label="方法" prop="method">
+              <el-form-item label="方法" prop="method" v-if="apiForm.type!==1">
                 <el-select v-model="apiForm.method" :disabled="apiForm.type===1">
                   <el-option v-for="($item, $index) in Methods" :key="$index" :label="$item" :value="$item"></el-option>
                 </el-select>
               </el-form-item>
             </el-col>
             <el-col :xs="24" :sm="24" :md="12" :lg="12" :xl="12">
-              <el-form-item label="URI" prop="uri">
+              <el-form-item label="URI" prop="uri" v-if="apiForm.type!==1">
                 <el-input v-model="apiForm.uri" :disabled="apiForm.type===1"/>
               </el-form-item>
             </el-col>

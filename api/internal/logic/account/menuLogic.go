@@ -150,7 +150,6 @@ func (l *MenuLogic) Menu() (resp *types.AccountPermsResponse, err error) {
 	//5.菜单分组
 	var list = make([]types.Menu, 0)
 	for _, one := range menus {
-		fmt.Printf("菜单：%s, %s\n", one.Name, one.Title)
 		switch one.Type {
 		case 1: //菜单
 			list = append(list, types.Menu{
