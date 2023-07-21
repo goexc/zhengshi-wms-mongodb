@@ -13,6 +13,7 @@ type WarehouseBin struct {
 	WarehouseRackName string             `json:"warehouse_rack_name" bson:"warehouse_rack_name"` // 货架名称
 	Name              string             `json:"name" bson:"name"`                               // 货位名称
 	Code              string             `json:"code" bson:"code"`                               // 货位编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
+	Image             string             `json:"image" bson:"image"`                             // 货位图片
 	Capacity          float64            `json:"capacity" bson:"capacity"`                       // 货位容量
 	CapacityUnit      string             `json:"capacity_unit" bson:"capacity_unit"`             // 货位容量单位：面积、体积或其他度量单位
 	//货位状态
@@ -22,6 +23,8 @@ type WarehouseBin struct {
 	//90.关闭（Closed）：表示货位已经关闭，不再进行任何库存管理和操作。通常是由于货位不再使用或被替代。
 	//100.删除（Deleted）
 	Status      int                `json:"status" bson:"status"`                                 //货位状态
+	Manager     string             `json:"manager" bson:"manager"`                               //负责人
+	Contact     string             `json:"contact" bson:"contact"`                               //联系方式
 	Remark      string             `json:"remark" bson:"remark"`                                 // 备注
 	Creator     primitive.ObjectID `json:"creator" bson:"creator"`                               //创建人
 	CreatorName string             `json:"creator_name,omitempty" bson:"creator_name,omitempty"` //创建人

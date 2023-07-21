@@ -48,7 +48,6 @@ func (l *PaginateLogic) Paginate(req *types.WarehousesRequest) (resp *types.Ware
 	}
 	//1.3 查询指定类型的仓库
 	t := code.WarehouseTypeCode(strings.TrimSpace(req.Type))
-	fmt.Println("仓库类型：", req.Type, t)
 	if t > 0 {
 		filter["type"] = t
 	}
@@ -144,7 +143,6 @@ func (l *PaginateLogic) Paginate(req *types.WarehousesRequest) (resp *types.Ware
 		resp.Msg = "服务器内部错误"
 		return resp, nil
 	}
-	fmt.Printf("仓库数量:%d\n", len(warehouses))
 
 	//2.仓库总数量
 	total, err := l.svcCtx.WarehouseModel.CountDocuments(l.ctx, filter)

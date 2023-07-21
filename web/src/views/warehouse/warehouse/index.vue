@@ -128,6 +128,21 @@ const handleSuccess = () => {
   visible.value = false
 }
 
+const statusType = (status:string) => {
+  switch(status){
+    case '激活':
+      return 'success'
+    case '盘点中':
+      return 'warning'
+    case '关闭':
+      return 'info'
+    case '禁用':
+      return 'danger'
+    default:
+      return ''
+  }
+}
+
 onMounted(async () => {
   await getWarehouses()
 })
@@ -194,7 +209,11 @@ onMounted(async () => {
         </el-table-column>
         <el-table-column label="仓库类型" prop="type" width="120px"></el-table-column>
         <el-table-column label="仓库编号" prop="code" min-width="100px"></el-table-column>
-        <el-table-column label="仓库状态" prop="status"></el-table-column>
+        <el-table-column label="仓库状态" prop="status" width="90px" align="center">
+          <template #default="{row}">
+            <el-tag size="default" :type="statusType(row.status)">{{row.status}}</el-tag>
+          </template>
+        </el-table-column>
         <el-table-column label="容积" width="100px">
           <template #default="{row}">
             {{ row.capacity }} {{ row.capacity_unit }}

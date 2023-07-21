@@ -1,22 +1,23 @@
 <script setup lang="ts">
 import {nextTick, ref, reactive, onMounted} from "vue";
 import {ElMessage, FormInstance, FormRules} from "element-plus";
-import {Zone, ZoneRequest} from "@/api/zone/types.ts";
-import {reqAddOrUpdateZone} from "@/api/warehouse_zone";
 import WarehouseListItem from "@/components/Warehouse/WarehouseListItem.vue";
+import {reqAddOrUpdateRack} from "@/api/warehouse_rack";
+import {Rack, RackRequest} from "@/api/warehouse_rack/types.ts";
+import {RackTypes} from "@/enums/rack.ts";
 
 defineOptions({
   name: "Item"
 })
 
 //获取父组件传递过来的全部路由数组
-const props = defineProps(['zone'])
+const props = defineProps(['rack'])
 
-const form = ref<Zone>(JSON.parse(JSON.stringify(props.zone)))
+const form = ref<Rack>(JSON.parse(JSON.stringify(props.rack)))
 const formRef = ref<FormInstance>()
 const emit = defineEmits(['success', 'cancel'])
 
-//更换库区图片
+//更换货架图片
 const handleSelect = (image:string) => {
   form.value.image = image
 }
@@ -35,19 +36,27 @@ const rules = reactive<FormRules>({
       trigger: ["blur", "change"],
     },
   ],
-  // status: [
-  //   {
-  //     required: true,
-  //     message: "请选择指定的库区状态",
-  //     type: "enum",
-  //     enum: ZoneStatus,
-  //     trigger: ["blur", "change"],
-  //   },
-  // ],
+  warehouse_zone_id: [
+    {
+      required: true,
+      message: "请选择库区",
+      type: "string",
+      trigger: ["blur", "change"],
+    },
+  ],
+  type: [
+    {
+      required: true,
+      message: '请选择货架类型',
+      type: 'enum',
+      enum: RackTypes,
+      trigger: ['blue', 'change'],
+    }
+  ],
   name: [
     {
       required: true,
-      message: '请填写库区名称',
+      message: '请填写货架名称',
       type: 'string',
       trigger: ['blue', 'change'],
     }
@@ -55,23 +64,15 @@ const rules = reactive<FormRules>({
   code: [
     {
       required: true,
-      message: '请上传库区编号',
+      message: '请上传货架编号',
       type: 'string',
       trigger: ['blue', 'change'],
     }
   ],
-  // address: [
-  //   {
-  //     required: true,
-  //     message: '请上传库区地址',
-  //     type: 'string',
-  //     trigger: ['blue', 'change'],
-  //   }
-  // ],
   image: [
     {
       required: true,
-      message: '请上传库区图片',
+      message: '请上传货架图片',
       type: 'string',
       trigger: ['blue', 'change'],
     }
@@ -79,13 +80,13 @@ const rules = reactive<FormRules>({
   capacity: [
     {
       required: true,
-      message: '请填写库区容量',
+      message: '请填写货架容量',
       type: 'number',
       trigger: ['blue', 'change'],
     },
     {
       min: 0,
-      message: '库区容量必须 > 0',
+      message: '货架容量必须 > 0',
       type: 'number',
       trigger: ['blue', 'change'],
     }
@@ -93,27 +94,27 @@ const rules = reactive<FormRules>({
   capacity_unit: [
     {
       required: true,
-      message: '请填写库区容量单位',
+      message: '请填写货架容量单位',
       type: 'string',
       trigger: ['blue', 'change'],
     }
   ],
-  manager: [
-    {
-      required: true,
-      message: '请填写负责人',
-      type: 'string',
-      trigger: ['blue', 'change'],
-    }
-  ],
-  contact: [
-    {
-      required: true,
-      message: '请填写联系方式',
-      type: 'string',
-      trigger: ['blue', 'change'],
-    }
-  ],
+  // manager: [
+  //   {
+  //     required: false,
+  //     message: '请填写负责人',
+  //     type: 'string',
+  //     trigger: ['blue', 'change'],
+  //   }
+  // ],
+  // contact: [
+  //   {
+  //     required: false,
+  //     message: '请填写联系方式',
+  //     type: 'string',
+  //     trigger: ['blue', 'change'],
+  //   }
+  // ],
   remark: [
     {
       min: 0,
@@ -149,13 +150,14 @@ const submit = async () => {
     return
   }
 
-  let res = await reqAddOrUpdateZone(<ZoneRequest>{
+  let res = await reqAddOrUpdateRack(<RackRequest>{
     id: form.value.id,
     warehouse_id: form.value.warehouse_id,
+    warehouse_zone_id: form.value.warehouse_zone_id, //库区
+    type: form.value.type,
     name: form.value.name,
     code: form.value.code,
     image: form.value.image,
-    // status: form.value.status,
     capacity: form.value.capacity,
     capacity_unit: form.value.capacity_unit,
     manager: form.value.manager,
@@ -188,7 +190,10 @@ const submit = async () => {
     <WarehouseListItem
         :form="form"
     />
-    <el-form-item label="库区图片" prop="image">
+    <ZoneListItem
+        :form="form"
+    />
+    <el-form-item label="货架图片" prop="image">
       <ImageUpload
         @select="handleSelect"
         @remove="handleRemove"
@@ -197,29 +202,30 @@ const submit = async () => {
         :url="form.image"
         />
     </el-form-item>
-<!--    <el-form-item label="库区类型" prop="type">
-      <el-select v-model="form.type" clearable placeholder="请选择库区类型">
-        <el-option v-for="(item,idx) in WarehouseTypes" :key="idx" :label="`${idx+1}.${item}`" :value="item"></el-option>
+    <el-form-item label="货架类型" prop="type">
+      <el-select v-model="form.type" clearable placeholder="请选择货架类型">
+        <el-option v-for="(item,idx) in RackTypes" :key="idx" :label="`${idx+1}.${item}`"
+                   :value="item"></el-option>
       </el-select>
-    </el-form-item>-->
-    <el-form-item label="库区名称" prop="name">
+    </el-form-item>
+    <el-form-item label="货架名称" prop="name">
       <el-input v-model="form.name" clearable/>
     </el-form-item>
-    <el-form-item label="库区编号" prop="code">
+    <el-form-item label="货架编号" prop="code">
       <el-input v-model="form.code" clearable/>
     </el-form-item>
-<!--    <el-form-item label="库区状态" prop="status">-->
-<!--      <el-select v-model="form.status" clearable placeholder="请选择库区状态">-->
+<!--    <el-form-item label="货架状态" prop="status">-->
+<!--      <el-select v-model="form.status" clearable placeholder="请选择货架状态">-->
 <!--        <el-option v-for="(item,idx) in ZoneStatus" :key="idx" :label="`${idx+1}.${item}`" :value="item"></el-option>-->
 <!--      </el-select>-->
 <!--    </el-form-item>-->
-<!--    <el-form-item label="库区地址" prop="address">
+<!--    <el-form-item label="货架地址" prop="address">
       <el-input v-model="form.address" clearable/>
     </el-form-item>-->
-    <el-form-item label="库区容量" prop="capacity">
+    <el-form-item label="货架容量" prop="capacity">
       <el-input v-model.number="form.capacity" clearable/>
     </el-form-item>
-    <el-form-item label="库区容量单位" prop="capacity_unit">
+    <el-form-item label="货架容量单位" prop="capacity_unit">
       <el-input v-model="form.capacity_unit" clearable/>
     </el-form-item>
     <el-form-item label="负责人" prop="manager">

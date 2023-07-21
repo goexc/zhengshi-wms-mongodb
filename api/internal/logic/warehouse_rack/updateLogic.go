@@ -147,8 +147,9 @@ func (l *UpdateLogic) Update(req *types.WarehouseRackRequest) (resp *types.BaseR
 			{"name": strings.TrimSpace(req.Name)},
 			{"code": strings.TrimSpace(req.Code)},
 		},
-		"warehouse_zone_id": zone.Id,
-		"status":            bson.M{"$ne": code.WarehouseRackStatusCode("删除")},
+		//"warehouse_zone_id": zone.Id,
+		"_id":    bson.M{"$ne": rack.Id},
+		"status": bson.M{"$ne": code.WarehouseRackStatusCode("删除")},
 	}
 	singleRes = l.svcCtx.WarehouseRackModel.FindOne(l.ctx, filter)
 	switch singleRes.Err() {
@@ -185,8 +186,11 @@ func (l *UpdateLogic) Update(req *types.WarehouseRackRequest) (resp *types.BaseR
 			"type":          code.WarehouseRackTypeCode(strings.TrimSpace(req.Type)),
 			"name":          strings.TrimSpace(req.Name),
 			"code":          strings.TrimSpace(req.Code),
+			"image":         strings.TrimSpace(req.Image),
 			"capacity":      req.Capacity,
 			"capacity_unit": strings.TrimSpace(req.CapacityUnit),
+			"contact":       strings.TrimSpace(req.Contact),
+			"manager":       strings.TrimSpace(req.Manager),
 			"remark":        strings.TrimSpace(req.Remark),
 			"updated_at":    time.Now().Unix(),
 		},

@@ -161,7 +161,7 @@ func (l *StatusLogic) Status(req *types.WarehouseRackStatusRequest) (resp *types
 			"status": code.WarehouseRackStatusCode(req.Status),
 		},
 	}
-	_, err = l.svcCtx.WarehouseZoneModel.UpdateByID(l.ctx, id, &update)
+	_, err = l.svcCtx.WarehouseRackModel.UpdateByID(l.ctx, id, &update)
 	if err != nil {
 		fmt.Printf("[Error]修改货架[%s]状态：%s\n", req.Id, err.Error())
 		resp.Msg = "服务器内部错误"

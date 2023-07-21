@@ -343,6 +343,7 @@ const screenType = (t: boolean) => {
         <el-table-column label="操作" min-width="300px" fixed="right">
           <template #default="{row}">
             <perms-button
+                v-if="row.type === 1"
                 perms="privilege:menu:add"
                 :type="Types.primary"
                 :size="Sizes.small"

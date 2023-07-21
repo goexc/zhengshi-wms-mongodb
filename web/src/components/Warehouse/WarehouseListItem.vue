@@ -1,14 +1,14 @@
 <script setup lang="ts">
+//仓库列表
+import {onMounted, ref} from "vue";
+import {Warehouse} from "@/api/warehouse/types.ts";
+import {reqWarehouseList} from "@/api/warehouse";
+import {ElMessage} from "element-plus";
 //不带分页的仓库下拉菜单
 defineOptions({
   name: 'WarehouseListItem'
 })
 
-//仓库列表
-import {onMounted, ref} from "vue";
-import {Warehouse, WarehousesRequest} from "@/api/warehouse/types.ts";
-import {reqWarehouseList} from "@/api/warehouse";
-import {ElMessage} from "element-plus";
 
 defineProps(['form'])
 

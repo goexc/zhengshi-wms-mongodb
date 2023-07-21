@@ -61,8 +61,11 @@ export interface WarehouseBinRequest {
   warehouse_rack_id: string; //货架id
   name: string; //货位名称
   code: string; //货位编号
+  image: string; //图片链接
   capacity: number; //货位容量
   capacity_unit: string; //货位容量单位
+  manager: string; //负责人
+  contact: string; //联系方式
   remark: string; //备注
 }
 

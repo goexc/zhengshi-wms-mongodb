@@ -9,7 +9,6 @@ import {reqChangeZoneStatus, reqZones} from "@/api/warehouse_zone";
 import {Sizes, Types} from "@/utils/enum.ts";
 import {TimeFormat} from "@/utils/time.ts";
 import Item from "./components/Item.vue";
-import WarehousePageItem from "@/components/Warehouse/WarehousePageItem.vue";
 import Status from "@/views/warehouse/zone/components/Status.vue";
 
 
@@ -126,6 +125,21 @@ const handleSuccess = () => {
   visible.value = false
 }
 
+const statusType = (status:string) => {
+  switch(status){
+    case '激活':
+      return 'success'
+    case '盘点中':
+      return 'warning'
+    case '关闭':
+      return 'info'
+    case '禁用':
+      return 'danger'
+    default:
+      return ''
+  }
+}
+
 onMounted(async () => {
   //查询库区列表
   await getZones()
@@ -195,9 +209,18 @@ onMounted(async () => {
             />
           </template>
         </el-table-column>
+        <el-table-column label="所属仓库" prop="warehouse_name" width="150px">
+          <template #default="{row}">
+            <el-text type="info" size="default" tag="ins" truncated>{{row.warehouse_name}}</el-text>
+          </template>
+        </el-table-column>
 <!--        <el-table-column label="库区类型" prop="type" width="120px"></el-table-column>-->
         <el-table-column label="库区编号" prop="code" min-width="100px"></el-table-column>
-        <el-table-column label="库区状态" prop="status"></el-table-column>
+        <el-table-column label="库区状态" prop="status">
+          <template #default="{row}">
+            <el-tag size="default" :type="statusType(row.status)">{{row.status}}</el-tag>
+          </template>
+        </el-table-column>
         <el-table-column label="容积" width="100px">
           <template #default="{row}">
             {{ row.capacity }} {{ row.capacity_unit }}

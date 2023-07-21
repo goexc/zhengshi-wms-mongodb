@@ -522,14 +522,17 @@ type WarehouseRackRequest struct {
 	Type            string  `json:"type,optional" validate:"required,oneof=标准货架 重型货架 中型货架 轻型货架" comment:"货架类型"` //货架类型
 	Name            string  `json:"name,optional" validate:"required" comment:"货架名称"`                           //货架名称
 	Code            string  `json:"code,optional" validate:"required" comment:"货架编号"`                           //货架编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
+	Image           string  `json:"image,optional" validate:"required" comment:"货架图片"`                          //货架编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
 	Capacity        float64 `json:"capacity,optional" validate:"omitempty,gte=0" comment:"货架容量"`                // 货架容量
 	CapacityUnit    string  `json:"capacity_unit,optional" validate:"omitempty" comment:"货架容量单位"`               // 货架容量单位：面积、体积或其他度量单位
-	Remark          string  `json:"remark,optional" validate:"omitempty" comment:"备注"`                          //备注
+	Manager         string  `json:"manager,optional" validate:"omitempty" comment:"负责人"`                        //负责人
+	Contact         string  `json:"contact,optional" validate:"omitempty,e164" comment:"联系方式"`
+	Remark          string  `json:"remark,optional" validate:"omitempty" comment:"备注"` //备注
 }
 
 type WarehouseRackListRequest struct {
 	WarehouseId     string `form:"warehouse_id,optional" validate:"omitempty,mongodb" comment:"仓库"`             //仓库Id
-	WarehouseZoneId string `form:"warehouse_zone_id,optional" validate:"required,mongodb" comment:"库区"`         //库区Id
+	WarehouseZoneId string `form:"warehouse_zone_id,optional" validate:"omitempty,mongodb" comment:"库区"`        //库区Id
 	Type            string `form:"type,optional" validate:"omitempty,oneof=标准货架 重型货架 中型货架 轻型货架" comment:"货架类型"` //货架类型
 	Name            string `form:"name,optional" validate:"omitempty" comment:"货架名称"`                           //货架名称
 	Code            string `form:"code,optional" validate:"omitempty" comment:"货架编号"`                           //货架编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
@@ -573,9 +576,12 @@ type WarehouseRack struct {
 	Type              string  `json:"type"`                    //货架类型
 	Name              string  `json:"name"`                    //货架名称
 	Code              string  `json:"code"`                    //货架编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
+	Image             string  `json:"image"`                   // 货架图片
 	Capacity          float64 `json:"capacity"`                // 货架容量
 	CapacityUnit      string  `json:"capacity_unit"`           // 货架容量单位：面积、体积或其他度量单位
 	Status            string  `json:"status"`                  //货架状态:激活 禁用 盘点中 关闭
+	Manager           string  `json:"manager,optional"`        //负责人
+	Contact           string  `json:"contact,optional"`        //联系方式
 	Remark            string  `json:"remark"`                  //备注
 	CreateBy          string  `json:"create_by,optional"`      //创建人
 	CreatedAt         int64   `json:"created_at"`              //
@@ -589,12 +595,15 @@ type WarehouseBinStatusRequest struct {
 
 type WarehouseBinRequest struct {
 	Id              string  `json:"id,optional" validate:"omitempty,mongodb" comment:"货位"`
-	WarehouseRackId string  `json:"warehouse_rack_id,optional" validate:"required,mongodb" comment:"货架"`
-	Name            string  `json:"name,optional" validate:"required" comment:"货位名称"`             //货位名称
-	Code            string  `json:"code,optional" validate:"required" comment:"货位编号"`             //货位编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
-	Capacity        float64 `json:"capacity,optional" validate:"omitempty,gte=0" comment:"货位容量"`  // 货位容量
-	CapacityUnit    string  `json:"capacity_unit,optional" validate:"omitempty" comment:"货位容量单位"` // 货位容量单位：面积、体积或其他度量单位
-	Remark          string  `json:"remark,optional" validate:"omitempty" comment:"备注"`            //备注
+	WarehouseRackId string  `json:"warehouse_rack_id,optional" validate:"required,mongodb" comment:"货架"` //货架Id
+	Name            string  `json:"name,optional" validate:"required" comment:"货位名称"`                    //货位名称
+	Code            string  `json:"code,optional" validate:"required" comment:"货位编号"`                    //货位编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
+	Image           string  `json:"image" validate:"omitempty" comment:"货架图片"`                           // 货架图片
+	Capacity        float64 `json:"capacity,optional" validate:"omitempty,gte=0" comment:"货位容量"`         // 货位容量
+	CapacityUnit    string  `json:"capacity_unit,optional" validate:"omitempty" comment:"货位容量单位"`        // 货位容量单位：面积、体积或其他度量单位
+	Manager         string  `json:"manager,optional"`                                                    //负责人
+	Contact         string  `json:"contact,optional"`                                                    //联系方式
+	Remark          string  `json:"remark,optional" validate:"omitempty" comment:"备注"`                   //备注
 }
 
 type WarehouseBinListRequest struct {
@@ -644,9 +653,12 @@ type WarehouseBin struct {
 	WarehouseRackName string  `json:"warehouse_rack_name"`     //货架名称
 	Name              string  `json:"name"`                    //货位名称
 	Code              string  `json:"code"`                    //货位编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
+	Image             string  `json:"image"`                   // 货架图片
 	Capacity          float64 `json:"capacity"`                // 货位容量
 	CapacityUnit      string  `json:"capacity_unit"`           // 货位容量单位：面积、体积或其他度量单位
 	Status            string  `json:"status"`                  //货位状态:激活 禁用 盘点中 关闭
+	Manager           string  `json:"manager,optional"`        //负责人
+	Contact           string  `json:"contact,optional"`        //联系方式
 	Remark            string  `json:"remark"`                  //备注
 	CreateBy          string  `json:"create_by,optional"`      //创建人
 	CreatedAt         int64   `json:"created_at"`              //

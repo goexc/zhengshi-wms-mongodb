@@ -58,6 +58,14 @@ func (l *UpdateLogic) Update(req *types.WarehouseBinRequest) (resp *types.BaseRe
 			resp.Msg = "服务器内部错误"
 			return resp, nil
 		}
+		//货位是否在激活状态
+		switch bin.Status {
+		case 10: //激活
+		default: //非激活状态不能执行库存管理和操作
+			resp.Code = http.StatusBadRequest
+			resp.Msg = fmt.Sprintf("货位%s，无法执行操作", code.WarehouseBinStatusText(bin.Status))
+			return resp, nil
+		}
 
 	case mongo.ErrNoDocuments: //货位不存在
 		resp.Code = http.StatusBadRequest
@@ -139,9 +147,9 @@ func (l *UpdateLogic) Update(req *types.WarehouseBinRequest) (resp *types.BaseRe
 		"status": bson.M{"$ne": code.WarehouseStatusCode("删除")},
 	}
 	warehouseRes := l.svcCtx.WarehouseModel.FindOne(l.ctx, filter)
+	var warehouse model.Warehouse
 	switch warehouseRes.Err() {
 	case nil:
-		var warehouse model.Warehouse
 		if err = warehouseRes.Decode(&warehouse); err != nil {
 			fmt.Printf("[Error]解析仓库[%s]:%s\n", zone.WarehouseId.Hex(), err.Error())
 			resp.Code = http.StatusInternalServerError
@@ -210,12 +218,21 @@ func (l *UpdateLogic) Update(req *types.WarehouseBinRequest) (resp *types.BaseRe
 	//5.更新货位信息:不更新货位状态
 	var update = bson.M{
 		"$set": bson.M{
-			"name":          strings.TrimSpace(req.Name),
-			"code":          strings.TrimSpace(req.Code),
-			"capacity":      req.Capacity,
-			"capacity_unit": strings.TrimSpace(req.CapacityUnit),
-			"remark":        strings.TrimSpace(req.Remark),
-			"updated_at":    time.Now().Unix(),
+			"warehouse_id":        warehouse.Id,
+			"warehouse_name":      warehouse.Name,
+			"warehouse_zone_id":   zone.Id,
+			"warehouse_zone_name": zone.Name,
+			"warehouse_rack_id":   rack.Id,
+			"warehouse_rack_name": rack.Name,
+			"name":                strings.TrimSpace(req.Name),
+			"code":                strings.TrimSpace(req.Code),
+			"image":               strings.TrimSpace(req.Image),
+			"capacity":            req.Capacity,
+			"capacity_unit":       strings.TrimSpace(req.CapacityUnit),
+			"manager":             req.Manager,
+			"contact":             req.Contact,
+			"remark":              strings.TrimSpace(req.Remark),
+			"updated_at":          time.Now().Unix(),
 		},
 	}
 

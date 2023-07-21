@@ -78,7 +78,22 @@ func (l *AddLogic) Add(req *types.Menu) (resp *types.BaseResponse, err error) {
 		filter = bson.M{"_id": parentId}
 		singleRes = l.svcCtx.MenuModel.FindOne(l.ctx, filter)
 		switch singleRes.Err() {
-		case nil:
+		case nil: //上级菜单存在
+			//判断上级菜单type==1
+			//类型：1.菜单，2.按钮
+			var one model.Menu
+			if e := singleRes.Decode(&one); e != nil {
+				fmt.Printf("[Error]菜单解析：%s\n", e.Error())
+				resp.Msg = "服务器内部错误"
+				resp.Code = http.StatusInternalServerError
+				return resp, nil
+			}
+			if one.Type != 1 {
+				resp.Msg = "只能给菜单添加子菜单"
+				resp.Code = http.StatusBadRequest
+				return resp, nil
+			}
+
 		case mongo.ErrNoDocuments: //上级菜单不存在
 			fmt.Printf("[Error]上级菜单[%s]不存在\n", req.ParentId)
 			resp.Code = http.StatusBadRequest
