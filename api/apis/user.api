@@ -23,7 +23,7 @@ type UserAddRequest {
     Mobile string `json:"mobile,optional" validate:"required,e164" comment:"手机号码"`                 //手机号码
     Email string `json:"email,optional"  validate:"omitempty,email" comment:"Email"`                   //邮箱
     Status string `json:"status,optional" validate:"oneof=启用" comment:"状态"`                        //用户状态：启用
-    Remark string `json:"remark,optional" validate:"omitempty,gte=2" comment:"备注"`                   //备注
+    Remark string `json:"remark,optional" validate:"omitempty,gte=1" comment:"备注"`                   //备注
 }
 
 //修改用户
@@ -36,7 +36,7 @@ type UserUpdateRequest {
     Mobile string `json:"mobile,optional" validate:"required,e164" comment:"手机号码"`                                     //手机号码
     Email string `json:"email,optional"  validate:"omitempty,email" comment:"Email"`                                       //邮箱
     Status string `json:"status,optional" validate:"oneof=启用 禁用 删除" comment:"状态"`                                  //用户状态：启用，禁用，删除
-    Remark string `json:"remark,optional" validate:"omitempty,gte=2" comment:"备注"`                                       //备注
+    Remark string `json:"remark,optional" validate:"omitempty,gte=1" comment:"备注"`                                       //备注
 }
 
 //重置用户密码
@@ -81,7 +81,7 @@ type User {
     Mobile string `json:"mobile,optional" validate:"required,e164" comment:"手机号码"`                             //手机号码
     Email string `json:"email,optional"  validate:"omitempty,email" comment:"Email"`                               //邮箱
     Status string `json:"status,optional" validate:"oneof=启用 禁用 删除" comment:"状态"`                          //用户状态：启用，禁用，删除
-    Remark string `json:"remark,optional" validate:"omitempty,gte=2" comment:"备注"`                               //备注
+    Remark string `json:"remark,optional" validate:"omitempty,gte=1" comment:"备注"`                               //备注
     CreatedAt int64 `json:"created_at,optional"`
     UpdatedAt int64 `json:"updated_at,optional"`
 }

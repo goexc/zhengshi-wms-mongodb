@@ -2,6 +2,7 @@ package supplier
 
 import (
 	"api/model"
+	"api/pkg/code"
 	"context"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
@@ -54,7 +55,7 @@ func (l *UpdateLogic) Update(req *types.SupplierRequest) (resp *types.BaseRespon
 	//排除已删除的供应商
 	filter := bson.M{
 		"_id":    id,
-		"status": bson.M{"$ne": 100},
+		"status": bson.M{"$ne": code.SupplierStatusCode("删除")},
 	}
 	count, err := l.svcCtx.SupplierModel.CountDocuments(l.ctx, filter)
 	if err != nil {
@@ -72,7 +73,7 @@ func (l *UpdateLogic) Update(req *types.SupplierRequest) (resp *types.BaseRespon
 	//2.供应商名称是否重复
 	filter = bson.M{
 		"_id":    bson.M{"$ne": id},
-		"status": bson.M{"$ne": 100},
+		"status": bson.M{"$ne": code.SupplierStatusCode("删除")},
 		"$or": []bson.M{
 			{"name": strings.TrimSpace(req.Name)},
 			{"code": strings.TrimSpace(req.Code)},
@@ -114,15 +115,16 @@ func (l *UpdateLogic) Update(req *types.SupplierRequest) (resp *types.BaseRespon
 	var update = bson.M{
 		"$set": bson.M{
 			"type":                             req.Type,
+			"level":                            req.Level,
 			"name":                             strings.TrimSpace(req.Name),
 			"code":                             strings.TrimSpace(req.Code),
+			"image":                            strings.TrimSpace(req.Image),
 			"legal_representative":             strings.TrimSpace(req.LegalRepresentative),
 			"unified_social_credit_identifier": strings.TrimSpace(req.UnifiedSocialCreditIdentifier),
-			"address":                          req.Address,
-			"contact":                          req.Contact,
 			"manager":                          req.Manager,
-			"level":                            req.Level,
+			"contact":                          req.Contact,
 			"email":                            req.Email,
+			"address":                          req.Address,
 			"remark":                           req.Remark,
 			"updated_at":                       time.Now().Unix(),
 		},

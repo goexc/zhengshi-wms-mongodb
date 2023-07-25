@@ -19,27 +19,28 @@ import (
 )
 
 type ServiceContext struct {
-	Config             config.Config
-	Cache              cache.Cache
-	Enforcer           *casbin.SyncedEnforcer
-	OSS                *oss.Client
-	SystemInitModel    *mongo.Collection
-	ImageModel         *mongo.Collection
-	CompanyModel       *mongo.Collection
-	UserModel          *mongo.Collection
-	ApiModel           *mongo.Collection
-	MenuModel          *mongo.Collection
-	DepartmentModel    *mongo.Collection
-	RoleModel          *mongo.Collection
-	RoleMenuModel      *mongo.Collection
-	SupplierModel      *mongo.Collection
-	CustomerModel      *mongo.Collection
-	WarehouseModel     *mongo.Collection //仓库
-	WarehouseZoneModel *mongo.Collection //库区
-	WarehouseRackModel *mongo.Collection //货架
-	WarehouseBinModel  *mongo.Collection //货位
-	MaterialModel      *mongo.Collection //物料表
-	InboundModel       *mongo.Collection //入库单
+	Config                config.Config
+	Cache                 cache.Cache
+	Enforcer              *casbin.SyncedEnforcer
+	OSS                   *oss.Client
+	SystemInitModel       *mongo.Collection
+	ImageModel            *mongo.Collection
+	CompanyModel          *mongo.Collection
+	UserModel             *mongo.Collection
+	ApiModel              *mongo.Collection
+	MenuModel             *mongo.Collection
+	DepartmentModel       *mongo.Collection
+	RoleModel             *mongo.Collection
+	RoleMenuModel         *mongo.Collection
+	SupplierModel         *mongo.Collection
+	CustomerModel         *mongo.Collection
+	WarehouseModel        *mongo.Collection //仓库
+	WarehouseZoneModel    *mongo.Collection //库区
+	WarehouseRackModel    *mongo.Collection //货架
+	WarehouseBinModel     *mongo.Collection //货位
+	MaterialCategoryModel *mongo.Collection //物料分类表
+	MaterialModel         *mongo.Collection //物料表
+	InboundModel          *mongo.Collection //入库单
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -47,27 +48,28 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	db := InitMongoDB(c)
 
 	ctx := &ServiceContext{
-		Config:             c,
-		Cache:              cache.New(c.CacheRedis, syncx.NewSingleFlight(), cache.NewStat(""), mongo.ErrNoDocuments),
-		Enforcer:           InitCasbin(c),
-		OSS:                InitOSS(c),
-		SystemInitModel:    db.Collection("system_init"),
-		ImageModel:         db.Collection("image"),
-		CompanyModel:       db.Collection("company"),
-		UserModel:          db.Collection("user"),
-		ApiModel:           db.Collection("api"),
-		MenuModel:          db.Collection("menu"),
-		DepartmentModel:    db.Collection("department"),
-		RoleModel:          db.Collection("role"),
-		RoleMenuModel:      db.Collection("role_menu"),
-		SupplierModel:      db.Collection("supplier"),
-		CustomerModel:      db.Collection("customer"),
-		WarehouseModel:     db.Collection("warehouse"),      //仓库
-		WarehouseZoneModel: db.Collection("warehouse_zone"), //库区
-		WarehouseRackModel: db.Collection("warehouse_rack"), //货架
-		WarehouseBinModel:  db.Collection("warehouse_bin"),  //货位
-		MaterialModel:      db.Collection("material"),       //物料表
-		InboundModel:       db.Collection("inbound"),        //入库单
+		Config:                c,
+		Cache:                 cache.New([]cache.NodeConf{c.CacheRedis}, syncx.NewSingleFlight(), cache.NewStat(""), mongo.ErrNoDocuments),
+		Enforcer:              InitCasbin(c),
+		OSS:                   InitOSS(c),
+		SystemInitModel:       db.Collection("system_init"),
+		ImageModel:            db.Collection("image"),
+		CompanyModel:          db.Collection("company"),
+		UserModel:             db.Collection("user"),
+		ApiModel:              db.Collection("api"),
+		MenuModel:             db.Collection("menu"),
+		DepartmentModel:       db.Collection("department"),
+		RoleModel:             db.Collection("role"),
+		RoleMenuModel:         db.Collection("role_menu"),
+		SupplierModel:         db.Collection("supplier"),
+		CustomerModel:         db.Collection("customer"),
+		WarehouseModel:        db.Collection("warehouse"),         //仓库
+		WarehouseZoneModel:    db.Collection("warehouse_zone"),    //库区
+		WarehouseRackModel:    db.Collection("warehouse_rack"),    //货架
+		WarehouseBinModel:     db.Collection("warehouse_bin"),     //货位
+		MaterialCategoryModel: db.Collection("material_category"), //物料分类表
+		MaterialModel:         db.Collection("material"),          //物料表
+		InboundModel:          db.Collection("inbound"),           //入库单
 	}
 
 	//2.角色表添加索引

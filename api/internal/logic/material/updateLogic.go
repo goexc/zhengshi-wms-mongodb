@@ -45,7 +45,7 @@ func (l *UpdateLogic) Update(req *types.MaterialRequest) (resp *types.BaseRespon
 	//1.物料编号是否占用，物料名称是否占用
 	var filter = bson.M{
 		"$or": []bson.M{
-			{"code": strings.TrimSpace(req.Code)},
+			{"model": strings.TrimSpace(req.Model)},
 			{"name": strings.TrimSpace(req.Name)},
 		},
 		"_id": bson.M{"$ne": id},
@@ -62,8 +62,8 @@ func (l *UpdateLogic) Update(req *types.MaterialRequest) (resp *types.BaseRespon
 		}
 
 		switch true {
-		case one.Code == strings.TrimSpace(req.Code):
-			resp.Msg = "物料编号已占用"
+		case one.Model == strings.TrimSpace(req.Model):
+			resp.Msg = "物料型号已占用"
 		case one.Name == strings.TrimSpace(req.Name):
 			resp.Msg = "物料名称已占用"
 		}
@@ -77,14 +77,51 @@ func (l *UpdateLogic) Update(req *types.MaterialRequest) (resp *types.BaseRespon
 		return resp, nil
 	}
 
+	// 3.分类是否存在
+	fmt.Println("物料分类id:", req.CategoryId)
+	categoryId, err := primitive.ObjectIDFromHex(strings.TrimSpace(req.CategoryId))
+	if err != nil {
+		fmt.Printf("[Error]物料分类[%s]id转换：%s\n", req.CategoryId, err.Error())
+		resp.Code = http.StatusBadRequest
+		resp.Msg = "请选择物料分类"
+		return resp, nil
+	}
+
+	var category model.MaterialCategory
+	singleRes = l.svcCtx.MaterialCategoryModel.FindOne(l.ctx, bson.M{"_id": categoryId})
+	switch singleRes.Err() {
+	case nil:
+		if err = singleRes.Decode(&category); err != nil {
+			fmt.Printf("[Error]解析物料分类[%s]:%s\n", req.CategoryId, err.Error())
+			resp.Code = http.StatusInternalServerError
+			resp.Msg = "服务器内部错误"
+			return resp, nil
+		}
+
+		if category.Status != "启用" {
+			resp.Msg = fmt.Sprintf("当前分类已%s", category.Status)
+			resp.Code = http.StatusBadRequest
+			return resp, nil
+		}
+
+	case mongo.ErrNoDocuments: //物料分类未占用
+	default:
+		fmt.Printf("[Error]查询物料分类:%s\n", singleRes.Err().Error())
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "服务器内部错误"
+		return resp, nil
+	}
+
 	//2.更新物料信息
 	update := bson.M{
 		"$set": bson.M{
-			"code":              strings.TrimSpace(req.Code),
 			"name":              strings.TrimSpace(req.Name),
+			"category_id":       strings.TrimSpace(req.CategoryId),
+			"category_name":     category.Name,
+			"image":             strings.TrimSpace(req.Image),
+			"model":             strings.TrimSpace(req.Model),
 			"material":          strings.TrimSpace(req.Material),
 			"specification":     strings.TrimSpace(req.Specification),
-			"model":             strings.TrimSpace(req.Model),
 			"surface_treatment": strings.TrimSpace(req.SurfaceTreatment),
 			"strength_grade":    strings.TrimSpace(req.StrengthGrade),
 			"unit":              strings.TrimSpace(req.Unit),

@@ -24,11 +24,6 @@ export const useAuthStore = defineStore({
     flatMenuListGet: (state) => getFlatMenuList(state.authMenuList),
   },
   actions: {
-    // Get AuthButtonList
-    // async getAuthButtonList() {
-    //   const { data } = await getAuthButtonListApi();
-    //   this.authButtonList = data;
-    // },
     // Get AuthMenuList
     async getAuthMenuList() {
       const { data } = await getAuthMenuListApi();

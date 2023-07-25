@@ -462,6 +462,26 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 	server.AddRoutes(
 		[]rest.Route{
 			{
+				Method:  http.MethodGet,
+				Path:    "/category",
+				Handler: material.CategoryListHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/category",
+				Handler: material.AddCategoryHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPut,
+				Path:    "/category",
+				Handler: material.UpdateCategoryHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodDelete,
+				Path:    "/category",
+				Handler: material.RemoveCategoryHandler(serverCtx),
+			},
+			{
 				Method:  http.MethodPost,
 				Path:    "/",
 				Handler: material.AddHandler(serverCtx),

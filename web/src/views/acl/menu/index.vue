@@ -62,7 +62,7 @@ const initMenuForm = () => {
 //dialog可见
 const visible = ref<boolean>(false)
 const title = ref<string>('')
-const action = ref<string>('') //表单动作：addMenu，新增子菜单； editMenu，修改菜单
+const action = ref<string>('') //表单动作：addMenu，新增菜单； editMenu，修改菜单
 const menuForm = reactive<Menu>(initMenuForm())
 
 //图标列表
@@ -273,8 +273,8 @@ const screenType = (t: boolean) => {
 <template>
   <div class="container">
     <div id="auth" v-auth="'privilege:menu:list'">
-      <el-button plain @click="switchExpand(true)" size="default" icon="ArrowUp">展开全部</el-button>
-      <el-button plain @click="switchExpand(false)" size="default" icon="ArrowDown">折叠全部</el-button>
+      <el-button plain @click="switchExpand(true)" size="default" icon="ArrowDown">展开全部</el-button>
+      <el-button plain @click="switchExpand(false)" size="default" icon="ArrowUp">折叠全部</el-button>
       <perms-button
           perms="privilege:menu:add"
           :type="Types.primary"
@@ -301,7 +301,8 @@ const screenType = (t: boolean) => {
         </template>
         <el-table-column prop="name" label="菜单名称" min-width="220px" fixed>
           <template #default="{row}">
-            <el-link :icon="row.icon">{{ row.name }}</el-link>
+<!--            <el-link :icon="row.icon">{{ row.name }}</el-link>-->
+            <el-link>{{ row.name }}</el-link>
           </template>
         </el-table-column>
         <el-table-column label="排序" prop="sort_id" width="80px" align="center"></el-table-column>
@@ -445,7 +446,7 @@ const screenType = (t: boolean) => {
                 <el-input v-model="menuForm.component" :disabled="menuForm.type!==1" style="width: 360px"/>
               </el-form-item>
               <el-form-item label="权限标识" prop="meta.perms">
-                <el-input v-model="menuForm.meta.perms" style="width: 360px"/>
+                <el-input v-model="menuForm.meta.perms" :disabled="menuForm.type===1" style="width: 360px"/>
               </el-form-item>
             </el-col>
             <el-col :xs="24" :sm="24" :md="12" :lg="12" :xl="12">
@@ -493,11 +494,6 @@ const screenType = (t: boolean) => {
   justify-content: flex-start;
   align-items: center;
 }
-
-.body-card {
-  margin: 10px 0;
-}
-
 .table {
   margin: 10px 0;
 }

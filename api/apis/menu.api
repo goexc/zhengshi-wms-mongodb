@@ -11,12 +11,12 @@ import "base.api"
 
 //路由信息
 type MenuRemoveRequest {
-    Id string `form:"id":"id"`
+    Id string `form:"id"`
 }
 
 //添加、更新路由
 type MenuRequest {
-    Id string `json:"id,optional"`
+    Id string `json:"id,optional" validate:"omitempty,mongodb" comment:"路由Id"`
     Type int64 `json:"type,options=1|2"`                                     //路由类型：1.菜单，2.按钮
     SortId int64 `json:"sort_id"`                                            //排序
     ParentId string `json:"parent_id"`                                       //父路由id

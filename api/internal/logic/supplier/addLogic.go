@@ -88,16 +88,17 @@ func (l *AddLogic) Add(req *types.SupplierRequest) (resp *types.BaseResponse, er
 	//2.添加供应商
 	var supplier = model.Supplier{
 		Type:                          req.Type,
+		Level:                         req.Level,
+		Name:                          strings.TrimSpace(req.Name),
 		Code:                          strings.TrimSpace(req.Code),
+		Image:                         strings.TrimSpace(req.Image),
 		LegalRepresentative:           strings.TrimSpace(req.LegalRepresentative),
 		UnifiedSocialCreditIdentifier: strings.TrimSpace(req.UnifiedSocialCreditIdentifier),
-		Name:                          strings.TrimSpace(req.Name),
-		Address:                       strings.TrimSpace(req.Address),
-		Contact:                       strings.TrimSpace(req.Contact),
 		Manager:                       strings.TrimSpace(req.Manager),
-		Level:                         req.Level,
-		Status:                        code.SupplierStatusCode("pending_approval"), //默认:待审核
+		Contact:                       strings.TrimSpace(req.Contact),
+		Status:                        code.SupplierStatusCode("审核中"), //默认:审核中
 		Email:                         req.Email,
+		Address:                       strings.TrimSpace(req.Address),
 		Remark:                        strings.TrimSpace(req.Remark),
 		Creator:                       uObjectID,
 		CreatedAt:                     time.Now().Unix(),

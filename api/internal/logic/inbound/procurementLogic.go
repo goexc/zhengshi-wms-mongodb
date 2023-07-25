@@ -155,7 +155,7 @@ func (l *ProcurementLogic) Procurement(req *types.ProcurementRequest) (resp *typ
 		Code:       code,
 		Order:      order,
 		SupplierId: primitive.ObjectID{},
-		Status:     "待审核",
+		Status:     "审核中",
 		Materials:  materials,
 		Remark:     strings.TrimSpace(req.Remark),
 		CreatedAt:  time.Now().Unix(),

@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"net/http"
 	"strings"
@@ -36,7 +37,7 @@ func (l *AddLogic) Add(req *types.MaterialRequest) (resp *types.BaseResponse, er
 	//1.物料编号是否占用，物料名称是否占用
 	var filter = bson.M{
 		"$or": []bson.M{
-			{"code": strings.TrimSpace(req.Code)},
+			{"model": strings.TrimSpace(req.Model)},
 			{"name": strings.TrimSpace(req.Name)},
 		},
 	}
@@ -53,8 +54,8 @@ func (l *AddLogic) Add(req *types.MaterialRequest) (resp *types.BaseResponse, er
 		}
 
 		switch true {
-		case one.Code == strings.TrimSpace(req.Code):
-			resp.Msg = "物料编号已占用"
+		case one.Model == strings.TrimSpace(req.Model):
+			resp.Msg = "物料型号已占用"
 		case one.Name == strings.TrimSpace(req.Name):
 			resp.Msg = "物料名称已占用"
 		}
@@ -68,24 +69,72 @@ func (l *AddLogic) Add(req *types.MaterialRequest) (resp *types.BaseResponse, er
 		return resp, nil
 	}
 
-	//2.物料信息入库
+	// 2.账号是否存在
+	uid := l.ctx.Value("uid").(string)
+	userId, err := primitive.ObjectIDFromHex(strings.TrimSpace(uid))
+	if err != nil {
+		fmt.Printf("[Error]用户[%s]id转换：%s\n", uid, err.Error())
+		resp.Code = http.StatusBadRequest
+		resp.Msg = "参数错误"
+		return resp, nil
+	}
+
+	// 3.分类是否存在
+	categoryId, err := primitive.ObjectIDFromHex(strings.TrimSpace(req.CategoryId))
+	if err != nil {
+		fmt.Printf("[Error]物料分类[%s]id转换：%s\n", req.CategoryId, err.Error())
+		resp.Code = http.StatusBadRequest
+		resp.Msg = "请选择物料分类"
+		return resp, nil
+	}
+
+	var category model.MaterialCategory
+	singleRes = l.svcCtx.MaterialCategoryModel.FindOne(l.ctx, bson.M{"_id": categoryId})
+	switch singleRes.Err() {
+	case nil:
+		if err = singleRes.Decode(&category); err != nil {
+			fmt.Printf("[Error]解析物料分类[%s]:%s\n", req.CategoryId, err.Error())
+			resp.Code = http.StatusInternalServerError
+			resp.Msg = "服务器内部错误"
+			return resp, nil
+		}
+
+		if category.Status != "启用" {
+			resp.Msg = fmt.Sprintf("当前分类已%s", category.Status)
+			resp.Code = http.StatusBadRequest
+			return resp, nil
+		}
+
+	case mongo.ErrNoDocuments: //物料分类未占用
+	default:
+		fmt.Printf("[Error]查询物料分类:%s\n", singleRes.Err().Error())
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "服务器内部错误"
+		return resp, nil
+	}
+
+	//4.物料信息入库
 	var m = model.Material{
-		Code:             strings.TrimSpace(req.Code),
 		Name:             strings.TrimSpace(req.Name),
+		CategoryId:       strings.TrimSpace(req.CategoryId),
+		CategoryName:     category.Name,
+		Image:            strings.TrimSpace(req.Image),
+		Model:            strings.TrimSpace(req.Model),
 		Material:         strings.TrimSpace(req.Material),
 		Specification:    strings.TrimSpace(req.Specification),
-		Model:            strings.TrimSpace(req.Model),
 		SurfaceTreatment: strings.TrimSpace(req.SurfaceTreatment),
 		StrengthGrade:    strings.TrimSpace(req.StrengthGrade),
 		Unit:             strings.TrimSpace(req.Unit),
 		Remark:           strings.TrimSpace(req.Remark),
+		Creator:          userId,
+		CreatorName:      l.ctx.Value("name").(string),
 		CreatedAt:        time.Now().Unix(),
 		UpdatedAt:        time.Now().Unix(),
 	}
 
 	_, err = l.svcCtx.MaterialModel.InsertOne(l.ctx, &m)
 	if err != nil {
-		fmt.Printf("[Error]物料入库:%s\n", singleRes.Err().Error())
+		fmt.Printf("[Error]物料入库:%s\n", err.Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务器内部错误"
 		return resp, nil

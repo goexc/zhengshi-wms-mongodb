@@ -30,23 +30,23 @@ import (
 )
 
 //身份验证
-@server (
+@server(
 	group: auth
 	prefix: auth
 )
 
-service main{
+service main {
 	@doc "注册"
 	@handler register
-	post /register(RegisterRequest) returns(RegisterResponse)
+	post /register (RegisterRequest) returns (RegisterResponse)
 
 	@doc "登录"
 	@handler login
-	post /login(LoginRequest) returns(LoginResponse)
+	post /login (LoginRequest) returns (LoginResponse)
 
 	@doc "退出登录"
 	@handler logout
-	post /logout returns(BaseResponse)
+	post /logout returns (BaseResponse)
 }
 
 // 菜单管理
@@ -146,7 +146,6 @@ service main {
 	@doc "分配角色api"
 	@handler apiDistribute
 	post /apis (RoleApisRequest) returns (BaseResponse)
-
 }
 
 // 部门管理
@@ -225,20 +224,19 @@ service main {
 
 	@doc "修改个人信息"
 	@handler editProfile
-	put /profile(ProfileRequest) returns (BaseResponse)
+	put /profile (ProfileRequest) returns (BaseResponse)
 
 	@doc "修改个人密码"
 	@handler changePassword
-	patch /password(ProfilePasswordRequest) returns (BaseResponse)
+	patch /password (ProfilePasswordRequest) returns (BaseResponse)
 
 	@doc "修改个人头像"
 	@handler changeAvatar
-	patch /avatar(ProfileAvatarRequest) returns (BaseResponse)
+	patch /avatar (ProfileAvatarRequest) returns (BaseResponse)
 
 	@doc "获取菜单列表"
 	@handler menu
 	get /menu returns (AccountPermsResponse)
-
 }
 
 // 企业信息
@@ -432,6 +430,24 @@ service main {
 )
 
 service main {
+	//物料分类相关
+	@doc "物料分类列表"
+	@handler categoryList
+	get /category returns (MaterialCategoryListResponse)
+
+	@doc "添加物料分类"
+	@handler addCategory
+	post /category (MaterialCategoryRequest) returns (BaseResponse)
+
+	@doc "修改物料分类"
+	@handler updateCategory
+	put /category (MaterialCategoryRequest) returns (BaseResponse)
+
+	@doc "删除物料分类"
+	@handler removeCategory
+	delete /category (MaterialCategoryIdRequest) returns (BaseResponse)
+
+	//物料相关
 	@doc "添加物料"
 	@handler add
 	post / (MaterialRequest) returns (BaseResponse)
@@ -477,5 +493,4 @@ service main {
 	@doc "图片分页"
 	@handler page
 	get / (ImagesRequest) returns (ImagesResponse)
-
 }

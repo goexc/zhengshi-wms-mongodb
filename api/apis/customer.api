@@ -31,7 +31,7 @@ type CustomersRequest {
 
 type Customer {
     Id string `json:"id,optional" path:"id"`
-    Type int `json:"type"`                                                         //客户类型：10.个人、20.企业、30.组织
+    Type int `json:"type"`                                                         //客户类型：个人、企业、组织
     Code string `json:"code"`                                                      //客户编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
     Name string `json:"name"`                                                     //客户名称
     LegalRepresentative string `json:"legal_representative"`                       //法定代表人
@@ -63,7 +63,7 @@ type CustomerPaginate {
 //添加、更新客户
 type CustomerRequest {
     Id string `json:"id,optional" validate:"omitempty,mongodb" comment:"客户"`
-    Type int `json:"type,optional" validate:"required,oneof=10 20 30" comment:"客户类型"`                                                        //客户类型：10.个人、20.企业、30.组织
+    Type int `json:"type,optional" validate:"required,oneof=10 20 30" comment:"客户类型"`                                                        //客户类型：个人、企业、组织
     Code string `json:"code,optional" validate:"required,gte=6,lte=32" comment:"客户编号"`                                                       //客户编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
     Name string `json:"name,optional" validate:"required" comment:"客户名称"`                                                                    //客户名称
     LegalRepresentative string `json:"legal_representative,optional" validate:"required" comment:"法定代表人"`                                     //法定代表人

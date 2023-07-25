@@ -156,7 +156,6 @@ const props = ref({label: 'name', value: 'id', checkStrictly: true})
 const departmentRef = ref<CascaderInstance>()
 
 const changeDepartment = (value: CascaderValue) => {
-  console.log('部门切换1：', value)
   if (value && (value as string[]).length > 0) {
     userForm.value.department_id = (value as string[]).pop() || ''
   } else {

@@ -12,6 +12,8 @@ import ZonePageItem from "@/components/WarehouseZone/ZonePageItem.vue";
 import ZoneListItem from "@/components/WarehouseZone/ZoneListItem.vue";
 import RackListItem from "@/components/WarehouseRack/RackListItem.vue";
 import RackPageItem from "@/components/WarehouseRack/RackPageItem.vue";
+import MaterialCategoryListItem from "@/components/MaterialCategory/MaterialCategoryListItem.vue";
+
 const allGlobalComponent: any = {
   SvgIcon,
   Pagination,
@@ -24,6 +26,7 @@ const allGlobalComponent: any = {
   ZoneListItem,
   RackPageItem,
   RackListItem,
+  MaterialCategoryListItem,
 };
 export default {
   //install方法

@@ -7,7 +7,7 @@ import (
 
 type Config struct {
 	rest.RestConf
-	CacheRedis cache.CacheConf
+	CacheRedis cache.NodeConf
 	Auth       struct {
 		AccessSecret string
 		AccessExpire int64

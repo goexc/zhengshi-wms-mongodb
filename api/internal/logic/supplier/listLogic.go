@@ -36,15 +36,33 @@ func (l *ListLogic) List(req *types.SuppliersRequest) (resp *types.SuppliersResp
 	name := strings.TrimSpace(req.Name)
 	//1.供应商分页
 	var filter = bson.M{"status": bson.M{"$ne": 100}} //过滤已删除供应商
-	var matchStage = bson.D{{"$match", filter}}
 	if name != "" {
 		//i 表示不区分大小写
 		regex := bson.M{"$regex": primitive.Regex{Pattern: ".*" + name + ".*", Options: "i"}}
 		filter = bson.M{"name": regex, "status": bson.M{"$ne": 100}}
-		matchStage = bson.D{
-			{"$match", filter},
-		}
+		//matchStage = bson.D{
+		//	{"$match", filter},
+		//}
 	}
+	if strings.TrimSpace(req.Code) != "" {
+		filter["code"] = strings.TrimSpace(req.Code)
+	}
+
+	if strings.TrimSpace(req.Manager) != "" {
+		filter["manager"] = strings.TrimSpace(req.Manager)
+	}
+
+	if strings.TrimSpace(req.Contact) != "" {
+		filter["contact"] = strings.TrimSpace(req.Contact)
+	}
+	if strings.TrimSpace(req.Email) != "" {
+		filter["email"] = strings.TrimSpace(req.Email)
+	}
+	if req.Level > 0 {
+		filter["level"] = req.Level
+	}
+	var matchStage = bson.D{{"$match", filter}}
+
 	//$lookup 阶段进行关联查询，
 	//将 supplier 集合中的 create_by 字段与 user 集合中的 _id 字段进行关联
 	lookupStage := bson.D{
@@ -65,15 +83,17 @@ func (l *ListLogic) List(req *types.SuppliersRequest) (resp *types.SuppliersResp
 		{"$project", bson.D{
 			{"_id", 1},
 			{"type", 1},
-			{"code", 1},
-			{"legal_representative", 1},
-			{"unified_social_credit_identifier", 1},
-			{"name", 1},
-			{"address", 1},
-			{"contact", 1},
-			{"manager", 1},
 			{"level", 1},
 			{"status", 1},
+			{"name", 1},
+			{"code", 1},
+			{"image", 1},
+			{"legal_representative", 1},
+			{"unified_social_credit_identifier", 1},
+			{"manager", 1},
+			{"contact", 1},
+			{"email", 1},
+			{"address", 1},
 			{"remark", 1},
 			{"creator_name", bson.D{
 				//在投影中，使用 $ifNull 操作符检查 user.name 字段，
@@ -138,15 +158,17 @@ func (l *ListLogic) List(req *types.SuppliersRequest) (resp *types.SuppliersResp
 		resp.Data.List = append(resp.Data.List, types.Supplier{
 			Id:                            supplier.Id.Hex(),
 			Type:                          supplier.Type,
-			Code:                          strings.TrimSpace(supplier.Code),
-			LegalRepresentative:           strings.TrimSpace(supplier.LegalRepresentative),
-			UnifiedSocialCreditIdentifier: strings.TrimSpace(supplier.UnifiedSocialCreditIdentifier),
-			Name:                          supplier.Name,
-			Address:                       supplier.Address,
-			Contact:                       supplier.Contact,
-			Manager:                       supplier.Manager,
 			Level:                         supplier.Level,
 			Status:                        code.SupplierStatusText(supplier.Status),
+			Name:                          supplier.Name,
+			Code:                          strings.TrimSpace(supplier.Code),
+			Image:                         strings.TrimSpace(supplier.Image),
+			LegalRepresentative:           strings.TrimSpace(supplier.LegalRepresentative),
+			UnifiedSocialCreditIdentifier: strings.TrimSpace(supplier.UnifiedSocialCreditIdentifier),
+			Manager:                       supplier.Manager,
+			Contact:                       supplier.Contact,
+			Email:                         supplier.Email,
+			Address:                       supplier.Address,
 			Remark:                        supplier.Remark,
 			CreateBy:                      supplier.CreatorName,
 			CreatedAt:                     supplier.CreatedAt,

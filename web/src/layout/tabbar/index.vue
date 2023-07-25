@@ -4,6 +4,8 @@ import {useRoute, useRouter} from "vue-router";
 import {useUserStore} from "@/store/modules/user.ts";
 import {ref} from "vue";
 import useSettingStore from "@/store/modules/setting.ts";
+import {reqLogout} from "@/api/user";
+import {ElMessage} from "element-plus";
 
 defineOptions({
   name: "LayoutTabBar"
@@ -41,6 +43,11 @@ const fullscreen = () => {
 //退出登录
 const logout = async () => {
   //1.向服务器发出退出登录的请求
+  let res = await reqLogout()
+  if(res.code !== 200){
+    ElMessage.error(res.msg)
+    return
+  }
   //2.清空仓库中的相关数据[token|name|avatar]
   await userStore.setToken('')
   //3.跳转到登录页面

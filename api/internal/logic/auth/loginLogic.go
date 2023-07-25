@@ -94,7 +94,7 @@ func (l *LoginLogic) Login(req *types.LoginRequest) (resp *types.LoginResponse, 
 
 	//5.生成token
 	now := time.Now()
-	token, err := jwtx.GetToken(l.svcCtx.Config.Auth.AccessSecret, user.Id.Hex(), now.Unix(), l.svcCtx.Config.Auth.AccessExpire)
+	token, err := jwtx.GetToken(l.svcCtx.Config.Auth.AccessSecret, user.Id.Hex(), user.Name, now.Unix(), l.svcCtx.Config.Auth.AccessExpire)
 	if err != nil {
 		fmt.Printf("[Error]账号[%s]生成token:%s\n", user.Name, err.Error())
 		resp.Code = http.StatusInternalServerError
@@ -110,17 +110,6 @@ func (l *LoginLogic) Login(req *types.LoginRequest) (resp *types.LoginResponse, 
 		resp.Msg = "服务内部错误"
 		return resp, nil
 	}
-
-	//todo:test
-	var tokenString string
-	if err = l.svcCtx.Cache.Get(fmt.Sprintf(userTokenKey, user.Id.Hex()), &tokenString); err != nil {
-		fmt.Println("查询token缓存失败：", err.Error())
-
-		resp.Code = http.StatusInternalServerError
-		resp.Msg = "服务内部错误"
-		return resp, nil
-	}
-	fmt.Println("tokenString:", tokenString)
 
 	resp.Code = http.StatusOK
 	resp.Msg = "成功"

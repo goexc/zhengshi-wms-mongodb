@@ -7,7 +7,7 @@ import (
 type Customer struct {
 	Id                            primitive.ObjectID `json:"_id" bson:"_id,omitempty"`
 	Name                          string             `json:"name" bson:"name"`                                                         //客户名称
-	Type                          int                `json:"type" bson:"type"`                                                         //客户类型：10.个人、20.企业、30.组织
+	Type                          int                `json:"type" bson:"type"`                                                         //客户类型：个人、企业、组织
 	Code                          string             `json:"code" bson:"code"`                                                         //客户编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
 	LegalRepresentative           string             `json:"legal_representative" bson:"legal_representative"`                         //法定代表人
 	UnifiedSocialCreditIdentifier string             `json:"unified_social_credit_identifier" bson:"unified_social_credit_identifier"` //统一社会信用代码

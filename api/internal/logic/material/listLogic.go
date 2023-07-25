@@ -42,8 +42,14 @@ func (l *ListLogic) List(req *types.MaterialsRequest) (resp *types.MaterialsResp
 		regex := bson.M{"$regex": primitive.Regex{Pattern: ".*" + name + ".*", Options: "i"}}
 		filter["name"] = regex
 	}
-	if strings.TrimSpace(req.Code) != "" {
-		filter["code"] = strings.TrimSpace(req.Code)
+
+	if strings.TrimSpace(req.CategoryId) != "" {
+		//查询分类及其子类
+		categorys := l.getSubCategorys(req.CategoryId)
+		categorys = append(categorys, req.CategoryId)
+		fmt.Println("分类及其子类：", categorys)
+
+		filter["category_id"] = bson.M{"$in": categorys}
 	}
 
 	if strings.TrimSpace(req.Material) != "" {
@@ -101,8 +107,10 @@ func (l *ListLogic) List(req *types.MaterialsRequest) (resp *types.MaterialsResp
 	for _, m := range materials {
 		resp.Data.List = append(resp.Data.List, types.Material{
 			Id:               m.Id.Hex(),
-			Code:             m.Code,
 			Name:             m.Name,
+			Image:            m.Image,
+			CategoryId:       m.CategoryId,
+			CategoryName:     m.CategoryName,
 			Material:         m.Material,
 			Specification:    m.Specification,
 			Model:            m.Model,
@@ -110,6 +118,8 @@ func (l *ListLogic) List(req *types.MaterialsRequest) (resp *types.MaterialsResp
 			StrengthGrade:    m.StrengthGrade,
 			Unit:             m.Unit,
 			Remark:           m.Remark,
+			Creator:          m.Creator.Hex(),
+			CreatorName:      m.CreatorName,
 			CreatedAt:        m.CreatedAt,
 			UpdatedAt:        m.UpdatedAt,
 		})
@@ -118,4 +128,81 @@ func (l *ListLogic) List(req *types.MaterialsRequest) (resp *types.MaterialsResp
 	resp.Code = http.StatusOK
 	resp.Msg = "成功"
 	return resp, nil
+}
+
+// 查询物料分类的子类
+func (l *ListLogic) getSubCategorys(parentId string) (subIds []string) {
+	cur, err := l.svcCtx.MaterialCategoryModel.Find(l.ctx, bson.M{})
+	if err != nil {
+		fmt.Printf("[Error]查询物料分类:%s\n", err.Error())
+		return nil
+	}
+
+	defer cur.Close(l.ctx)
+
+	var categorys []model.MaterialCategory
+	if err = cur.All(l.ctx, &categorys); err != nil {
+		fmt.Println("[Error]解析物料分类列表：", err.Error())
+		return nil
+	}
+
+	if len(categorys) == 0 {
+		return
+	}
+
+	//2.物料分类分组
+	/*var list = make([]types.MaterialCategory, 0)
+	for _, one := range categorys {
+		list = append(list, types.MaterialCategory{
+			Id:          one.Id.Hex(),
+			ParentId:    one.ParentId,
+			SortId:      one.SortId,
+			Name:        one.Name,
+			Status:      one.Status,
+			Remark:      one.Remark,
+			CreatorName: one.CreatorName,
+			CreatedAt:   one.CreatedAt,
+			UpdatedAt:   one.UpdatedAt,
+		})
+	}*/
+
+	/*//3.构造树形数据结构
+	categoryMap := make(map[string]*types.MaterialCategory)
+
+	//遍历 categorys 切片，将每个 Category 添加到 map 中
+	for i := range list {
+		categoryMap[list[i].Id] = &list[i]
+	}
+
+	//遍历 list 切片，构建树形结构
+	var rootCategory = make([]*types.MaterialCategory, 0)
+	for i := range list {
+		if parent, ok := categoryMap[list[i].ParentId]; ok {
+			parent.Children = append(parent.Children, &list[i])
+		} else {
+			rootCategory = append(rootCategory, &list[i])
+		}
+	}
+
+	//取出当前分类的子类
+	parent, ok := categoryMap[parentId]
+	if !ok {
+		return
+	}
+
+	subCategorys := parent.Children*/
+
+	var dfs func(string)
+	dfs = func(id string) {
+		for _, one := range categorys {
+			if one.ParentId == id {
+				subIds = append(subIds, one.Id.Hex())
+				dfs(one.Id.Hex())
+			}
+		}
+	}
+
+	dfs(parentId)
+
+	return
 }

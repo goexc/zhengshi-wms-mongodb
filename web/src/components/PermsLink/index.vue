@@ -1,10 +1,8 @@
 
 <script setup lang="ts">
 import { PropType, ref} from "vue";
-// import useMenuStore from "@/store/menu";
 import {Types} from "@/utils/enum";
 
-// const menuStore = useMenuStore()
 
 defineProps({
   type: {//按钮类型

@@ -10,7 +10,7 @@ type Inbound struct {
 	Code       string             `json:"code" bson:"code"`                     //入库单号
 	Order      string             `json:"order" bson:"order"`                   //订单编号：表示关联的采购订单编号
 	SupplierId primitive.ObjectID `json:"supplier_id" bson:"supplier_id"`       //供应商
-	Status     string             `json:"status"`                               //入库单状态：待审核、审核不通过、审核通过
+	Status     string             `json:"status"`                               //入库单状态：审核中、审核不通过、审核通过
 	Materials  []InboundMaterial  `json:"materials" bson:"materials,omitempty"` //物料清单
 	Remark     string             `json:"remark" bson:"remark"`                 //备注
 	CreatedAt  int64              `json:"created_at" bson:"created_at"`

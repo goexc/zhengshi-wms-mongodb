@@ -52,7 +52,7 @@ func (l *RemoveLogic) Remove(req *types.MaterialIdRequest) (resp *types.BaseResp
 		resp.Code = http.StatusBadRequest
 		return resp, nil
 	default:
-		fmt.Printf("[Error]查询物料：%s\n", singleRes.Err().Error())
+		fmt.Printf("[Error]删除物料：%s\n", singleRes.Err().Error())
 		resp.Msg = "服务器内部错误"
 		resp.Code = http.StatusInternalServerError
 		return resp, nil
