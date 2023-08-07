@@ -7,11 +7,12 @@ import (
 	account "api/internal/handler/account"
 	api "api/internal/handler/api"
 	auth "api/internal/handler/auth"
+	carrier "api/internal/handler/carrier"
 	company "api/internal/handler/company"
 	customer "api/internal/handler/customer"
 	department "api/internal/handler/department"
 	images "api/internal/handler/images"
-	inbound "api/internal/handler/inbound"
+	inboundreceipt "api/internal/handler/inbound/receipt"
 	material "api/internal/handler/material"
 	menu "api/internal/handler/menu"
 	role "api/internal/handler/role"
@@ -265,7 +266,7 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			{
 				Method:  http.MethodGet,
 				Path:    "/",
-				Handler: company.GetHandler(serverCtx),
+				Handler: company.InfoHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodPut,
@@ -281,8 +282,13 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 		[]rest.Route{
 			{
 				Method:  http.MethodGet,
-				Path:    "/",
+				Path:    "/list",
 				Handler: supplier.ListHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/",
+				Handler: supplier.PaginateHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodPost,
@@ -308,8 +314,13 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 		[]rest.Route{
 			{
 				Method:  http.MethodGet,
-				Path:    "/",
+				Path:    "/list",
 				Handler: customer.ListHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/",
+				Handler: customer.PageHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodPost,
@@ -333,6 +344,38 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 
 	server.AddRoutes(
 		[]rest.Route{
+			{
+				Method:  http.MethodGet,
+				Path:    "/",
+				Handler: carrier.ListHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/",
+				Handler: carrier.AddHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPut,
+				Path:    "/",
+				Handler: carrier.UpdateHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPatch,
+				Path:    "/status",
+				Handler: carrier.StatusHandler(serverCtx),
+			},
+		},
+		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
+		rest.WithPrefix("/carrier"),
+	)
+
+	server.AddRoutes(
+		[]rest.Route{
+			{
+				Method:  http.MethodGet,
+				Path:    "/tree",
+				Handler: warehouse.TreeHandler(serverCtx),
+			},
 			{
 				Method:  http.MethodGet,
 				Path:    "/list",
@@ -510,12 +553,37 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 		[]rest.Route{
 			{
 				Method:  http.MethodPost,
-				Path:    "/procurement",
-				Handler: inbound.ProcurementHandler(serverCtx),
+				Path:    "/",
+				Handler: inboundreceipt.AddHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/",
+				Handler: inboundreceipt.PageHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPut,
+				Path:    "/",
+				Handler: inboundreceipt.UpdateHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPatch,
+				Path:    "/check",
+				Handler: inboundreceipt.CheckHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodDelete,
+				Path:    "/",
+				Handler: inboundreceipt.RemoveHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPatch,
+				Path:    "/material",
+				Handler: inboundreceipt.MaterialHandler(serverCtx),
 			},
 		},
 		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
-		rest.WithPrefix("/inbound"),
+		rest.WithPrefix("/inbound/receipt"),
 	)
 
 	server.AddRoutes(

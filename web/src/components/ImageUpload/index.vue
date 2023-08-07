@@ -146,7 +146,14 @@ const handleTabChange = async () => {
         @click="handleCover"
     >
       <el-icon v-if="!url"><Plus/></el-icon>
-      <el-image v-if="url" :src="`${ oss_domain }${url}_148x148`"></el-image>
+      <el-image
+          v-if="url&&url.endsWith('.svg')"
+          :src="`${ oss_domain }${url}`"
+      ></el-image>
+      <el-image
+          v-if="url&&!url.endsWith('.svg')"
+          :src="`${ oss_domain }${url}_148x148`"
+      ></el-image>
     </div>
     <el-dialog
         v-model="visible"
@@ -167,6 +174,15 @@ const handleTabChange = async () => {
                     :key="$index"
             >
               <el-image
+                  v-if="$image.endsWith('.svg')"
+                  class="image-item"
+                  style="height: 148px;width: 148px"
+                  :src="`${oss_domain}${$image}`"
+                  fit="cover"
+                  @click="handleSelect($image)"
+              ></el-image>
+              <el-image
+                  v-else
                   class="image-item"
                   style="height: 148px;width: 148px"
                   :src="`${oss_domain}${$image}_148x148`"

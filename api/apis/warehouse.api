@@ -8,6 +8,19 @@ info(
     version: "1.0.1"
 )
 
+//仓库/库区/货架/货位树
+type WarehouseTreeResponse {
+    Code int `json:"code"`
+    Msg string `json:"msg"`
+    Data []WarehouseTree `json:"data"`
+}
+
+type WarehouseTree {
+    Id string `json:"id"`
+    Name string `json:"name"`
+    Children []WarehouseTree `json:"children"`
+}
+
 //修改仓库状态
 type WarehouseStatusRequest {
     Id string `json:"id" validate:"required" comment:"仓库"`
@@ -53,7 +66,7 @@ type WarehouseListResponse {
 //仓库分页
 type WarehousesRequest {
     Page int64 `form:"page,optional" validate:"required,gte=1" comment:"页数""`
-    Size int64 `form:"size,optional" validate:"required,gte=10,lte=100" comment:"条数"`
+    Size int64 `form:"size,optional" validate:"required,gte=5,lte=100" comment:"条数"`
     Type string `form:"type,optional" validate:"omitempty,oneof=分销中心 生产仓库 跨境仓库 电商仓库 冷链仓库 合规仓库 专用仓库 跨渠道仓库 自动化仓库 第三方物流仓库 " comment:"仓库类型"`                                     //仓库类型
     Name string `form:"name,optional" validate:"omitempty" comment:"仓库名称"`                                                                                                                                                //仓库名称
     Code string `form:"code,optional" validate:"omitempty" comment:"仓库编号"`                                                                                                                                                //仓库编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息

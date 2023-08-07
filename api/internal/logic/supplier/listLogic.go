@@ -4,7 +4,6 @@ import (
 	"api/internal/svc"
 	"api/internal/types"
 	"api/model"
-	"api/pkg/code"
 	"context"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
@@ -30,16 +29,16 @@ func NewListLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ListLogic {
 	}
 }
 
-func (l *ListLogic) List(req *types.SuppliersRequest) (resp *types.SuppliersResponse, err error) {
+func (l *ListLogic) List(req *types.SupplierListRequest) (resp *types.SuppliersResponse, err error) {
 	resp = new(types.SuppliersResponse)
 
 	name := strings.TrimSpace(req.Name)
 	//1.供应商分页
-	var filter = bson.M{"status": bson.M{"$ne": 100}} //过滤已删除供应商
+	var filter = bson.M{"status": bson.M{"$ne": "删除"}} //过滤已删除供应商
 	if name != "" {
 		//i 表示不区分大小写
 		regex := bson.M{"$regex": primitive.Regex{Pattern: ".*" + name + ".*", Options: "i"}}
-		filter = bson.M{"name": regex, "status": bson.M{"$ne": 100}}
+		filter = bson.M{"name": regex, "status": bson.M{"$ne": "删除"}}
 		//matchStage = bson.D{
 		//	{"$match", filter},
 		//}
@@ -112,8 +111,6 @@ func (l *ListLogic) List(req *types.SuppliersRequest) (resp *types.SuppliersResp
 		},
 		},
 	}
-	skipStage := bson.D{{"$skip", (req.Page - 1) * req.Size}}
-	limitStage := bson.D{{"$limit", req.Size}}
 
 	pipeline := mongo.Pipeline{
 		matchStage,
@@ -121,8 +118,6 @@ func (l *ListLogic) List(req *types.SuppliersRequest) (resp *types.SuppliersResp
 		unwindStage,
 		projectStage,
 		sortStage,
-		skipStage,
-		limitStage,
 	}
 
 	cur, err := l.svcCtx.SupplierModel.Aggregate(l.ctx, pipeline)
@@ -143,23 +138,13 @@ func (l *ListLogic) List(req *types.SuppliersRequest) (resp *types.SuppliersResp
 	}
 	fmt.Printf("供应商数量:%d\n", len(suppliers))
 
-	//2.供应商总数量
-	total, err := l.svcCtx.SupplierModel.CountDocuments(l.ctx, filter)
-	if err != nil {
-		fmt.Println("[Error]供应商总数量：", err.Error())
-		resp.Code = http.StatusInternalServerError
-		resp.Msg = "服务器内部错误"
-		return resp, nil
-	}
-
-	resp.Data.Total = total
 	resp.Data.List = make([]types.Supplier, 0)
 	for _, supplier := range suppliers {
 		resp.Data.List = append(resp.Data.List, types.Supplier{
 			Id:                            supplier.Id.Hex(),
 			Type:                          supplier.Type,
 			Level:                         supplier.Level,
-			Status:                        code.SupplierStatusText(supplier.Status),
+			Status:                        supplier.Status,
 			Name:                          supplier.Name,
 			Code:                          strings.TrimSpace(supplier.Code),
 			Image:                         strings.TrimSpace(supplier.Image),

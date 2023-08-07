@@ -9,7 +9,7 @@ import {TimeFormat} from "@/utils/time.ts";
 import Item from "./components/Item.vue";
 
 //图片域名
-const oss_domain = ref<string>(import.meta.env.VITE_OSS_DOMAIN)
+const oss_domain = ref<string>(import.meta.env.VITE_OSS_DOMAIN as string)
 
 //物料列表
 const initMaterialsForm = () => {
@@ -72,6 +72,7 @@ const initMaterial = () => {
     model: '',//型号：用于唯一标识和区分不同种类的钢材。
     surface_treatment: '',//表面处理。钢材经过的表面处理方式，如热镀锌、喷涂等。
     strength_grade: '',//强度等级：钢材的强度等级，常见的钢材强度等级：Q235、Q345
+    quantity: 0,//安全库存
     unit: '',//计量单位，如个、箱、千克等
     remark: '',//
     create_by: '',
@@ -124,8 +125,8 @@ onMounted(async () => {
 <template>
   <div>
 
-    <el-card
-    >
+<!--    <el-card-->
+<!--    >-->
       <!--  三级组件  -->
       <el-form
           :inline="true"
@@ -166,7 +167,7 @@ onMounted(async () => {
           <el-button plain @click="reset" icon="RefreshRight">重置</el-button>
         </el-form-item>
       </el-form>
-    </el-card>
+<!--    </el-card>-->
     <!-- 物料列表 -->
     <el-card
         class="data"
@@ -186,7 +187,16 @@ onMounted(async () => {
         <el-table-column label="物料图片" width="150px" align="center">
           <template #default="{row}">
             <el-image
-                v-if="row.image"
+                v-if="row.image.endsWith('.svg')"
+                class="image"
+                fit="contain"
+                :src="`${oss_domain}${row.image}`"
+                :preview-src-list="[`${oss_domain}${row.image}`]"
+                hide-on-click-modal
+                preview-teleported
+            />
+            <el-image
+                v-else-if="row.image"
                 class="image"
                 fit="contain"
                 :src="`${oss_domain}${row.image}_148x148`"
@@ -202,6 +212,7 @@ onMounted(async () => {
         <el-table-column label="规格" prop="specification" min-width="100px"></el-table-column>
         <el-table-column label="表面处理" prop="surface_treatment" min-width="100px"></el-table-column>
         <el-table-column label="强度等级" prop="strength_grade" min-width="100px"></el-table-column>
+        <el-table-column label="安全库存" prop="quantity" min-width="100px"></el-table-column>
         <el-table-column label="计量单位" prop="unit" min-width="100px"></el-table-column>
         <el-table-column label="备注" prop="remark" min-width="100px"></el-table-column>
         <el-table-column label="创建人" prop="create_by" width="100px">
@@ -219,7 +230,7 @@ onMounted(async () => {
             {{ TimeFormat(row.updated_at) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" fixed="right" width="280px">
+        <el-table-column label="操作" fixed="right" width="200px">
           <template #default="{row}">
             <perms-button
                 perms="material:material:edit"

@@ -13,6 +13,8 @@ import ZoneListItem from "@/components/WarehouseZone/ZoneListItem.vue";
 import RackListItem from "@/components/WarehouseRack/RackListItem.vue";
 import RackPageItem from "@/components/WarehouseRack/RackPageItem.vue";
 import MaterialCategoryListItem from "@/components/MaterialCategory/MaterialCategoryListItem.vue";
+import SupplierPageItem from "@/components/Supplier/SupplierPageItem.vue";
+import SupplierListItem from "@/components/Supplier/SupplierListItem.vue";
 
 const allGlobalComponent: any = {
   SvgIcon,
@@ -27,6 +29,8 @@ const allGlobalComponent: any = {
   RackPageItem,
   RackListItem,
   MaterialCategoryListItem,
+  SupplierPageItem,
+  SupplierListItem,
 };
 export default {
   //install方法

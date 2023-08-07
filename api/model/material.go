@@ -15,6 +15,7 @@ type Material struct {
 	Specification    string             `json:"specification" bson:"specification"`         //规格：包括长度、宽度、厚度等尺寸信息。
 	SurfaceTreatment string             `json:"surface_treatment" bson:"surface_treatment"` //表面处理。钢材经过的表面处理方式，如热镀锌、喷涂等。
 	StrengthGrade    string             `json:"strength_grade" bson:"strength_grade"`       //强度等级：钢材的强度等级，常见的钢材强度等级：Q235、Q345
+	Quantity         float64            `json:"quantity" bson:"quantity"`                   //安全库存
 	Unit             string             `json:"unit" bson:"unit"`                           //计量单位
 	Remark           string             `json:"remark" bson:"remark"`                       //备注
 	Creator          primitive.ObjectID `json:"creator" bson:"creator"`                     //创建人

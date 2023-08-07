@@ -1,4 +1,4 @@
-package inbound
+package carrier
 
 import (
 	"api/pkg/validatorx"
@@ -6,15 +6,15 @@ import (
 	"net/http"
 	"strings"
 
-	"api/internal/logic/inbound"
+	"api/internal/logic/carrier"
 	"api/internal/svc"
 	"api/internal/types"
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-func ProcurementHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
+func ListHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.ProcurementRequest
+		var req types.CarriersRequest
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
@@ -36,8 +36,8 @@ func ProcurementHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := inbound.NewProcurementLogic(r.Context(), svcCtx)
-		resp, err := l.Procurement(&req)
+		l := carrier.NewListLogic(r.Context(), svcCtx)
+		resp, err := l.List(&req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {

@@ -1,22 +1,22 @@
 <script setup lang="ts">
 import {nextTick, ref, reactive, onMounted} from "vue";
 import {ElMessage, FormInstance, FormRules} from "element-plus";
-import {reqAddOrUpdateSupplier} from "@/api/supplier";
-import {Supplier, SupplierRequest} from "@/api/supplier/types.ts";
-import {SupplierLevels, SupplierTypes} from "@/enums/supplier.ts";
+import {reqAddOrUpdateCarrier} from "@/api/carrier";
+import {Carrier, CarrierRequest} from "@/api/carrier/types.ts";
+import { CarrierTypes} from "@/enums/carrier.ts";
 
 defineOptions({
   name: "Item"
 })
 
 //获取父组件传递过来的全部路由数组
-const props = defineProps(['supplier'])
+const props = defineProps(['carrier'])
 
-const form = ref<Supplier>(JSON.parse(JSON.stringify(props.supplier)))
+const form = ref<Carrier>(JSON.parse(JSON.stringify(props.carrier)))
 const formRef = ref<FormInstance>()
 const emit = defineEmits(['success', 'cancel'])
 
-//更换供应商图片
+//更换承运商图片
 const handleSelect = (image: string) => {
   form.value.image = image
 }
@@ -30,7 +30,7 @@ const rules = reactive<FormRules>({
   name: [
     {
       required: true,
-      message: '请填写供应商名称',
+      message: '请填写承运商名称',
       type: 'string',
       trigger: ['blue', 'change'],
     }
@@ -38,7 +38,7 @@ const rules = reactive<FormRules>({
   code: [
     {
       required: true,
-      message: '请上传供应商编号',
+      message: '请上传承运商编号',
       type: 'string',
       trigger: ['blue', 'change'],
     }
@@ -46,13 +46,13 @@ const rules = reactive<FormRules>({
   level: [
     {
       required: true,
-      message: '请选择供应商等级',
+      message: '请选择承运商等级',
       trigger: ['blue', 'change'],
     },
     {
       type: 'enum',
       enum: [1, 2, 3],
-      message: '请选择给定的供应商等级',
+      message: '请选择给定的承运商等级',
       trigger: ['blue', 'change'],
     }
   ],
@@ -117,7 +117,7 @@ const cancel = () => {
 }
 //提交表单
 const submit = async () => {
-  console.log('表单内容：', form.value)
+
   //1.表单校验
   let valid = await formRef.value?.validate((valid, fields) => {
     if (valid) {
@@ -132,7 +132,7 @@ const submit = async () => {
     return
   }
 
-  let res = await reqAddOrUpdateSupplier(<SupplierRequest>{
+  let res = await reqAddOrUpdateCarrier(<CarrierRequest>{
     id: form.value.id,
     type: form.value.type,
     level: form.value.level,
@@ -169,7 +169,7 @@ const submit = async () => {
       ref="formRef"
       :rules="rules"
   >
-    <el-form-item label="供应商图片" prop="image">
+    <el-form-item label="承运商图片" prop="image">
       <ImageUpload
           @select="handleSelect"
           @remove="handleRemove"
@@ -178,24 +178,19 @@ const submit = async () => {
           :url="form.image"
       />
     </el-form-item>
-    <el-form-item label="供应商类型" prop="name">
+    <el-form-item label="承运商类型" prop="name">
       <el-select
           v-model="form.type"
-          placeholder="请选择供应商类型"
+          placeholder="请选择承运商类型"
           clearable
       >
-        <el-option v-for="(one, idx) in SupplierTypes" :key="idx" :label="one" :value="one"/>
+        <el-option v-for="(one, idx) in CarrierTypes" :key="idx" :label="one" :value="one"/>
       </el-select>
     </el-form-item>
-    <el-form-item prop="level" label="等级">
-      <el-select v-model="form.level" placeholder="请选择供应商等级" clearable>
-        <el-option v-for="(one, idx) in SupplierLevels" :key="idx" :label="one.label" :value="one.value"></el-option>
-      </el-select>
-    </el-form-item>
-    <el-form-item label="供应商名称" prop="name">
+    <el-form-item label="承运商名称" prop="name">
       <el-input v-model="form.name" clearable/>
     </el-form-item>
-    <el-form-item label="供应商编号" prop="code">
+    <el-form-item label="承运商编号" prop="code">
       <el-input v-model="form.code" clearable/>
     </el-form-item>
     <el-form-item label="法定代表人" prop="legal_representative">

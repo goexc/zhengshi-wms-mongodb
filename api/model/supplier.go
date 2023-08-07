@@ -25,7 +25,7 @@ type Supplier struct {
 	//50.黑名单（Blacklisted）：表示供应商因违规行为或其他原因被列入黑名单，系统会限制与该供应商的交互或合作。
 	//60.合同到期（Contract Expired）：表示供应商的合同已到期，需要进行续签或重新协商合同条款。
 	//100.删除(Deleted)
-	Status      int                `json:"status" bson:"status"`                      //状态
+	Status      string             `json:"status" bson:"status"`                      //状态
 	Remark      string             `json:"remark,optional" bson:"remark"`             //备注
 	Creator     primitive.ObjectID `json:"creator" bson:"creator"`                    //创建人
 	CreatorName string             `json:"creator_name,optional" bson:"creator_name"` //创建人

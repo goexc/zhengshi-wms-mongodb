@@ -2,7 +2,6 @@ package supplier
 
 import (
 	"api/model"
-	"api/pkg/code"
 	"context"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
@@ -96,7 +95,7 @@ func (l *AddLogic) Add(req *types.SupplierRequest) (resp *types.BaseResponse, er
 		UnifiedSocialCreditIdentifier: strings.TrimSpace(req.UnifiedSocialCreditIdentifier),
 		Manager:                       strings.TrimSpace(req.Manager),
 		Contact:                       strings.TrimSpace(req.Contact),
-		Status:                        code.SupplierStatusCode("审核中"), //默认:审核中
+		Status:                        "审核中", //默认:审核中
 		Email:                         req.Email,
 		Address:                       strings.TrimSpace(req.Address),
 		Remark:                        strings.TrimSpace(req.Remark),

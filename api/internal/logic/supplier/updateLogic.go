@@ -2,7 +2,6 @@ package supplier
 
 import (
 	"api/model"
-	"api/pkg/code"
 	"context"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
@@ -55,7 +54,7 @@ func (l *UpdateLogic) Update(req *types.SupplierRequest) (resp *types.BaseRespon
 	//排除已删除的供应商
 	filter := bson.M{
 		"_id":    id,
-		"status": bson.M{"$ne": code.SupplierStatusCode("删除")},
+		"status": bson.M{"$ne": "删除"},
 	}
 	count, err := l.svcCtx.SupplierModel.CountDocuments(l.ctx, filter)
 	if err != nil {
@@ -73,7 +72,7 @@ func (l *UpdateLogic) Update(req *types.SupplierRequest) (resp *types.BaseRespon
 	//2.供应商名称是否重复
 	filter = bson.M{
 		"_id":    bson.M{"$ne": id},
-		"status": bson.M{"$ne": code.SupplierStatusCode("删除")},
+		"status": bson.M{"$ne": "删除"},
 		"$or": []bson.M{
 			{"name": strings.TrimSpace(req.Name)},
 			{"code": strings.TrimSpace(req.Code)},

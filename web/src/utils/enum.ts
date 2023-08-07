@@ -1,4 +1,5 @@
 export enum Types {
+  empty = "",
   primary = "primary",
   success = "success",
   warning = "warning",

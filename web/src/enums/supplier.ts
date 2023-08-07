@@ -1,13 +1,12 @@
 //供应商状态
 
 export const SupplierStatus = [
-  '待审核',
+  '审核中',
   '审核不通过',
   '活动',
   '停用',
   '黑名单',
   '合同到期',
-  '删除',
 ]
 
 export const SupplierLevels = [

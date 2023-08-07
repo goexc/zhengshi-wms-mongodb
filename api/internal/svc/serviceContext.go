@@ -32,6 +32,7 @@ type ServiceContext struct {
 	DepartmentModel       *mongo.Collection
 	RoleModel             *mongo.Collection
 	RoleMenuModel         *mongo.Collection
+	CarrierModel          *mongo.Collection
 	SupplierModel         *mongo.Collection
 	CustomerModel         *mongo.Collection
 	WarehouseModel        *mongo.Collection //仓库
@@ -40,7 +41,7 @@ type ServiceContext struct {
 	WarehouseBinModel     *mongo.Collection //货位
 	MaterialCategoryModel *mongo.Collection //物料分类表
 	MaterialModel         *mongo.Collection //物料表
-	InboundModel          *mongo.Collection //入库单
+	InboundReceiptModel   *mongo.Collection //入库单
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -63,13 +64,14 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		RoleMenuModel:         db.Collection("role_menu"),
 		SupplierModel:         db.Collection("supplier"),
 		CustomerModel:         db.Collection("customer"),
+		CarrierModel:          db.Collection("carrier"),
 		WarehouseModel:        db.Collection("warehouse"),         //仓库
 		WarehouseZoneModel:    db.Collection("warehouse_zone"),    //库区
 		WarehouseRackModel:    db.Collection("warehouse_rack"),    //货架
 		WarehouseBinModel:     db.Collection("warehouse_bin"),     //货位
 		MaterialCategoryModel: db.Collection("material_category"), //物料分类表
 		MaterialModel:         db.Collection("material"),          //物料表
-		InboundModel:          db.Collection("inbound"),           //入库单
+		InboundReceiptModel:   db.Collection("inbound_receipt"),   //入库单
 	}
 
 	//2.角色表添加索引

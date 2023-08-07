@@ -202,7 +202,16 @@ onMounted(async () => {
         <el-table-column label="货架图片" width="150px" align="center">
           <template #default="{row}">
             <el-image
-                v-if="row.image"
+                v-if="row.image.endsWith('.svg')"
+                class="image"
+                fit="contain"
+                :src="`${oss_domain}${row.image}`"
+                :preview-src-list="[`${oss_domain}${row.image}`]"
+                hide-on-click-modal
+                preview-teleported
+            />
+            <el-image
+                v-else-if="row.image"
                 class="image"
                 fit="contain"
                 :src="`${oss_domain}${row.image}_148x148`"

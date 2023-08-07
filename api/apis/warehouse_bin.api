@@ -11,7 +11,7 @@ info(
 
 //修改货位状态
 type WarehouseBinStatusRequest {
-    Id string `json:"id" validate:"required" comment:"货位"`
+    Id string `json:"id" validate:"required,mongodb" comment:"货位"`
                                                                                                           //货位状态
                                                                                                           //10.激活（Active）：表示货位处于可用状态，可以执行库存管理和操作。
                                                                                                           //20.禁用（Disabled）：表示货位处于禁用状态，不可用于库存管理和操作。通常是由于维护、修复或其他原因暂时停用货位。
@@ -54,7 +54,7 @@ type WarehouseBinListResponse {
 //货位分页
 type WarehouseBinsRequest {
     Page int64 `form:"page,optional" validate:"required,gte=1" comment:"页数""`
-    Size int64 `form:"size,optional" validate:"required,gte=10,lte=100" comment:"条数"`
+    Size int64 `form:"size,optional" validate:"required,gte=5,lte=100" comment:"条数"`
     WarehouseId string `form:"warehouse_id,optional" validate:"omitempty,mongodb" comment:"仓库"`                         //仓库Id
     WarehouseZoneId string `form:"warehouse_zone_id,optional" validate:"omitempty,mongodb" comment:"库区"`                //库区Id
     WarehouseRackId string `form:"warehouse_rack_id,optional" validate:"omitempty,mongodb" comment:"货架"`                //货架Id

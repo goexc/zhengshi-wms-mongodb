@@ -124,6 +124,7 @@ func (l *UpdateLogic) Update(req *types.MaterialRequest) (resp *types.BaseRespon
 			"specification":     strings.TrimSpace(req.Specification),
 			"surface_treatment": strings.TrimSpace(req.SurfaceTreatment),
 			"strength_grade":    strings.TrimSpace(req.StrengthGrade),
+			"quantity":          req.Quantity,
 			"unit":              strings.TrimSpace(req.Unit),
 			"remark":            strings.TrimSpace(req.Remark),
 			"updated_at":        time.Now().Unix(),

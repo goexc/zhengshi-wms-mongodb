@@ -1,0 +1,86 @@
+syntax = "v1"
+
+info(
+    title: "承运商数据结构"
+    desc: "承运商数据结构"
+    author: "董咚懂咚"
+    email: "1024071953@qq.com"
+    version: "1.0.1"
+)
+
+//修改承运商状态
+type CarrierStatusRequest {
+    Id string `json:"id" validate:"required" comment:"承运商"`
+  //以下是一些常见的承运商状态示例：
+  //待审核（Pending Approval）：表示该承运商的申请或合作关系正在等待审核或确认。
+  //审核中（Under Review）：表示该承运商的信息或资质正在审核中。
+  //审核不通过（Approval Rejected）：表示该承运商的申请或合作关系未通过审核。
+  //审核通过（Approved）：表示该承运商的信息或资质已经通过审核。
+  //活跃（Active）：表示该承运商目前处于活跃状态，可以继续提供运输服务。
+  //停用（Inactive）：表示该承运商暂时停止提供运输服务或合作关系暂时终止，但仍然保留该承运商的信息。
+  //暂停合作（Suspended）：表示与该承运商的合作关系暂时中止，通常是因为临时性问题，可能在未来恢复。
+  //终止合作（Terminated）：表示与该承运商的合作关系永久终止，不再进行业务往来。
+  //资质过期（Expired）：表示该承运商的相关资质或许可证件已过期，需要进行更新或续签。
+  //删除(Deleted)
+    Status string `json:"status" validate:"required,oneof=活跃 停用 暂停合作 终止合作 待审核 审核不通过 审核中 审核通过 资质过期 删除" comment:"状态"` //状态
+}
+
+//承运商列表
+type CarriersRequest {
+    Page int64 `form:"page,optional" validate:"required,gte=1" comment:"页数""`
+    Size int64 `form:"size,optional" validate:"required,gte=5,lte=100" comment:"条数"`
+    Name string `form:"name,optional" validate:"omitempty" comment:"承运商名称"`              //承运商名称
+    Code string `form:"code,optional" validate:"omitempty" comment:"承运商编号"`              //承运商编号：分配给承运商的唯一标识符或编号，用于快速识别和检索客户信息
+    Manager string `form:"manager,optional" validate:"omitempty" comment:"承运商编号"`        //负责人
+    Contact string `form:"contact,optional" validate:"omitempty,e164" comment:"承运商编号"`   //联系方式
+    Email string `form:"email,optional" validate:"omitempty,email" comment:"承运商编号"`      //Email
+}
+
+type Carrier {
+    Id string `json:"id,optional" path:"id"`
+    Type string `json:"type"`                                                         //承运商类型：个人、企业、组织
+    Code string `json:"code"`                                                         //承运商编号：分配给承运商的唯一标识符或编号，用于快速识别和检索承运商信息
+    Name string `json:"name"`                                                         //承运商名称
+    Image string `json:"image,optional"`                                              //承运商图片
+    LegalRepresentative string `json:"legal_representative"`                          //法定代表人
+    UnifiedSocialCreditIdentifier string `json:"unified_social_credit_identifier"`    //统一社会信用代码
+    Address string `json:"address"`                                                   //承运商地址
+    Contact string `json:"contact"`                                                   //联系方式
+    Manager string `json:"manager"`                                                   //负责人
+    Email string `json:"email"`                                                       //Email
+    Remark string `json:"remark"`                                                     //备注
+    Status string `json:"status"`                                                     //状态
+    CreateBy string `json:"create_by,optional"`                                       //创建人
+    CreatedAt int64 `json:"created_at,optional"`
+    UpdatedAt int64 `json:"updated_at,optional"`
+}
+
+type CarriersResponse {
+    Code int `json:"code"`
+    Msg string `json:"msg"`
+    Data CarrierPaginate `json:"data"`
+}
+
+type CarrierPaginate {
+    Total int64 `json:"total"`
+    List []Carrier `json:"list"` //承运商列表
+}
+
+
+//添加、更新承运商
+type CarrierRequest {
+    Id string `json:"id,optional" validate:"omitempty,mongodb" comment:"承运商"`
+    Type string `json:"type,optional" validate:"required,oneof=个人 企业 组织" comment:"承运商类型"`                                                           //供应商类型：个人、企业、组织
+    Code string `json:"code,optional" validate:"required,gte=6,lte=32" comment:"承运商编号"`                                                                   //承运商编号：分配给承运商的唯一标识符或编号，用于快速识别和检索承运商信息
+    Name string `json:"name,optional" validate:"required" comment:"承运商名称"`                                                                                //承运商名称
+    Image string `json:"image,optional" validate:"omitempty" comment:"承运商图片"`                                                                             //承运商图片
+    LegalRepresentative string `json:"legal_representative,optional" validate:"required" comment:"法定代表人"`                                                 //法定代表人
+    UnifiedSocialCreditIdentifier string `json:"unified_social_credit_identifier,optional" validate:"required,lte=18" comment:"统一社会信用代码"`              //统一社会信用代码
+    Address string `json:"address,optional" validate:"omitempty" comment:"承运商地址"`                                                                         //承运商地址
+    Contact string `json:"contact,optional" validate:"required,e164" comment:"联系方式"`                                                                       //联系方式
+    Manager string `json:"manager,optional" validate:"required" comment:"负责人"`                                                                              //负责人
+    Email string `json:"email,optional" validate:"omitempty,email" comment:"Email"`                                                                            //Email
+    Remark string `json:"remark,optional"`
+}
+
+

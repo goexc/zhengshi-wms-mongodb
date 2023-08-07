@@ -1,3 +1,16 @@
+//仓库树
+export interface WarehouseTreeResponse {
+  code: number;
+  msg: string;
+  data: WarehouseTree[];
+}
+
+export interface WarehouseTree {
+  id:string;
+  name: string;
+  children: WarehouseTree[];
+}
+
 //仓库分页
 export interface WarehousesRequest {
   page: number;//页数

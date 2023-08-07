@@ -3,9 +3,9 @@
 </script>
 
 <template>
-  <div>
-    采购记录
-  </div>
+<div>
+  入库报表
+</div>
 </template>
 
 <style scoped lang="scss">

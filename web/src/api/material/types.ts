@@ -34,6 +34,7 @@ export interface Material {
   specification: string;//规格：包括长度、宽度、厚度等尺寸信息。
   surface_treatment: string;//表面处理。钢材经过的表面处理方式，如热镀锌、喷涂等。
   strength_grade: string;//强度等级：钢材的强度等级，常见的钢材强度等级：Q235、Q345
+  quantity: number;//安全库存
   unit: string;//计量单位，如个、箱、千克等
   remark: string;//备注
   creator: string; //创建人id
@@ -53,6 +54,7 @@ export interface MaterialRequest {
   model: string;//型号：用于唯一标识和区分不同种类的钢材。
   surface_treatment: string;//表面处理。钢材经过的表面处理方式，如热镀锌、喷涂等。
   strength_grade: string;//强度等级：钢材的强度等级，常见的钢材强度等级：Q235、Q345
+  quantity: number;//安全库存
   unit: string;//计量单位，如个、箱、千克等
   remark: string;//备注
 }

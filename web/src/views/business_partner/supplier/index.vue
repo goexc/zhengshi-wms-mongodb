@@ -52,7 +52,7 @@ let levelType = (level: number) => {
 
 let statusType = (status:string) => {
   switch (status) {
-    case '待审核':
+    case '审核中':
       return ''
     case '审核不通过':
       return 'danger'
@@ -179,7 +179,9 @@ onMounted(() => {
 
 <template>
   <div>
-    <el-card>
+    <el-card
+        v-auth="'business_partner:supplier:list'"
+    >
       <el-form
           inline
           :model="suppliersForm"
@@ -207,9 +209,23 @@ onMounted(() => {
         <el-form-item prop="email" label="Email">
           <el-input v-model="suppliersForm.email" placeholder="请填写Email" clearable/>
         </el-form-item>
-        <el-form-item>
-          <el-button type="primary" plain icon="Search" @click="getSuppliers">查询</el-button>
-          <el-button @click="reset">重置</el-button>
+        <el-form-item label=" ">
+          <perms-button
+              perms="business_partner:supplier:list"
+              :type="Types.primary"
+              :size="Sizes.large"
+              :plain="true"
+              @click="getSuppliers"
+          />
+          <perms-button
+              perms="business_partner:supplier:list"
+              :type="Types.empty"
+              :size="Sizes.large"
+              :plain="true"
+              icon="Refresh"
+              text="重置"
+              @click="reset"
+          />
         </el-form-item>
       </el-form>
     </el-card>
@@ -232,7 +248,16 @@ onMounted(() => {
         <el-table-column label="供应商图片" width="150px" align="center">
           <template #default="{row}">
             <el-image
-                v-if="row.image"
+                v-if="row.image.endsWith('.svg')"
+                class="image"
+                fit="contain"
+                :src="`${oss_domain}${row.image}`"
+                :preview-src-list="[`${oss_domain}${row.image}`]"
+                hide-on-click-modal
+                preview-teleported
+            />
+            <el-image
+                v-else-if="row.image"
                 class="image"
                 fit="contain"
                 :src="`${oss_domain}${row.image}_148x148`"
@@ -243,9 +268,17 @@ onMounted(() => {
           </template>
         </el-table-column>
         <el-table-column label="编号" prop="code" width="150px"/>
+        <el-table-column label="应付账款" class="money" width="250px" align="center">
+          <template #default="{row}">
+            <p>10000.000</p>
+            <el-text class="money" type="primary" size="small">+应付</el-text>
+            <el-text class="money" type="primary" size="small">-结款</el-text>
+            <el-text class="money" type="primary" size="small">查看流水</el-text>
+          </template>
+        </el-table-column>
         <el-table-column label="供应商状态" prop="status" width="120px" align="center">
           <template #default="{row}">
-           <el-tag :type="statusType(row.status)" size="small">{{ row.status }}</el-tag>
+            <el-tag :type="statusType(row.status)" size="small">{{ row.status }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="级别" prop="level" width="80px" align="center">
@@ -279,17 +312,17 @@ onMounted(() => {
             {{ TimeFormat(row.updated_at) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" fixed="right" width="280px">
+        <el-table-column label="操作" fixed="right" width="300px">
           <template #default="{row}">
             <perms-button
-                perms="supplier:supplier:status"
+                perms="business_partner:supplier:status"
                 :type="Types.primary"
                 :size="Sizes.small"
                 :plain="true"
                 @click="changeStatus(row)"
             />
             <perms-button
-                perms="supplier:supplier:edit"
+                perms="business_partner:supplier:edit"
                 :type="Types.warning"
                 :size="Sizes.small"
                 :plain="true"
@@ -308,7 +341,7 @@ onMounted(() => {
             >
               <template #reference>
                 <perms-button
-                    perms="supplier:supplier:delete"
+                    perms="business_partner:supplier:delete"
                     :type="Types.danger"
                     :size="Sizes.small"
                     :plain="true"/>
@@ -364,4 +397,12 @@ onMounted(() => {
 .table {
   margin: 20px 0;
 }
+
+//应付账款
+.money {
+  cursor: pointer;
+  padding: 5px 11px;
+    margin-left: 12px;
+}
+
 </style>

@@ -11,26 +11,36 @@ info(
 //修改供应商状态
 type SupplierStatusRequest {
     Id string `json:"id" validate:"required" comment:"供应商"`
-                                                                                                                            //以下是一些常见的供应商状态示例：
-                                                                                                                            //审核中（Pending Approval）：表示供应商提交了注册或变更信息，但尚未通过审核，需要系统管理员或相关人员进行审核和确认。
-                                                                                                                            //审核不通过（Approval Rejected）：表示供应商的注册或变更信息未通过审核，可能存在问题或不符合要求，需要供应商进行修正或重新提交。
-                                                                                                                            //活动（Active）：表示供应商当前处于正常状态，可以与其进行业务交互和合作。
-                                                                                                                            //停用（Inactive）：表示供应商被停用或暂时无法使用，可能是由于某种原因导致无法继续合作或交互。
-                                                                                                                            //黑名单（Blacklisted）：表示供应商因违规行为或其他原因被列入黑名单，系统会限制与该供应商的交互或合作。
-                                                                                                                            //合同到期（Contract Expired）：表示供应商的合同已到期，需要进行续签或重新协商合同条款。
-                                                                                                                            //删除(Deleted)
+    //以下是一些常见的供应商状态示例：
+    //审核中（Pending Approval）：表示供应商提交了注册或变更信息，但尚未通过审核，需要系统管理员或相关人员进行审核和确认。
+    //审核不通过（Approval Rejected）：表示供应商的注册或变更信息未通过审核，可能存在问题或不符合要求，需要供应商进行修正或重新提交。
+    //活动（Active）：表示供应商当前处于正常状态，可以与其进行业务交互和合作。
+    //停用（Inactive）：表示供应商被停用或暂时无法使用，可能是由于某种原因导致无法继续合作或交互。
+    //黑名单（Blacklisted）：表示供应商因违规行为或其他原因被列入黑名单，系统会限制与该供应商的交互或合作。
+    //合同到期（Contract Expired）：表示供应商的合同已到期，需要进行续签或重新协商合同条款。
+    //删除(Deleted)
     Status string `json:"status" validate:"required,oneof=审核中 审核不通过 活动 停用 黑名单 合同到期 删除" comment:"状态"` //状态
 }
 
 //供应商列表
-type SuppliersRequest {
-    Page int64 `form:"page,optional" validate:"required,gte=1" comment:"页数""`
-    Size int64 `form:"size,optional" validate:"required,gte=10,lte=100" comment:"条数"`
+type SupplierListRequest {
     Name string `form:"name,optional" validate:"omitempty" comment:"供应商名称"`              //供应商名称
     Code string `form:"code,optional" validate:"omitempty" comment:"供应商编号"`              //供应商编号：分配给供应商的唯一标识符或编号，用于快速识别和检索客户信息
-    Manager string `form:"manager,optional" validate:"omitempty" comment:"供应商编号"`        //负责人
-    Contact string `form:"contact,optional" validate:"omitempty,e164" comment:"供应商编号"`   //联系方式
-    Email string `form:"email,optional" validate:"omitempty,email" comment:"供应商编号"`      //Email
+    Manager string `form:"manager,optional" validate:"omitempty" comment:"负责人"`        //负责人
+    Contact string `form:"contact,optional" validate:"omitempty,e164" comment:"联系方式"`   //联系方式
+    Email string `form:"email,optional" validate:"omitempty,email" comment:"Email"`      //Email
+    Level int `form:"level,optional" validate:"omitempty,gte=1,lte=10" comment:"供应商等级"`  //供应商等级
+}
+
+//供应商分页
+type SuppliersRequest {
+    Page int64 `form:"page,optional" validate:"required,gte=1" comment:"页数""`
+    Size int64 `form:"size,optional" validate:"required,gte=5,lte=100" comment:"条数"`
+    Name string `form:"name,optional" validate:"omitempty" comment:"供应商名称"`              //供应商名称
+    Code string `form:"code,optional" validate:"omitempty" comment:"供应商编号"`              //供应商编号：分配给供应商的唯一标识符或编号，用于快速识别和检索客户信息
+    Manager string `form:"manager,optional" validate:"omitempty" comment:"负责人"`        //负责人
+    Contact string `form:"contact,optional" validate:"omitempty,e164" comment:"联系方式"`   //联系方式
+    Email string `form:"email,optional" validate:"omitempty,email" comment:"Email"`      //Email
     Level int `form:"level,optional" validate:"omitempty,gte=1,lte=10" comment:"供应商等级"`  //供应商等级
 }
 

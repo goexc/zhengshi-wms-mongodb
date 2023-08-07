@@ -124,6 +124,7 @@ func (l *AddLogic) Add(req *types.MaterialRequest) (resp *types.BaseResponse, er
 		Specification:    strings.TrimSpace(req.Specification),
 		SurfaceTreatment: strings.TrimSpace(req.SurfaceTreatment),
 		StrengthGrade:    strings.TrimSpace(req.StrengthGrade),
+		Quantity:         req.Quantity,
 		Unit:             strings.TrimSpace(req.Unit),
 		Remark:           strings.TrimSpace(req.Remark),
 		Creator:          userId,

@@ -52,7 +52,7 @@ type MaterialIdRequest {
 //物料列表
 type MaterialsRequest {
     Page int64 `form:"page,optional" validate:"required,gte=1" comment:"页数""`
-    Size int64 `form:"size,optional" validate:"required,gte=10,lte=100" comment:"条数"`
+    Size int64 `form:"size,optional" validate:"required,gte=5,lte=100" comment:"条数"`
     Name string `form:"name,optional" validate:"omitempty" comment:"物料名称"`                          //物料名称
     CategoryId string `form:"category_id,optional" validate:"omitempty,mongodb" comment:"物料分类"`     //物料分类
     Material string `form:"material,optional" validate:"omitempty" comment:"材质"`                      //材质：碳钢、不锈钢、合金钢等。
@@ -84,6 +84,7 @@ type Material {
     Model string `json:"model"`                          //型号：用于唯一标识和区分不同种类的钢材。
     SurfaceTreatment string `json:"surface_treatment"`   //表面处理。钢材经过的表面处理方式，如热镀锌、喷涂等。
     StrengthGrade string `json:"strength_grade"`         //强度等级：钢材的强度等级，常见的钢材强度等级：Q235、Q345
+    Quantity float64 `json:"quantity"`                   //安全库存
     Unit string `json:"unit"`                            //计量单位，如个、箱、千克等
     Remark string `json:"remark"`                        //备注
     Creator string `json:"creator"`                      //
@@ -103,6 +104,7 @@ type MaterialRequest {
     Specification string `json:"specification,optional" validate:"omitempty" commment:"规格"`      //规格：包括长度、宽度、厚度等尺寸信息。
     SurfaceTreatment string `json:"surface_treatment" validate:"omitempty" comment:"表面处理"`     //表面处理。钢材经过的表面处理方式，如热镀锌、喷涂等。
     StrengthGrade string `json:"strength_grade" validate:"omitempty" comment:"强度等级"`           //强度等级：钢材的强度等级，常见的钢材强度等级：Q235、Q345
+    Quantity float64 `json:"quantity" validate:"gte=0" comment:"安全库存"`                         //安全库存
     Unit string `json:"unit,optional" validate:"omitempty" commment:"计量单位"`                    //计量单位
     Remark string `json:"remark,optional" validate:"omitempty" comment:"备注"`                     //备注
 }

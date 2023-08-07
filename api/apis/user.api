@@ -54,7 +54,7 @@ type UserStatusRequest {
 //用户列表
 type UsersRequest {
     Page int64 `form:"page,optional" validate:"required,gte=1" comment:"页数""`
-    Size int64 `form:"size,optional" validate:"required,gte=10,lte=100" comment:"条数"`
+    Size int64 `form:"size,optional" validate:"required,gte=5,lte=100" comment:"条数"`
     Name string `form:"name,optional"`             //搜索关键词：用户名
     Mobile string `form:"mobile,optional"`         //搜索关键词：手机号码
 }

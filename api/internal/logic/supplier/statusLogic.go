@@ -1,7 +1,6 @@
 package supplier
 
 import (
-	"api/pkg/code"
 	"context"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
@@ -41,7 +40,7 @@ func (l *StatusLogic) Status(req *types.SupplierStatusRequest) (resp *types.Base
 		return resp, nil
 	}
 	//排除已删除的供应商
-	filter := bson.M{"_id": id, "status": bson.M{"$ne": 100}}
+	filter := bson.M{"_id": id, "status": bson.M{"$ne": "删除"}}
 	count, err := l.svcCtx.SupplierModel.CountDocuments(l.ctx, filter)
 	if err != nil {
 		fmt.Printf("[Error]查询供应商[%s]是否存在:%s\n", req.Id, err.Error())
@@ -58,7 +57,7 @@ func (l *StatusLogic) Status(req *types.SupplierStatusRequest) (resp *types.Base
 	//2.更改供应商状态
 	var update = bson.M{
 		"$set": bson.M{
-			"status": code.SupplierStatusCode(req.Status),
+			"status": req.Status,
 		},
 	}
 	_, err = l.svcCtx.SupplierModel.UpdateByID(l.ctx, id, &update)

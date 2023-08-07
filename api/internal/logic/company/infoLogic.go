@@ -16,21 +16,21 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
-type GetLogic struct {
+type InfoLogic struct {
 	logx.Logger
 	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewGetLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetLogic {
-	return &GetLogic{
+func NewInfoLogic(ctx context.Context, svcCtx *svc.ServiceContext) *InfoLogic {
+	return &InfoLogic{
 		Logger: logx.WithContext(ctx),
 		ctx:    ctx,
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *GetLogic) Get() (resp *types.CompanyResponse, err error) {
+func (l *InfoLogic) Info() (resp *types.CompanyResponse, err error) {
 	resp = new(types.CompanyResponse)
 
 	//1.获取企业信息

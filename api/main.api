@@ -22,6 +22,7 @@ import (
 	"apis/warehouse_rack.api"
 	"apis/warehouse_bin.api"
 	"apis/company.api"
+	"apis/carrier.api"
 	"apis/supplier.api"
 	"apis/customer.api"
 	"apis/material.api"
@@ -248,7 +249,7 @@ service main {
 
 service main {
 	@doc "获取企业信息"
-	@handler get
+	@handler info
 	get / returns (CompanyResponse)
 
 	@doc "修改企业信息"
@@ -264,8 +265,12 @@ service main {
 )
 
 service main {
-	@doc "供应商分页"
+	@doc "供应商列表"
 	@handler list
+	get /list (SupplierListRequest) returns (SuppliersResponse)
+
+	@doc "供应商分页"
+	@handler paginate
 	get / (SuppliersRequest) returns (SuppliersResponse)
 
 	@doc "添加供应商"
@@ -289,8 +294,12 @@ service main {
 )
 
 service main {
-	@doc "客户分页"
+	@doc "客户列表"
 	@handler list
+	get /list (CustomerListRequest) returns (CustomersResponse)
+
+	@doc "客户分页"
+	@handler page
 	get / (CustomersRequest) returns (CustomersResponse)
 
 	@doc "添加客户"
@@ -306,6 +315,31 @@ service main {
 	patch /status (CustomerStatusRequest) returns (BaseResponse)
 }
 
+// 承运商管理
+@server(
+	jwt: Auth
+	group: carrier
+	prefix: carrier
+)
+
+service main {
+	@doc "承运商分页"
+	@handler list
+	get / (CarriersRequest) returns (CarriersResponse)
+
+	@doc "添加承运商"
+	@handler add
+	post / (CarrierRequest) returns (BaseResponse)
+
+	@doc "修改承运商"
+	@handler update
+	put / (CarrierRequest) returns (BaseResponse)
+
+	@doc "修改承运商状态/删除承运商"
+	@handler status
+	patch /status (CarrierStatusRequest) returns (BaseResponse)
+}
+
 // 仓库管理
 @server(
 	jwt: Auth
@@ -314,6 +348,10 @@ service main {
 )
 
 service main {
+	@doc "仓库/库区/货架/货位树"
+	@handler tree
+	get /tree returns (WarehouseTreeResponse)
+
 	@doc "仓库列表"
 	@handler list
 	get /list (WarehouseListRequest) returns (WarehouseListResponse)
@@ -465,17 +503,38 @@ service main {
 	get / (MaterialsRequest) returns (MaterialsResponse)
 }
 
-// 入库管理
+// 入库单管理
 @server(
 	jwt: Auth
-	group: inbound
-	prefix: inbound
+	group: inbound/receipt
+	prefix: inbound/receipt
 )
 
 service main {
-	@doc "创建采购入库单"
-	@handler procurement
-	post /procurement (ProcurementRequest) returns (BaseResponse)
+	@doc "创建入库单"
+	@handler add
+	post / (InboundReceiptAddRequest) returns (BaseResponse)
+
+	@doc "入库单分页"
+	@handler page
+	get / (InboundReceiptsRequest) returns (InboundReceiptsResponse)
+
+	@doc "修改入库单"
+	@handler update
+	put / (InboundReceiptUpdateRequest) returns (BaseResponse)
+
+	@doc "审核入库单"
+	@handler check
+	patch /check (InboundReceiptCheckRequest) returns (BaseResponse)
+
+	@doc "删除入库单"
+	@handler remove
+	delete / (InboundReceiptIdRequest) returns (BaseResponse)
+
+	@doc "物料入库"
+	@handler material
+	patch /material (InboundReceiptMaterialRequest) returns (BaseResponse)
+
 }
 
 //图片管理

@@ -1,7 +1,6 @@
 package customer
 
 import (
-	"api/pkg/code"
 	"context"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
@@ -41,7 +40,7 @@ func (l *StatusLogic) Status(req *types.CustomerStatusRequest) (resp *types.Base
 		return resp, nil
 	}
 	//排除已删除的客户
-	filter := bson.M{"_id": id, "status": bson.M{"$ne": 100}}
+	filter := bson.M{"_id": id, "status": bson.M{"$ne": "删除"}}
 	count, err := l.svcCtx.CustomerModel.CountDocuments(l.ctx, filter)
 	if err != nil {
 		fmt.Printf("[Error]查询客户[%s]是否存在:%s\n", req.Id, err.Error())
@@ -58,7 +57,7 @@ func (l *StatusLogic) Status(req *types.CustomerStatusRequest) (resp *types.Base
 	//2.更改客户状态
 	var update = bson.M{
 		"$set": bson.M{
-			"status": code.CustomerStatusCode(req.Status),
+			"status": req.Status,
 		},
 	}
 	_, err = l.svcCtx.CustomerModel.UpdateByID(l.ctx, id, &update)

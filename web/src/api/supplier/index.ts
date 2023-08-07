@@ -5,7 +5,7 @@ import {SupplierRequest, SuppliersRequest, SuppliersResponse, SupplierStatusRequ
 import {baseResponse} from "@/api/types.ts";
 
 enum API {
-  //获取库区列表接口
+  //获取供应商列表接口
   SUPPLIER_LIST_URL = "/supplier/list",
   
   //添加供应商、修改供应商、获取供应商分页接口

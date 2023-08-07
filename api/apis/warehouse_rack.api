@@ -54,7 +54,7 @@ type WarehouseRackListResponse {
 //货架分页
 type WarehouseRacksRequest {
     Page int64 `form:"page,optional" validate:"required,gte=1" comment:"页数""`
-    Size int64 `form:"size,optional" validate:"required,gte=10,lte=100" comment:"条数"`
+    Size int64 `form:"size,optional" validate:"required,gte=5,lte=100" comment:"条数"`
     WarehouseId string `form:"warehouse_id,optional" validate:"omitempty,mongodb" comment:"仓库"`                         //仓库Id
     WarehouseZoneId string `form:"warehouse_zone_id,optional" validate:"omitempty,mongodb" comment:"库区"`                //库区Id
     Type string `form:"type,optional" validate:"omitempty,oneof=标准货架 重型货架 中型货架 轻型货架" comment:"货架类型"`  //货架类型

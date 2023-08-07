@@ -2,7 +2,6 @@ package customer
 
 import (
 	"api/model"
-	"api/pkg/code"
 	"context"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
@@ -89,14 +88,14 @@ func (l *AddLogic) Add(req *types.CustomerRequest) (resp *types.BaseResponse, er
 	var customer = model.Customer{
 		Type:                          req.Type,
 		Code:                          strings.TrimSpace(req.Code),
+		Image:                         strings.TrimSpace(req.Image),
 		LegalRepresentative:           strings.TrimSpace(req.LegalRepresentative),
 		UnifiedSocialCreditIdentifier: strings.TrimSpace(req.UnifiedSocialCreditIdentifier),
 		Name:                          strings.TrimSpace(req.Name),
 		Address:                       strings.TrimSpace(req.Address),
 		Contact:                       strings.TrimSpace(req.Contact),
 		Manager:                       strings.TrimSpace(req.Manager),
-		Level:                         req.Level,
-		Status:                        code.CustomerStatusCode("potential"), //默认:潜在
+		Status:                        "潜在", //默认:潜在
 		Email:                         req.Email,
 		Remark:                        strings.TrimSpace(req.Remark),
 		Creator:                       uObjectID,

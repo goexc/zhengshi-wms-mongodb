@@ -12,34 +12,47 @@ info(
 type CustomerStatusRequest {
     Id string `json:"id" validate:"required" comment:"客户"`
      //以下是一些常见的客户状态示例：
-     //10.潜在（Potential）：表示潜在的客户，即尚未正式成为系统中的活跃客户，但有潜在的合作机会。
-     //20.活动（Active）：表示客户是当前活跃的，可以进行订单处理和交互。
-     //30.停用（Inactive）：表示客户暂时停止使用或被禁止使用。这可能是由于付款问题、违反合同条款、暂停业务等原因导致的。
-     //40.冻结（Frozen）：表示客户的帐户被临时冻结，通常是由于安全问题、付款问题或其他问题导致的。
-     //50.黑名单（Blacklisted）：表示客户因违规行为或其他原因被列入黑名单，系统会限制与该客户的交互或合作。
-     //60.合同到期（Contract Expired）：表示客户的合同已到期，需要进行续签或重新协商合同条款。
-     //100.删除(Deleted)
-    Status string `json:"status" validate:"required,oneof=potential active inactive frozen blacklisted contract_expired deleted" comment:"状态"` //状态
+     //潜在（Potential）：表示潜在的客户，即尚未正式成为系统中的活跃客户，但有潜在的合作机会。
+     //活动（Active）：表示客户是当前活跃的，可以进行订单处理和交互。
+     //停用（Inactive）：表示客户暂时停止使用或被禁止使用。这可能是由于付款问题、违反合同条款、暂停业务等原因导致的。
+     //冻结（Frozen）：表示客户的帐户被临时冻结，通常是由于安全问题、付款问题或其他问题导致的。
+     //黑名单（Blacklisted）：表示客户因违规行为或其他原因被列入黑名单，系统会限制与该客户的交互或合作。
+     //合同到期（Contract Expired）：表示客户的合同已到期，需要进行续签或重新协商合同条款。
+     //删除(Deleted)
+    Status string `json:"status" validate:"required,oneof=潜在 活动 停用 冻结 黑名单 合同到期 删除" comment:"状态"` //状态
 }
 
 //客户列表
+type CustomerListRequest {
+    Name string `form:"name,optional" validate:"omitempty" comment:"客户名称"`   //客户名称
+    Code string `form:"code,optional" validate:"omitempty" comment:"客户编号"`              //客户编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
+    Manager string `form:"manager,optional" validate:"omitempty" comment:"负责人"`        //负责人
+    Contact string `form:"contact,optional" validate:"omitempty,e164" comment:"联系方式"`   //联系方式
+    Email string `form:"email,optional" validate:"omitempty,email" comment:"Email"`      //Email
+}
+
+//客户分页
 type CustomersRequest {
     Page int64 `form:"page,optional" validate:"required,gte=1" comment:"页数""`
-    Size int64 `form:"size,optional" validate:"required,gte=10,lte=100" comment:"条数"`
+    Size int64 `form:"size,optional" validate:"required,gte=5,lte=100" comment:"条数"`
     Name string `form:"name,optional" validate:"omitempty" comment:"客户名称"`   //客户名称
+    Code string `form:"code,optional" validate:"omitempty" comment:"客户编号"`              //客户编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
+    Manager string `form:"manager,optional" validate:"omitempty" comment:"负责人"`        //负责人
+    Contact string `form:"contact,optional" validate:"omitempty,e164" comment:"联系方式"`   //联系方式
+    Email string `form:"email,optional" validate:"omitempty,email" comment:"Email"`      //Email
 }
 
 type Customer {
     Id string `json:"id,optional" path:"id"`
-    Type int `json:"type"`                                                         //客户类型：个人、企业、组织
+    Type string `json:"type"`                                                         //客户类型：个人、企业、组织
     Code string `json:"code"`                                                      //客户编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
     Name string `json:"name"`                                                     //客户名称
+    Image string `json:"image,optional"`                                        //客户图片
     LegalRepresentative string `json:"legal_representative"`                       //法定代表人
     UnifiedSocialCreditIdentifier string `json:"unified_social_credit_identifier"` //统一社会信用代码
     Address string `json:"address"`                                               //客户地址
     Contact string `json:"contact"`                                               //联系方式
     Manager string `json:"manager"`                                               //负责人
-    Level int `json:"level"`                                                      //客户等级
     Email string `json:"email"`                                                    //Email
     Remark string `json:"remark"`                                                 //备注
     Status string `json:"status"`                                                 //状态
@@ -63,15 +76,15 @@ type CustomerPaginate {
 //添加、更新客户
 type CustomerRequest {
     Id string `json:"id,optional" validate:"omitempty,mongodb" comment:"客户"`
-    Type int `json:"type,optional" validate:"required,oneof=10 20 30" comment:"客户类型"`                                                        //客户类型：个人、企业、组织
+    Type string `json:"type,optional" validate:"required,oneof=个人 企业 组织" comment:"客户类型"`                                                           //供应商类型：个人、企业、组织
     Code string `json:"code,optional" validate:"required,gte=6,lte=32" comment:"客户编号"`                                                       //客户编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
     Name string `json:"name,optional" validate:"required" comment:"客户名称"`                                                                    //客户名称
+    Image string `json:"image,optional" validate:"omitempty" comment:"客户图片"`                                                                //客户图片
     LegalRepresentative string `json:"legal_representative,optional" validate:"required" comment:"法定代表人"`                                     //法定代表人
     UnifiedSocialCreditIdentifier string `json:"unified_social_credit_identifier,optional" validate:"required,lte=18" comment:"统一社会信用代码"`  //统一社会信用代码
     Address string `json:"address,optional" validate:"omitempty" comment:"客户地址"`                                                             //客户地址
     Contact string `json:"contact,optional" validate:"required,e164" comment:"联系方式"`                                                           //联系方式
     Manager string `json:"manager,optional" validate:"required" comment:"负责人"`                                                                  //负责人
-    Level int `json:"level,optional" validate:"required,gte=1,lte=10" comment:"客户等级"`                                                        //客户等级
     Email string `json:"email,optional" validate:"omitempty,email" comment:"Email"`                                                                //Email
     Remark string `json:"remark,optional"`
 }

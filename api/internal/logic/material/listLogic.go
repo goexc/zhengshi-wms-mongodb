@@ -116,6 +116,7 @@ func (l *ListLogic) List(req *types.MaterialsRequest) (resp *types.MaterialsResp
 			Model:            m.Model,
 			SurfaceTreatment: m.SurfaceTreatment,
 			StrengthGrade:    m.StrengthGrade,
+			Quantity:         m.Quantity,
 			Unit:             m.Unit,
 			Remark:           m.Remark,
 			Creator:          m.Creator.Hex(),

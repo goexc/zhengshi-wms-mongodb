@@ -5,7 +5,7 @@ import {
   WarehouseRequest,
   WarehousesRequest,
   WarehousesResponse,
-  WarehouseStatusRequest
+  WarehouseStatusRequest, WarehouseTreeResponse
 } from "@/api/warehouse/types.ts";
 import {baseResponse} from "@/api/types.ts";
 
@@ -16,7 +16,15 @@ enum API {
   WAREHOUSE_URL = "/warehouse",
   //修改仓库状态
   WAREHOUSE_STATUS_URL = "/warehouse/status",
+  //仓库树
+  WAREHOUSE_TREE_URL = "/warehouse/tree",
 }
+
+//获取仓库列表接口
+export const reqWarehouseTree = () =>
+  request.get<any, WarehouseTreeResponse>(API.WAREHOUSE_TREE_URL, { params: {} });
+
+
 
 //获取仓库列表接口
 export const reqWarehouseList = () =>

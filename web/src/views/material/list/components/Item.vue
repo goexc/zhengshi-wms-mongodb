@@ -46,7 +46,7 @@ const rules = reactive<FormRules>({
   model: [
     {
       required: true,
-      message: '请填写物料型号',
+      message: '请填写物料规格',
       type: 'string',
       trigger: ['blue', 'change'],
     }
@@ -83,6 +83,15 @@ const rules = reactive<FormRules>({
       trigger: ['blue', 'change'],
     }
   ],
+  quantity: [
+    {
+      required: false,
+      message: '安全库存必须≥0',
+      type: 'number',
+      min: 0,
+      trigger: ['blue', 'change'],
+    }
+  ],
   unit: [
     {
       required: false,
@@ -112,7 +121,6 @@ const cancel = () => {
 }
 //提交表单
 const submit = async () => {
-  console.log('表单：', form.value)
   //1.表单校验
   let valid = await formRef.value?.validate((valid, fields) => {
     if (valid) {
@@ -137,6 +145,7 @@ const submit = async () => {
     specification: form.value.specification,
     surface_treatment: form.value.surface_treatment,
     strength_grade: form.value.strength_grade,
+    quantity: form.value.quantity,
     unit: form.value.unit,
     remark: form.value.remark,
   })
@@ -241,6 +250,14 @@ const submit = async () => {
         </el-popover>
       </template>
       <el-input v-model="form.strength_grade" clearable/>
+    </el-form-item>
+    <el-form-item label="安全库存" prop="quantity">
+      <el-input-number
+          v-model="form.quantity"
+          :controls="false"
+          :precision="3"
+          :value-on-clear="1"
+          clearable/>
     </el-form-item>
     <el-form-item label="" prop="unit">
       <template #label>

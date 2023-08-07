@@ -32,7 +32,7 @@ export interface Supplier {
   address: string; //供应商地址
   manager: string; //负责人
   contact: string; //联系方式
-  status: string; //供应商状态:10.待审核;20.审核不通过;30.活动;40.停用;50.黑名单;60.合同到期;100.删除
+  status: string; //供应商状态:10.审核中;20.审核不通过;30.活动;40.停用;50.黑名单;60.合同到期;100.删除
   remark: string; //备注
   create_by?: string; //新增供应商没有create_by，创建人
   created_at?: number; //
@@ -57,5 +57,5 @@ export interface SupplierRequest {
 //修改供应商状态[包括删除]
 export interface SupplierStatusRequest {
   id: string;
-  status: string; //供应商状态:10.待审核;20.审核不通过;30.活动;40.停用;50.黑名单;60.合同到期;100.删除
+  status: string; //供应商状态:10.审核中;20.审核不通过;30.活动;40.停用;50.黑名单;60.合同到期;100.删除
 }

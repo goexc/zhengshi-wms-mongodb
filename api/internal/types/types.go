@@ -278,7 +278,7 @@ type UserStatusRequest struct {
 
 type UsersRequest struct {
 	Page   int64  `form:"page,optional" validate:"required,gte=1" comment:"页数""`
-	Size   int64  `form:"size,optional" validate:"required,gte=10,lte=100" comment:"条数"`
+	Size   int64  `form:"size,optional" validate:"required,gte=5,lte=100" comment:"条数"`
 	Name   string `form:"name,optional"`   //搜索关键词：用户名
 	Mobile string `form:"mobile,optional"` //搜索关键词：手机号码
 }
@@ -370,6 +370,18 @@ type Perms struct {
 	Buttons []Button `json:"buttons"`
 }
 
+type WarehouseTreeResponse struct {
+	Code int             `json:"code"`
+	Msg  string          `json:"msg"`
+	Data []WarehouseTree `json:"data"`
+}
+
+type WarehouseTree struct {
+	Id       string          `json:"id"`
+	Name     string          `json:"name"`
+	Children []WarehouseTree `json:"children"`
+}
+
 type WarehouseStatusRequest struct {
 	Id     string `json:"id" validate:"required" comment:"仓库"`
 	Status string `json:"status" validate:"required,oneof=激活 禁用 盘点中 关闭 删除" comment:"仓库状态"` //仓库状态
@@ -404,7 +416,7 @@ type WarehouseListResponse struct {
 
 type WarehousesRequest struct {
 	Page   int64  `form:"page,optional" validate:"required,gte=1" comment:"页数""`
-	Size   int64  `form:"size,optional" validate:"required,gte=10,lte=100" comment:"条数"`
+	Size   int64  `form:"size,optional" validate:"required,gte=5,lte=100" comment:"条数"`
 	Type   string `form:"type,optional" validate:"omitempty,oneof=分销中心 生产仓库 跨境仓库 电商仓库 冷链仓库 合规仓库 专用仓库 跨渠道仓库 自动化仓库 第三方物流仓库 " comment:"仓库类型"` //仓库类型
 	Name   string `form:"name,optional" validate:"omitempty" comment:"仓库名称"`                                                               //仓库名称
 	Code   string `form:"code,optional" validate:"omitempty" comment:"仓库编号"`                                                               //仓库编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
@@ -474,7 +486,7 @@ type WarehouseZoneListResponse struct {
 
 type WarehouseZonesRequest struct {
 	Page        int64  `form:"page,optional" validate:"required,gte=1" comment:"页数""`
-	Size        int64  `form:"size,optional" validate:"required,gte=10,lte=100" comment:"条数"`
+	Size        int64  `form:"size,optional" validate:"required,gte=5,lte=100" comment:"条数"`
 	WarehouseId string `form:"warehouse_id,optional" validate:"omitempty,mongodb" comment:"仓库"`                                                //仓库Id
 	Type        string `form:"type,optional" validate:"omitempty,oneof=分销中心 生产库区 跨境库区 电商库区 冷链库区 合规库区 专用库区 跨渠道库区 自动化库区 第三方物流库区" comment:"库区类型"` //库区类型
 	Name        string `form:"name,optional" validate:"omitempty" comment:"库区名称"`                                                              //库区名称
@@ -547,7 +559,7 @@ type WarehouseRackListResponse struct {
 
 type WarehouseRacksRequest struct {
 	Page            int64  `form:"page,optional" validate:"required,gte=1" comment:"页数""`
-	Size            int64  `form:"size,optional" validate:"required,gte=10,lte=100" comment:"条数"`
+	Size            int64  `form:"size,optional" validate:"required,gte=5,lte=100" comment:"条数"`
 	WarehouseId     string `form:"warehouse_id,optional" validate:"omitempty,mongodb" comment:"仓库"`             //仓库Id
 	WarehouseZoneId string `form:"warehouse_zone_id,optional" validate:"omitempty,mongodb" comment:"库区"`        //库区Id
 	Type            string `form:"type,optional" validate:"omitempty,oneof=标准货架 重型货架 中型货架 轻型货架" comment:"货架类型"` //货架类型
@@ -589,7 +601,7 @@ type WarehouseRack struct {
 }
 
 type WarehouseBinStatusRequest struct {
-	Id     string `json:"id" validate:"required" comment:"货位"`
+	Id     string `json:"id" validate:"required,mongodb" comment:"货位"`
 	Status string `json:"status" validate:"required,oneof=激活 禁用 盘点中 关闭 删除" comment:"货位状态"` //货位状态
 }
 
@@ -623,7 +635,7 @@ type WarehouseBinListResponse struct {
 
 type WarehouseBinsRequest struct {
 	Page            int64  `form:"page,optional" validate:"required,gte=1" comment:"页数""`
-	Size            int64  `form:"size,optional" validate:"required,gte=10,lte=100" comment:"条数"`
+	Size            int64  `form:"size,optional" validate:"required,gte=5,lte=100" comment:"条数"`
 	WarehouseId     string `form:"warehouse_id,optional" validate:"omitempty,mongodb" comment:"仓库"`        //仓库Id
 	WarehouseZoneId string `form:"warehouse_zone_id,optional" validate:"omitempty,mongodb" comment:"库区"`   //库区Id
 	WarehouseRackId string `form:"warehouse_rack_id,optional" validate:"omitempty,mongodb" comment:"货架"`   //货架Id
@@ -697,19 +709,88 @@ type Company struct {
 	UpdatedAt                     int64  `json:"updated_at"`                       //
 }
 
+type CarrierStatusRequest struct {
+	Id     string `json:"id" validate:"required" comment:"承运商"`
+	Status string `json:"status" validate:"required,oneof=活跃 停用 暂停合作 终止合作 待审核 审核不通过 审核中 审核通过 资质过期 删除" comment:"状态"` //状态
+}
+
+type CarriersRequest struct {
+	Page    int64  `form:"page,optional" validate:"required,gte=1" comment:"页数""`
+	Size    int64  `form:"size,optional" validate:"required,gte=5,lte=100" comment:"条数"`
+	Name    string `form:"name,optional" validate:"omitempty" comment:"承运商名称"`         //承运商名称
+	Code    string `form:"code,optional" validate:"omitempty" comment:"承运商编号"`         //承运商编号：分配给承运商的唯一标识符或编号，用于快速识别和检索客户信息
+	Manager string `form:"manager,optional" validate:"omitempty" comment:"承运商编号"`      //负责人
+	Contact string `form:"contact,optional" validate:"omitempty,e164" comment:"承运商编号"` //联系方式
+	Email   string `form:"email,optional" validate:"omitempty,email" comment:"承运商编号"`  //Email
+}
+
+type Carrier struct {
+	Id                            string `json:"id,optional" path:"id"`
+	Type                          string `json:"type"`                             //承运商类型：个人、企业、组织
+	Code                          string `json:"code"`                             //承运商编号：分配给承运商的唯一标识符或编号，用于快速识别和检索承运商信息
+	Name                          string `json:"name"`                             //承运商名称
+	Image                         string `json:"image,optional"`                   //承运商图片
+	LegalRepresentative           string `json:"legal_representative"`             //法定代表人
+	UnifiedSocialCreditIdentifier string `json:"unified_social_credit_identifier"` //统一社会信用代码
+	Address                       string `json:"address"`                          //承运商地址
+	Contact                       string `json:"contact"`                          //联系方式
+	Manager                       string `json:"manager"`                          //负责人
+	Email                         string `json:"email"`                            //Email
+	Remark                        string `json:"remark"`                           //备注
+	Status                        string `json:"status"`                           //状态
+	CreateBy                      string `json:"create_by,optional"`               //创建人
+	CreatedAt                     int64  `json:"created_at,optional"`
+	UpdatedAt                     int64  `json:"updated_at,optional"`
+}
+
+type CarriersResponse struct {
+	Code int             `json:"code"`
+	Msg  string          `json:"msg"`
+	Data CarrierPaginate `json:"data"`
+}
+
+type CarrierPaginate struct {
+	Total int64     `json:"total"`
+	List  []Carrier `json:"list"` //承运商列表
+}
+
+type CarrierRequest struct {
+	Id                            string `json:"id,optional" validate:"omitempty,mongodb" comment:"承运商"`
+	Type                          string `json:"type,optional" validate:"required,oneof=个人 企业 组织" comment:"承运商类型"`                        //供应商类型：个人、企业、组织
+	Code                          string `json:"code,optional" validate:"required,gte=6,lte=32" comment:"承运商编号"`                          //承运商编号：分配给承运商的唯一标识符或编号，用于快速识别和检索承运商信息
+	Name                          string `json:"name,optional" validate:"required" comment:"承运商名称"`                                       //承运商名称
+	Image                         string `json:"image,optional" validate:"omitempty" comment:"承运商图片"`                                     //承运商图片
+	LegalRepresentative           string `json:"legal_representative,optional" validate:"required" comment:"法定代表人"`                       //法定代表人
+	UnifiedSocialCreditIdentifier string `json:"unified_social_credit_identifier,optional" validate:"required,lte=18" comment:"统一社会信用代码"` //统一社会信用代码
+	Address                       string `json:"address,optional" validate:"omitempty" comment:"承运商地址"`                                   //承运商地址
+	Contact                       string `json:"contact,optional" validate:"required,e164" comment:"联系方式"`                                //联系方式
+	Manager                       string `json:"manager,optional" validate:"required" comment:"负责人"`                                      //负责人
+	Email                         string `json:"email,optional" validate:"omitempty,email" comment:"Email"`                               //Email
+	Remark                        string `json:"remark,optional"`
+}
+
 type SupplierStatusRequest struct {
 	Id     string `json:"id" validate:"required" comment:"供应商"`
 	Status string `json:"status" validate:"required,oneof=审核中 审核不通过 活动 停用 黑名单 合同到期 删除" comment:"状态"` //状态
 }
 
-type SuppliersRequest struct {
-	Page    int64  `form:"page,optional" validate:"required,gte=1" comment:"页数""`
-	Size    int64  `form:"size,optional" validate:"required,gte=10,lte=100" comment:"条数"`
+type SupplierListRequest struct {
 	Name    string `form:"name,optional" validate:"omitempty" comment:"供应商名称"`               //供应商名称
 	Code    string `form:"code,optional" validate:"omitempty" comment:"供应商编号"`               //供应商编号：分配给供应商的唯一标识符或编号，用于快速识别和检索客户信息
-	Manager string `form:"manager,optional" validate:"omitempty" comment:"供应商编号"`            //负责人
-	Contact string `form:"contact,optional" validate:"omitempty,e164" comment:"供应商编号"`       //联系方式
-	Email   string `form:"email,optional" validate:"omitempty,email" comment:"供应商编号"`        //Email
+	Manager string `form:"manager,optional" validate:"omitempty" comment:"负责人"`              //负责人
+	Contact string `form:"contact,optional" validate:"omitempty,e164" comment:"联系方式"`        //联系方式
+	Email   string `form:"email,optional" validate:"omitempty,email" comment:"Email"`        //Email
+	Level   int    `form:"level,optional" validate:"omitempty,gte=1,lte=10" comment:"供应商等级"` //供应商等级
+}
+
+type SuppliersRequest struct {
+	Page    int64  `form:"page,optional" validate:"required,gte=1" comment:"页数""`
+	Size    int64  `form:"size,optional" validate:"required,gte=5,lte=100" comment:"条数"`
+	Name    string `form:"name,optional" validate:"omitempty" comment:"供应商名称"`               //供应商名称
+	Code    string `form:"code,optional" validate:"omitempty" comment:"供应商编号"`               //供应商编号：分配给供应商的唯一标识符或编号，用于快速识别和检索客户信息
+	Manager string `form:"manager,optional" validate:"omitempty" comment:"负责人"`              //负责人
+	Contact string `form:"contact,optional" validate:"omitempty,e164" comment:"联系方式"`        //联系方式
+	Email   string `form:"email,optional" validate:"omitempty,email" comment:"Email"`        //Email
 	Level   int    `form:"level,optional" validate:"omitempty,gte=1,lte=10" comment:"供应商等级"` //供应商等级
 }
 
@@ -762,26 +843,38 @@ type SupplierRequest struct {
 
 type CustomerStatusRequest struct {
 	Id     string `json:"id" validate:"required" comment:"客户"`
-	Status string `json:"status" validate:"required,oneof=potential active inactive frozen blacklisted contract_expired deleted" comment:"状态"` //状态
+	Status string `json:"status" validate:"required,oneof=潜在 活动 停用 冻结 黑名单 合同到期 删除" comment:"状态"` //状态
+}
+
+type CustomerListRequest struct {
+	Name    string `form:"name,optional" validate:"omitempty" comment:"客户名称"`         //客户名称
+	Code    string `form:"code,optional" validate:"omitempty" comment:"客户编号"`         //客户编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
+	Manager string `form:"manager,optional" validate:"omitempty" comment:"负责人"`       //负责人
+	Contact string `form:"contact,optional" validate:"omitempty,e164" comment:"联系方式"` //联系方式
+	Email   string `form:"email,optional" validate:"omitempty,email" comment:"Email"` //Email
 }
 
 type CustomersRequest struct {
-	Page int64  `form:"page,optional" validate:"required,gte=1" comment:"页数""`
-	Size int64  `form:"size,optional" validate:"required,gte=10,lte=100" comment:"条数"`
-	Name string `form:"name,optional" validate:"omitempty" comment:"客户名称"` //客户名称
+	Page    int64  `form:"page,optional" validate:"required,gte=1" comment:"页数""`
+	Size    int64  `form:"size,optional" validate:"required,gte=5,lte=100" comment:"条数"`
+	Name    string `form:"name,optional" validate:"omitempty" comment:"客户名称"`         //客户名称
+	Code    string `form:"code,optional" validate:"omitempty" comment:"客户编号"`         //客户编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
+	Manager string `form:"manager,optional" validate:"omitempty" comment:"负责人"`       //负责人
+	Contact string `form:"contact,optional" validate:"omitempty,e164" comment:"联系方式"` //联系方式
+	Email   string `form:"email,optional" validate:"omitempty,email" comment:"Email"` //Email
 }
 
 type Customer struct {
 	Id                            string `json:"id,optional" path:"id"`
-	Type                          int    `json:"type"`                             //客户类型：个人、企业、组织
+	Type                          string `json:"type"`                             //客户类型：个人、企业、组织
 	Code                          string `json:"code"`                             //客户编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
 	Name                          string `json:"name"`                             //客户名称
+	Image                         string `json:"image,optional"`                   //客户图片
 	LegalRepresentative           string `json:"legal_representative"`             //法定代表人
 	UnifiedSocialCreditIdentifier string `json:"unified_social_credit_identifier"` //统一社会信用代码
 	Address                       string `json:"address"`                          //客户地址
 	Contact                       string `json:"contact"`                          //联系方式
 	Manager                       string `json:"manager"`                          //负责人
-	Level                         int    `json:"level"`                            //客户等级
 	Email                         string `json:"email"`                            //Email
 	Remark                        string `json:"remark"`                           //备注
 	Status                        string `json:"status"`                           //状态
@@ -803,15 +896,15 @@ type CustomerPaginate struct {
 
 type CustomerRequest struct {
 	Id                            string `json:"id,optional" validate:"omitempty,mongodb" comment:"客户"`
-	Type                          int    `json:"type,optional" validate:"required,oneof=10 20 30" comment:"客户类型"`                         //客户类型：个人、企业、组织
+	Type                          string `json:"type,optional" validate:"required,oneof=个人 企业 组织" comment:"客户类型"`                         //供应商类型：个人、企业、组织
 	Code                          string `json:"code,optional" validate:"required,gte=6,lte=32" comment:"客户编号"`                           //客户编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
 	Name                          string `json:"name,optional" validate:"required" comment:"客户名称"`                                        //客户名称
+	Image                         string `json:"image,optional" validate:"omitempty" comment:"客户图片"`                                      //客户图片
 	LegalRepresentative           string `json:"legal_representative,optional" validate:"required" comment:"法定代表人"`                       //法定代表人
 	UnifiedSocialCreditIdentifier string `json:"unified_social_credit_identifier,optional" validate:"required,lte=18" comment:"统一社会信用代码"` //统一社会信用代码
 	Address                       string `json:"address,optional" validate:"omitempty" comment:"客户地址"`                                    //客户地址
 	Contact                       string `json:"contact,optional" validate:"required,e164" comment:"联系方式"`                                //联系方式
 	Manager                       string `json:"manager,optional" validate:"required" comment:"负责人"`                                      //负责人
-	Level                         int    `json:"level,optional" validate:"required,gte=1,lte=10" comment:"客户等级"`                          //客户等级
 	Email                         string `json:"email,optional" validate:"omitempty,email" comment:"Email"`                               //Email
 	Remark                        string `json:"remark,optional"`
 }
@@ -854,7 +947,7 @@ type MaterialIdRequest struct {
 
 type MaterialsRequest struct {
 	Page             int64  `form:"page,optional" validate:"required,gte=1" comment:"页数""`
-	Size             int64  `form:"size,optional" validate:"required,gte=10,lte=100" comment:"条数"`
+	Size             int64  `form:"size,optional" validate:"required,gte=5,lte=100" comment:"条数"`
 	Name             string `form:"name,optional" validate:"omitempty" comment:"物料名称"`                //物料名称
 	CategoryId       string `form:"category_id,optional" validate:"omitempty,mongodb" comment:"物料分类"` //物料分类
 	Material         string `form:"material,optional" validate:"omitempty" comment:"材质"`              //材质：碳钢、不锈钢、合金钢等。
@@ -876,65 +969,144 @@ type MaterialPaginate struct {
 }
 
 type Material struct {
-	Id               string `json:"id,optional"`
-	Image            string `json:"image"`             //物料图片
-	CategoryId       string `json:"category_id"`       //物料分类Id
-	CategoryName     string `json:"category_name"`     //物料分类名称
-	Name             string `json:"name"`              //物料名称
-	Material         string `json:"material"`          //材质：碳钢、不锈钢、合金钢等。
-	Specification    string `json:"specification"`     //规格：包括长度、宽度、厚度等尺寸信息。
-	Model            string `json:"model"`             //型号：用于唯一标识和区分不同种类的钢材。
-	SurfaceTreatment string `json:"surface_treatment"` //表面处理。钢材经过的表面处理方式，如热镀锌、喷涂等。
-	StrengthGrade    string `json:"strength_grade"`    //强度等级：钢材的强度等级，常见的钢材强度等级：Q235、Q345
-	Unit             string `json:"unit"`              //计量单位，如个、箱、千克等
-	Remark           string `json:"remark"`            //备注
-	Creator          string `json:"creator"`           //
-	CreatorName      string `json:"creator_name"`      //
-	CreatedAt        int64  `json:"created_at"`
-	UpdatedAt        int64  `json:"updated_at"`
+	Id               string  `json:"id,optional"`
+	Image            string  `json:"image"`             //物料图片
+	CategoryId       string  `json:"category_id"`       //物料分类Id
+	CategoryName     string  `json:"category_name"`     //物料分类名称
+	Name             string  `json:"name"`              //物料名称
+	Material         string  `json:"material"`          //材质：碳钢、不锈钢、合金钢等。
+	Specification    string  `json:"specification"`     //规格：包括长度、宽度、厚度等尺寸信息。
+	Model            string  `json:"model"`             //型号：用于唯一标识和区分不同种类的钢材。
+	SurfaceTreatment string  `json:"surface_treatment"` //表面处理。钢材经过的表面处理方式，如热镀锌、喷涂等。
+	StrengthGrade    string  `json:"strength_grade"`    //强度等级：钢材的强度等级，常见的钢材强度等级：Q235、Q345
+	Quantity         float64 `json:"quantity"`          //安全库存
+	Unit             string  `json:"unit"`              //计量单位，如个、箱、千克等
+	Remark           string  `json:"remark"`            //备注
+	Creator          string  `json:"creator"`           //
+	CreatorName      string  `json:"creator_name"`      //
+	CreatedAt        int64   `json:"created_at"`
+	UpdatedAt        int64   `json:"updated_at"`
 }
 
 type MaterialRequest struct {
-	Id               string `json:"id,optional" validate:"omitempty,mongodb" comment:"物料"`
-	CategoryId       string `json:"category_id,optional" validate:"omitempty,mongodb" comment:"物料分类"` //物料分类
-	Name             string `json:"name,optional" validate:"required" comment:"物料名称"`                 //物料名称
-	Model            string `json:"model" validate:"required" comment:"型号"`                           //型号：用于唯一标识和区分不同种类的钢材。
-	Image            string `json:"image,optional" validate:"omitempty" comment:"物料图片"`               //物料图片
-	Material         string `json:"material" validate:"omitempty" comment:"材质"`                       //材质：碳钢、不锈钢、合金钢等。
-	Specification    string `json:"specification,optional" validate:"omitempty" commment:"规格"`        //规格：包括长度、宽度、厚度等尺寸信息。
-	SurfaceTreatment string `json:"surface_treatment" validate:"omitempty" comment:"表面处理"`            //表面处理。钢材经过的表面处理方式，如热镀锌、喷涂等。
-	StrengthGrade    string `json:"strength_grade" validate:"omitempty" comment:"强度等级"`               //强度等级：钢材的强度等级，常见的钢材强度等级：Q235、Q345
-	Unit             string `json:"unit,optional" validate:"omitempty" commment:"计量单位"`               //计量单位
-	Remark           string `json:"remark,optional" validate:"omitempty" comment:"备注"`                //备注
+	Id               string  `json:"id,optional" validate:"omitempty,mongodb" comment:"物料"`
+	CategoryId       string  `json:"category_id,optional" validate:"omitempty,mongodb" comment:"物料分类"` //物料分类
+	Name             string  `json:"name,optional" validate:"required" comment:"物料名称"`                 //物料名称
+	Model            string  `json:"model" validate:"required" comment:"型号"`                           //型号：用于唯一标识和区分不同种类的钢材。
+	Image            string  `json:"image,optional" validate:"omitempty" comment:"物料图片"`               //物料图片
+	Material         string  `json:"material" validate:"omitempty" comment:"材质"`                       //材质：碳钢、不锈钢、合金钢等。
+	Specification    string  `json:"specification,optional" validate:"omitempty" commment:"规格"`        //规格：包括长度、宽度、厚度等尺寸信息。
+	SurfaceTreatment string  `json:"surface_treatment" validate:"omitempty" comment:"表面处理"`            //表面处理。钢材经过的表面处理方式，如热镀锌、喷涂等。
+	StrengthGrade    string  `json:"strength_grade" validate:"omitempty" comment:"强度等级"`               //强度等级：钢材的强度等级，常见的钢材强度等级：Q235、Q345
+	Quantity         float64 `json:"quantity" validate:"gte=0" comment:"安全库存"`                         //安全库存
+	Unit             string  `json:"unit,optional" validate:"omitempty" commment:"计量单位"`               //计量单位
+	Remark           string  `json:"remark,optional" validate:"omitempty" comment:"备注"`                //备注
+}
+
+type InboundReceiptAddRequest struct {
+	Id            string            `json:"id,optional" validate:"omitempty,mongodb" comment:"入库单"`
+	Code          string            `json:"code,optional" validate:"required" comment:"入库单号"`                                      //入库单号
+	Type          string            `json:"type,optional" validate:"required,oneof=采购入库 外协入库 退货入库" comment:"入库单类型"`                //入库单类型
+	SupplierId    string            `json:"supplier_id,optional" validate:"excluded_if=type 退货入库,omitempty,mongodb" comment:"供应商"` //供应商
+	CustomerId    string            `json:"customer_id,optional" validate:"required_if=type 退货入库,omitempty,mongodb" comment:"客户"`  //供应商
+	TotalAmount   float64           `json:"total_amount,optional" validate:"required,gte=0" comment:"总金额"`                         //总金额
+	ReceivingDate int64             `json:"receiving_date,optional" validate:"omitempty,gte=0" comment:"入库日期"`                     //入库日期
+	Materials     []InboundMaterial `json:"materials,optional" validate:"required,gt=0,dive" comment:"物料"`                         //物料
+	Annex         []string          `json:"annex,optional" validate:"omitempty,dive,gt=3" comment:"附件"`                            //附件
+	Remark        string            `json:"remark,optional" validate:"omitempty" comment:"备注"`                                     //备注
+}
+
+type InboundReceiptUpdateRequest struct {
+	Id            string            `json:"id,optional" validate:"omitempty,mongodb" comment:"入库单"`
+	Code          string            `json:"code,optional" validate:"required" comment:"入库单号"`                                      //入库单号
+	Type          string            `json:"type,optional" validate:"required,oneof=采购入库 外协入库 退货入库" comment:"入库单类型"`                //入库单类型
+	SupplierId    string            `json:"supplier_id,optional" validate:"excluded_if=type 退货入库,omitempty,mongodb" comment:"供应商"` //供应商
+	CustomerId    string            `json:"customer_id,optional" validate:"required_if=type 退货入库,omitempty,mongodb" comment:"客户"`  //供应商
+	TotalAmount   float64           `json:"total_amount,optional" validate:"required,gte=0" comment:"总金额"`                         //总金额
+	ReceivingDate int64             `json:"receiving_date,optional" validate:"omitempty,gte=0" comment:"入库日期"`                     //入库日期
+	Materials     []InboundMaterial `json:"materials,optional" validate:"required,gt=0,dive" comment:"物料"`                         //物料
+	Annex         []string          `json:"annex,optional" validate:"omitempty,dive,gt=3" comment:"附件"`                            //附件
+	Remark        string            `json:"remark,optional" validate:"omitempty" comment:"备注"`                                     //备注
 }
 
 type InboundMaterial struct {
-	Id       string  `json:"id,optional" validate:"required,mongodb" comment:"物料"`      //物料id
-	Index    int     `json:"index" validate:"required,gte=0" comment:"物料顺序"`            //物料顺序
-	Name     string  `json:"name,optional" validate:"required" comment:"物料名称"`          //物料名称
-	Quantity float64 `json:"quantity,optional" validate:"required,number" comment:"数量"` //物料数量
-	Unit     string  `json:"unit,optional" validate:"omitempty" comment:"计量单位"`         //计量单位，如个、箱、千克等
+	Index             int     `json:"index" validate:"required,gte=0" comment:"物料顺序"`                               //物料顺序
+	Id                string  `json:"id,optional" validate:"required,mongodb" comment:"物料"`                         //物料id
+	Name              string  `json:"name,optional"`                                                                //物料名称
+	Model             string  `json:"model,optional"`                                                               //物料型号
+	Unit              string  `json:"unit,optional"`                                                                //物料单位
+	Price             float64 `json:"price,optional" validate:"number,gte=0" comment:"单价"`                          //单价
+	EstimatedQuantity float64 `json:"estimated_quantity,optional" validate:"required,number,gt=0" comment:"预计入库数量"` //预计入库数量
+	ActualQuantity    float64 `json:"actual_quantity,optional" validate:"number,gte=0" comment:"实际入库数量"`            //实际入库数量
+	Status            int     `json:"status,optional"`                                                              //入库单状态
+	CreatorName       string  `json:"creator_name,optional"`                                                        //创建人
+	EditorName        string  `json:"editor_name,optional"`                                                         //修改人
+	CreatedAt         int64   `json:"created_at,optional"`                                                          //
+	UpdatedAt         int64   `json:"updated_at,optional"`                                                          //
+	WarehouseId       string  `json:"warehouse_id,optional" validate:"omitempty,mongodb" comment:"仓库"`              //仓库id
+	WarehouseZoneId   string  `json:"warehouse_zone_id,optional" validate:"omitempty,mongodb" comment:"库区"`         //库区id
+	WarehouseRackId   string  `json:"warehouse_rack_id,optional" validate:"omitempty,mongodb" comment:"货架"`         //货架id
+	WarehouseBinId    string  `json:"warehouse_bin_id,optional" validate:"omitempty,mongodb" comment:"货位"`          //货位id
+	WarehouseName     string  `json:"warehouse_name,optional"`                                                      //仓库名称
+	WarehouseZoneName string  `json:"warehouse_zone_name,optional"`                                                 //库区名称
+	WarehouseRackName string  `json:"warehouse_rack_name,optional"`                                                 //货架名称
+	WarehouseBinName  string  `json:"warehouse_bin_name,optional"`                                                  //货位名称
 }
 
-type ProcurementRequest struct {
-	Code       string            `json:"code,optional" validate:"omitempty" comment:"入库单号"`     //入库单号
-	Order      string            `json:"order,optional" validate:"omitempty" comment:"采购订单编号"`  //采购订单编号
-	Materials  []InboundMaterial `json:"materials" validate:"required" comment:"物料"`            //物料
-	SupplierId string            `json:"supplier_id" validate:"required,mongodb" comment:"供应商"` //供应商
-	Remark     string            `json:"remark" validate:"required" comment:"备注"`               //备注
+type InboundReceiptsRequest struct {
+	Page       int64  `form:"page,optional" validate:"required,gte=1" comment:"页数""`
+	Size       int64  `form:"size,optional" validate:"required,gte=5,lte=100" comment:"条数"`
+	Code       string `form:"code,optional" validate:"omitempty" comment:"入库单号"`                                             //入库单号
+	Status     string `form:"status,optional" validate:"omitempty,oneof=待审核 审核不通过 审核通过 未发货 在途 部分入库 作废 入库完成" comment:"入库单状态"` //入库单状态
+	Type       string `form:"type,optional" validate:"omitempty,oneof=采购入库 外协入库 退货入库" comment:"入库单类型"`                       //入库单类型
+	SupplierId string `form:"supplier_id,optional" validate:"omitempty,mongodb" comment:"供应商"`                               //供应商
 }
 
-type InboundRequest struct {
-	Code          string            `json:"code,optional" validate:"omitempty" comment:"入库单号"`                 //入库单号
-	Order         string            `json:"order,optional" validate:"omitempty" comment:"采购订单编号"`              //采购订单编号
-	ReceivingDate int64             `json:"receiving_date" validate:"required" comment:"收货日期"`                 //入库日期
-	Materials     []InboundMaterial `json:"materials" validate:"required" comment:"物料"`                        //物料
-	SupplierId    string            `json:"supplier_id" validate:"required,mongodb" comment:"供应商"`             //供应商
-	Warehouse     string            `json:"warehouse,optional" validate:"required,mongodb" comment:"仓库"`       //仓库
-	WarehouseZone string            `json:"warehouse_zone,optional" validate:"omitempty,mongodb" comment:"库区"` //库区
-	WarehouseRack string            `json:"warehouse_rack,optional" validate:"omitempty,mongodb" comment:"货架"` //货架
-	WarehouseBin  string            `json:"warehouse_bin,optional" validate:"omitempty,mongodb" comment:"货位"`  //货位
-	Remark        string            `json:"remark" validate:"required" comment:"备注"`                           //备注
+type InboundReceiptsResponse struct {
+	Code int                    `json:"code"`
+	Msg  string                 `json:"msg"`
+	Data InboundReceiptPaginate `json:"data"`
+}
+
+type InboundReceiptPaginate struct {
+	Total int64            `json:"total"`
+	List  []InboundReceipt `json:"list"` //用户列表
+}
+
+type InboundReceipt struct {
+	Id            string            `json:"id"`
+	Code          string            `json:"code,optional"`  //入库单号
+	Status        string            `json:"status"`         //入库单状态
+	Type          string            `json:"type"`           //入库单类型
+	SupplierId    string            `json:"supplier_id"`    //供应商
+	SupplierName  string            `json:"supplier_name"`  //供应商名称
+	CustomerId    string            `json:"customer_id"`    //客户
+	CustomerName  string            `json:"customer_name"`  //客户名称
+	ReceivingDate int64             `json:"receiving_date"` //入库日期
+	TotalAmount   float64           `json:"total_amount"`   //总金额
+	Materials     []InboundMaterial `json:"materials"`      //物料
+	Annex         []string          `json:"annex,optional"` //附件
+	Remark        string            `json:"remark,optional"`
+}
+
+type InboundReceiptMaterialRequest struct {
+	Id        string                  `json:"id,optional" validate:"required,mongodb" comment:"入库单"`
+	Materials []InboundMaterialStatus `json:"materials,optional" validate:"omitempty,gt=0,dive" comment:"物料"` //物料
+}
+
+type InboundMaterialStatus struct {
+	Id             string  `json:"id,optional" validate:"required,mongodb" comment:"物料"`                         //物料id
+	Status         string  `json:"status,optional" validate:"required,oneof=未发货 在途 部分入库 作废 入库完成" comment:"物料状态"` //物料状态
+	ActualQuantity float64 `json:"actual_quantity,optional" validate:"number,gte=0" comment:"实际入库数量"`            //实际入库数量
+}
+
+type InboundReceiptCheckRequest struct {
+	Id     string `json:"id,optional" validate:"required,mongodb" comment:"入库单"`                   //入库单id
+	Status string `json:"status,optional" validate:"required,oneof=审核不通过 审核通过 删除" comment:"入库单状态"` //入库单状态
+}
+
+type InboundReceiptIdRequest struct {
+	Id string `form:"id,optional" validate:"required,mongodb" comment:"入库单"` //入库单id
 }
 
 type ImageResponse struct {
@@ -949,7 +1121,7 @@ type ImageUrl struct {
 
 type ImagesRequest struct {
 	Page int64 `form:"page,optional" validate:"required,gte=1" comment:"页数""`
-	Size int64 `form:"size,optional" validate:"required,gte=10,lte=100" comment:"条数"`
+	Size int64 `form:"size,optional" validate:"required,gte=5,lte=100" comment:"条数"`
 }
 
 type ImagesResponse struct {

@@ -4,7 +4,6 @@ import (
 	"api/internal/svc"
 	"api/internal/types"
 	"api/model"
-	"api/pkg/code"
 	"context"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
@@ -30,21 +29,33 @@ func NewListLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ListLogic {
 	}
 }
 
-func (l *ListLogic) List(req *types.CustomersRequest) (resp *types.CustomersResponse, err error) {
+func (l *ListLogic) List(req *types.CustomerListRequest) (resp *types.CustomersResponse, err error) {
 	resp = new(types.CustomersResponse)
 
 	name := strings.TrimSpace(req.Name)
 	//1.客户分页
-	var filter = bson.M{"status": bson.M{"$ne": 100}} //过滤已删除客户
-	var matchStage = bson.D{{"$match", filter}}
+	var filter = bson.M{"status": bson.M{"$ne": "删除"}} //过滤已删除客户
 	if name != "" {
 		//i 表示不区分大小写
 		regex := bson.M{"$regex": primitive.Regex{Pattern: ".*" + name + ".*", Options: "i"}}
-		filter = bson.M{"name": regex, "status": bson.M{"$ne": 100}}
-		matchStage = bson.D{
-			{"$match", filter},
-		}
+		filter = bson.M{"name": regex, "status": bson.M{"$ne": "删除"}}
 	}
+	if strings.TrimSpace(req.Code) != "" {
+		filter["code"] = strings.TrimSpace(req.Code)
+	}
+
+	if strings.TrimSpace(req.Manager) != "" {
+		filter["manager"] = strings.TrimSpace(req.Manager)
+	}
+
+	if strings.TrimSpace(req.Contact) != "" {
+		filter["contact"] = strings.TrimSpace(req.Contact)
+	}
+	if strings.TrimSpace(req.Email) != "" {
+		filter["email"] = strings.TrimSpace(req.Email)
+	}
+	var matchStage = bson.D{{"$match", filter}}
+
 	//$lookup 阶段进行关联查询，
 	//将 supplier 集合中的 create_by 字段与 user 集合中的 _id 字段进行关联
 	lookupStage := bson.D{
@@ -66,6 +77,7 @@ func (l *ListLogic) List(req *types.CustomersRequest) (resp *types.CustomersResp
 			{"_id", 1},
 			{"type", 1},
 			{"code", 1},
+			{"image", 1},
 			{"legal_representative", 1},
 			{"unified_social_credit_identifier", 1},
 			{"name", 1},
@@ -92,8 +104,6 @@ func (l *ListLogic) List(req *types.CustomersRequest) (resp *types.CustomersResp
 		},
 		},
 	}
-	skipStage := bson.D{{"$skip", (req.Page - 1) * req.Size}}
-	limitStage := bson.D{{"$limit", req.Size}}
 
 	pipeline := mongo.Pipeline{
 		matchStage,
@@ -101,8 +111,6 @@ func (l *ListLogic) List(req *types.CustomersRequest) (resp *types.CustomersResp
 		unwindStage,
 		projectStage,
 		sortStage,
-		skipStage,
-		limitStage,
 	}
 
 	cur, err := l.svcCtx.CustomerModel.Aggregate(l.ctx, pipeline)
@@ -139,14 +147,14 @@ func (l *ListLogic) List(req *types.CustomersRequest) (resp *types.CustomersResp
 			Id:                            supplier.Id.Hex(),
 			Type:                          supplier.Type,
 			Code:                          strings.TrimSpace(supplier.Code),
+			Image:                         supplier.Image,
 			LegalRepresentative:           strings.TrimSpace(supplier.LegalRepresentative),
 			UnifiedSocialCreditIdentifier: strings.TrimSpace(supplier.UnifiedSocialCreditIdentifier),
 			Name:                          supplier.Name,
 			Address:                       supplier.Address,
 			Contact:                       supplier.Contact,
 			Manager:                       supplier.Manager,
-			Level:                         supplier.Level,
-			Status:                        code.CustomerStatusText(supplier.Status),
+			Status:                        supplier.Status,
 			Remark:                        supplier.Remark,
 			CreateBy:                      supplier.CreatorName,
 			CreatedAt:                     supplier.CreatedAt,
