@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { InboundReceiptTypes} from "@/enums/inbound.ts";
-import { onMounted, ref} from "vue";
-import { ElMessage} from "element-plus";
+import {onMounted, reactive, ref} from "vue";
+import {ElMessage, FormRules} from "element-plus";
 import {WarehouseTree} from "@/api/warehouse/types.ts";
 import {reqWarehouseTree} from "@/api/warehouse";
 import {InboundMaterial, InboundReceipt} from "@/api/inbound/types.ts";
@@ -10,6 +10,7 @@ import {Material, MaterialsRequest} from "@/api/material/types.ts";
 import {reqMaterials} from "@/api/material";
 import {reqAddOrUpdateInboundReceipt} from "@/api/inbound";
 import CustomerListItem from "@/components/Customer/CustomerListItem.vue";
+import * as dayjs from "dayjs";
 
 defineOptions({
   name: 'Item'
@@ -31,6 +32,7 @@ let receipt = ref<InboundReceipt>({
   annex: [],
   remark: '',
 })
+
 
 
 //入库单物料列表
@@ -174,6 +176,30 @@ const cancel = () => {
   emit('cancel')
 }
 
+let validTotalAmount = (rule, value, callback) => {
+  if(value > 0){
+    callback(); //通过验证
+  }else{
+    callback(new Error('总金额必须≥0'))
+  }
+}
+
+let rules = reactive<FormRules>({
+  code: [
+    {required: true, message: '入库单号不能为空'}
+  ],
+  type: [
+    {required: true, message: '请选择入库类型'}
+  ],
+  supplier_id: [
+    {required: true, message: '请选择供应商'}
+  ],
+  total_amount: [
+    {required: true, message: '请填写总金额'},
+    {type: "number", validator: validTotalAmount}
+  ]
+})
+
 //提交表单
 const submit = async () => {
   // props.form.materials = inboundMaterials.value
@@ -189,7 +215,11 @@ const submit = async () => {
 }
 
 onMounted(async () => {
+  //1.初始化入库单编号
   receipt.value = JSON.parse(JSON.stringify(props.form))
+  if(receipt.value.code.length===0){
+    receipt.value.code = 'I-'+ dayjs().format('YYYY-MM-DD-HH-mm-ss-SSS')
+  }
 
   //1.接收入库单物料列表
   inboundMaterials.value = JSON.parse(JSON.stringify(props.form.materials.sort((a, b) => {
@@ -233,6 +263,7 @@ onMounted(async () => {
 <template>
   <el-form
       :model="receipt"
+      :rules="rules"
       size="default"
       label-width="100px"
   >
@@ -305,14 +336,13 @@ onMounted(async () => {
     <el-table-column label="序号" prop="index" width="80px"/>
     <el-table-column label="物料名称" prop="name"/>
     <el-table-column label="物料规格" prop="model"/>
-    <el-table-column label="计划数量" prop="estimated_quantity">
+    <el-table-column label="计划数量" prop="estimated_quantity" align="center">
       <template #default="{row}">
         <el-input-number
             v-model="row.estimated_quantity"
             :controls="false"
             :precision="3"
-            :min="0"
-            :value-on-clear="1"
+            :min="0.001"
             :step="1"
             size="default"
             />
@@ -344,7 +374,7 @@ onMounted(async () => {
             :controls="false"
             :precision="3"
             :step="100"
-            :value-on-clear="1"
+            :min="0.001"
             size="default"
             @change="computeTotalAmount"
             />
