@@ -92,10 +92,10 @@ let check = async (item: InboundReceipt) => {
   receipt.value = item
 }
 
-//发货/入库
+//入库
 let inbound = async (item: InboundReceipt) => {
   console.log('发货入库界面：', item)
-  title.value = `发货/入库`
+  title.value = `入库`
   visible.value = true
   action.value = 'inbound'
   receipt.value = item
@@ -127,6 +127,8 @@ onMounted(async () => {
 
 <template>
   <div>
+    <el-card>
+
     <el-form
         inline
         size="default"
@@ -160,14 +162,31 @@ onMounted(async () => {
           :form="form"
       />
       <el-form-item label=" ">
-        <el-button type="primary" plain icon="Search" @click="getReceipts">搜索</el-button>
-        <el-button plain icon="Refresh" @click="reset">重置</el-button>
+        <perms-button
+        perms="inbound:receipt:list"
+        :type="Types.primary"
+        :size="Sizes.default"
+        :plain="true"
+        @click="getReceipts"
+        />
+        <perms-button
+            perms="inbound:receipt:list"
+            :type="Types.empty"
+            :size="Sizes.default"
+            :plain="true"
+            icon="Refresh"
+            text="重置"
+            @click="reset"
+        />
       </el-form-item>
     </el-form>
+    </el-card>
+
     <!-- 入库单列表 -->
     <perms-button
+        class="m-t-2"
         perms="inbound:receipt:add"
-        :type="Types.primary"
+        :type="Types.success"
         :size="Sizes.default"
         :plain="true"
         @click="add"
@@ -237,14 +256,14 @@ onMounted(async () => {
               :plain="true"
               @click="edit(row)"
           />
-          <el-button
+          <perms-button
               v-if="row.status === '待审核'"
-              type="warning"
-              plain
-              size="small"
+              perms="inbound:receipt:check"
+              :type="Types.warning"
+              :size="Sizes.small"
+              :plain="true"
               @click="check(row)"
-          >审核
-          </el-button>
+          />
           <el-popconfirm
               v-if="['待审核', '审核不通过'].includes(row.status)"
               :title="`确定删除入库单[${row.code}]吗?`"
@@ -265,15 +284,14 @@ onMounted(async () => {
                   :plain="true"/>
             </template>
           </el-popconfirm>
-          <el-button
+          <perms-button
               v-if="!['待审核', '审核不通过', '入库完成'].includes(row.status)"
-              type="primary"
-              size="small"
-              plain
-              icon="Van"
+              perms="inbound:receipt:material"
+              :type="Types.success"
+              :size="Sizes.small"
+              :plain="true"
               @click="inbound(row)"
-          >发货/入库
-          </el-button>
+          />
         </template>
       </el-table-column>
     </el-table>
