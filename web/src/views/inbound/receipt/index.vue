@@ -119,7 +119,6 @@ let remove = async (item: InboundReceipt) => {
   }
 }
 
-
 onMounted(async () => {
   await getReceipts()
 })
@@ -128,58 +127,57 @@ onMounted(async () => {
 <template>
   <div>
     <el-card>
-
-    <el-form
-        inline
-        size="default"
-        style="display: flex; flex-wrap: wrap;"
-    >
-      <el-form-item
-          label="入库状态"
+      <el-form
+          inline
+          size="default"
+          style="display: flex; flex-wrap: wrap;"
       >
-        <el-radio-group v-model="form.status">
-          <el-radio-button plain lable="">全部</el-radio-button>
-          <el-radio-button v-for="(item, idx) in InboundReceiptStatus" :key="idx" plain :label="item.label"/>
-        </el-radio-group>
-      </el-form-item>
-      <el-form-item
-          label="入库类型"
-      >
-        <el-radio-group v-model="form.type">
-          <el-radio-button plain label="">全部</el-radio-button>
-          <el-radio-button v-for="(item, idx) in InboundReceiptTypes" :key="idx" plain :label="item"/>
-        </el-radio-group>
-      </el-form-item>
-      <el-form-item
-          label="入库单号"
-      >
-        <el-input
-            v-model="form.code"
-            clearable
-            placeholder="请填写入库单号"/>
-      </el-form-item>
-      <SupplierPageItem
-          :form="form"
-      />
-      <el-form-item label=" ">
-        <perms-button
-        perms="inbound:receipt:list"
-        :type="Types.primary"
-        :size="Sizes.default"
-        :plain="true"
-        @click="getReceipts"
+        <el-form-item
+            label="入库状态"
+        >
+          <el-radio-group v-model="form.status">
+            <el-radio-button plain lable="">全部</el-radio-button>
+            <el-radio-button v-for="(item, idx) in InboundReceiptStatus" :key="idx" plain :label="item.label"/>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item
+            label="入库类型"
+        >
+          <el-radio-group v-model="form.type">
+            <el-radio-button plain label="">全部</el-radio-button>
+            <el-radio-button v-for="(item, idx) in InboundReceiptTypes" :key="idx" plain :label="item"/>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item
+            label="入库单号"
+        >
+          <el-input
+              v-model="form.code"
+              clearable
+              placeholder="请填写入库单号"/>
+        </el-form-item>
+        <SupplierPageItem
+            :form="form"
         />
-        <perms-button
-            perms="inbound:receipt:list"
-            :type="Types.empty"
-            :size="Sizes.default"
-            :plain="true"
-            icon="Refresh"
-            text="重置"
-            @click="reset"
-        />
-      </el-form-item>
-    </el-form>
+        <el-form-item label=" ">
+          <perms-button
+              perms="inbound:receipt:list"
+              :type="Types.primary"
+              :size="Sizes.default"
+              :plain="true"
+              @click="getReceipts"
+          />
+          <perms-button
+              perms="inbound:receipt:list"
+              :type="Types.empty"
+              :size="Sizes.default"
+              :plain="true"
+              icon="Refresh"
+              text="重置"
+              @click="reset"
+          />
+        </el-form-item>
+      </el-form>
     </el-card>
 
     <!-- 入库单列表 -->
@@ -204,7 +202,11 @@ onMounted(async () => {
         <template #default="props">
           <div class="m-4">
             <el-text size="small" type="info">物料列表</el-text>
-            <el-table :data="props.row.materials" size="small" border>
+            <el-table
+                :data="props.row.materials"
+                size="small"
+                :border="true"
+            >
               <el-table-column label="序号" prop="index" width="80px"/>
               <el-table-column label="物料名称" prop="name"/>
               <el-table-column label="物料规格" prop="model"/>
@@ -213,15 +215,15 @@ onMounted(async () => {
               <el-table-column label="金额" prop="price" align="center"/>
               <el-table-column label="仓库/库区/货架/货位" width="500px" align="center">
                 <template #default="{row}">
-                    <span v-if="row.warehouse_id">{{row.warehouse_name}}</span>
-                    <span v-if="row.warehouse_zone_id">/{{row.warehouse_zone_name}}</span>
-                    <span v-if="row.warehouse_rack_id">/{{row.warehouse_rack_name}}</span>
-                    <span v-if="row.warehouse_bin_id">/{{row.warehouse_bin_name}}</span>
+                  <span v-if="row.warehouse_id">{{ row.warehouse_name }}</span>
+                  <span v-if="row.warehouse_zone_id">/{{ row.warehouse_zone_name }}</span>
+                  <span v-if="row.warehouse_rack_id">/{{ row.warehouse_rack_name }}</span>
+                  <span v-if="row.warehouse_bin_id">/{{ row.warehouse_bin_name }}</span>
                 </template>
               </el-table-column>
               <el-table-column label="入库状态" prop="status" align="center">
                 <template #default="{row}">
-                  {{InboundReceiptStatus.find(item=>item.value === row.status)?.label}}
+                  {{ InboundReceiptStatus.find(item => item.value === row.status)?.label }}
                 </template>
               </el-table-column>
 
@@ -350,7 +352,4 @@ onMounted(async () => {
   margin: 20px 0;
 }
 
-.m-4 {
-  margin: 40px;
-}
 </style>

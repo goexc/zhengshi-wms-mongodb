@@ -16,9 +16,6 @@ enum API {
   //添加入库单、修改入库单、获取入库单分页接口、删除入库单
   INBOUND_URL = '/inbound/receipt',
 
-  //修改入库单状态
-  INBOUND_STATUS_URL = '/inbound/receipt/status',
-
   //审核入库单
   INBOUND_CHECK_URL='/inbound/receipt/check',
 

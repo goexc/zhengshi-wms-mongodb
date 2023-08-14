@@ -8,14 +8,14 @@ import (
 type InboundReceipt struct {
 	Id primitive.ObjectID `json:"_id" bson:"_id,omitempty"`
 	//入库单状态
-	//待审核：入库单已提交但还未通过审核时，状态为待审核。需要相关审核人员对入库单进行审核。
-	//审核不通过：入库单未通过审核时的状态，通常需要重新修改或撤销入库单。
-	//审核通过：入库单经过审核并获得批准后，状态变为审核通过。准备进入执行阶段。
-	//未发货：
-	//在途：
-	//部分入库：当入库单中的部分物料已入库，但尚有未入库的物料时，状态为部分入库。
-	//作废：当入库单发生错误或不再需要时，可以将其状态设置为作废，表示该入库单无效。
-	//入库完成：当入库单中的所有物料都已经成功入库并完成相关操作时，状态为入库完成。
+	//10.待审核：入库单已提交但还未通过审核时，状态为待审核。需要相关审核人员对入库单进行审核。
+	//20.审核不通过：入库单未通过审核时的状态，通常需要重新修改或撤销入库单。
+	//30.审核通过：入库单经过审核并获得批准后，状态变为审核通过。准备进入执行阶段。
+	//40.未发货：
+	//50.在途：
+	//60.部分入库：当入库单中的部分物料已入库，但尚有未入库的物料时，状态为部分入库。
+	//70.作废：当入库单发生错误或不再需要时，可以将其状态设置为作废，表示该入库单无效。
+	//80.入库完成：当入库单中的所有物料都已经成功入库并完成相关操作时，状态为入库完成。
 	Status int `json:"status" bson:"status"` //入库单状态
 	//入库单类型
 	//采购入库
@@ -41,7 +41,6 @@ type InboundReceipt struct {
 }
 
 type InboundMaterial struct {
-	//Id   primitive.ObjectID `json:"material_id" bson:"material_id"`     //物料id
 	Id                string  `json:"id" bson:"id"`                                 //物料id
 	Index             int     `json:"index" bson:"index"`                           //物料顺序
 	Price             float64 `json:"price" bson:"price"`                           //物料单价
@@ -51,11 +50,11 @@ type InboundMaterial struct {
 	ActualQuantity    float64 `json:"actual_quantity" bson:"actual_quantity"`       //实际入库数量
 	Unit              string  `json:"unit" bson:"unit"`                             //计量单位
 	//物料状态：
-	//未发货
-	//在途
-	//部分入库
-	//作废
-	//入库完成
+	//40.未发货
+	//50.在途
+	//60.部分入库
+	//70.作废
+	//80.入库完成
 	Status int `json:"status" bson:"status"` //物料状态
 
 	WarehouseId       string `json:"warehouse_id" bson:"warehouse_id"`               //仓库id

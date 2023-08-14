@@ -6,11 +6,12 @@ import {WarehouseTree} from "@/api/warehouse/types.ts";
 import {reqWarehouseTree} from "@/api/warehouse";
 import {InboundMaterial, InboundReceipt} from "@/api/inbound/types.ts";
 import MaterialCategoryListItem from "@/components/MaterialCategory/MaterialCategoryListItem.vue";
-import {Material, MaterialsRequest} from "@/api/material/types.ts";
-import {reqMaterials} from "@/api/material";
+import {Material, MaterialPrice, MaterialsRequest} from "@/api/material/types.ts";
+import {reqMaterialPrices, reqMaterials, reqRemoveMaterialPrice} from "@/api/material";
 import {reqAddOrUpdateInboundReceipt} from "@/api/inbound";
 import CustomerListItem from "@/components/Customer/CustomerListItem.vue";
 import * as dayjs from "dayjs";
+import NP from 'number-precision'
 
 defineOptions({
   name: 'Item'
@@ -32,7 +33,7 @@ let receipt = ref<InboundReceipt>({
   annex: [],
   remark: '',
 })
-
+let receiptRef = ref<FormInstance>()
 
 
 //入库单物料列表
@@ -164,12 +165,40 @@ let confirmMaterials = () => {
   visible.value = false
 }
 
+//查询物料价格列表
+let prices = ref<MaterialPrice[]>([])
+let getPrices = async (id: string) => {
+  prices.value = []
+  let res = await reqMaterialPrices(id)
+  console.log('物料单价列表：', res.data)
+  if (res.code === 200) {
+    prices.value = res.data?.sort((a, b) => {
+      // 根据需要的排序逻辑进行比较
+      return a.since - b.since
+    })
+  } else {
+    ElMessage.error(res.msg)
+  }
+}
+
 //计算总金额
 let computeTotalAmount = ()=>{
   receipt.value.total_amount =  inboundMaterials.value.reduce((total, current)=>{
-    return total+current.price;
+    return total + NP.times(current.price , current.estimated_quantity);
   }, 0)
 }
+
+//删除物料价格
+let removeMaterialPrice= async (id:string, price:number) =>{
+  let res = await reqRemoveMaterialPrice(id, price)
+  if (res.code === 200){
+    ElMessage.success(res.msg)
+    await getPrices(id)
+  }else{
+    ElMessage.error(res.msg)
+  }
+}
+
 
 //关闭表单
 const cancel = () => {
@@ -194,6 +223,9 @@ let rules = reactive<FormRules>({
   supplier_id: [
     {required: true, message: '请选择供应商'}
   ],
+  customer_id: [
+    {required: true, message: '请选择客户'}
+  ],
   total_amount: [
     {required: true, message: '请填写总金额'},
     {type: "number", validator: validTotalAmount}
@@ -202,6 +234,11 @@ let rules = reactive<FormRules>({
 
 //提交表单
 const submit = async () => {
+  let valid =await  receiptRef.value.validate()
+  if(!valid){
+    return
+  }
+
   // props.form.materials = inboundMaterials.value
   receipt.value!.materials = inboundMaterials.value
   //提交数据
@@ -264,6 +301,7 @@ onMounted(async () => {
   <el-form
       :model="receipt"
       :rules="rules"
+      ref="receiptRef"
       size="default"
       label-width="100px"
   >
@@ -344,8 +382,53 @@ onMounted(async () => {
             :precision="3"
             :min="0.001"
             :step="1"
+            @change="computeTotalAmount"
             size="default"
             />
+      </template>
+    </el-table-column>
+
+    <el-table-column label="单价" prop="price">
+      <template #default="{row}">
+        <el-popover
+            placement="right"
+            :title="`[${row.name}] 历史价格：`"
+            :width="300"
+            trigger="hover"
+            @beforeEnter="getPrices(row.id)"
+        >
+          <template #reference>
+            <el-input-number
+                v-model="row.price"
+                :controls="false"
+                :precision="3"
+                :step="100"
+                :min="0.001"
+                size="default"
+                @change="computeTotalAmount"/>
+          </template>
+          <el-tag
+              v-if="prices?.length>0"
+              v-for="(one, idx) in prices"
+              :key="idx"
+              class="m-x-1"
+              size="default"
+              closable
+              @click="row.price=one.price"
+              @close="removeMaterialPrice(row.id, one.price)"
+          >
+            {{ one.price }}
+          </el-tag>
+          <el-text
+              v-else
+              size="small"
+          >暂无</el-text>
+        </el-popover>
+      </template>
+    </el-table-column>
+    <el-table-column label="金额">
+      <template #default="{row}">
+        {{ NP.times(row.price , row.estimated_quantity) }}
       </template>
     </el-table-column>
     <!--    <el-table-column label="实到数量" prop="actual_quantity"/>-->
@@ -364,20 +447,6 @@ onMounted(async () => {
         >
 
         </el-cascader>
-      </template>
-    </el-table-column>
-
-    <el-table-column label="金额" prop="price">
-      <template #default="{row}">
-        <el-input-number
-            v-model="row.price"
-            :controls="false"
-            :precision="3"
-            :step="100"
-            :min="0.001"
-            size="default"
-            @change="computeTotalAmount"
-            />
       </template>
     </el-table-column>
     <!--    <el-table-column label="入库状态">

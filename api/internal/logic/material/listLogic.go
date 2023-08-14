@@ -86,7 +86,7 @@ func (l *ListLogic) List(req *types.MaterialsRequest) (resp *types.MaterialsResp
 
 	var materials []model.Material
 	if err = cur.All(l.ctx, &materials); err != nil {
-		fmt.Printf("[Error]解析原材料分页:%s\n", err.Error())
+		fmt.Printf("[Error]解析物料分页:%s\n", err.Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务内部错误"
 		return resp, nil

@@ -3,11 +3,11 @@
 import {onMounted, ref} from "vue";
 import {WarehouseTree} from "@/api/warehouse/types.ts";
 import {reqWarehouseTree} from "@/api/warehouse";
-import CustomerListItem from "@/components/Customer/CustomerListItem.vue";
 import {InboundReceiptMaterialStatus, InboundReceiptMaterialStatusText} from "@/enums/inbound.ts";
 import {InboundReceiptMaterialRequest} from "@/api/inbound/types.ts";
 import {reqUpdateInboundReceiptMaterial} from "@/api/inbound";
 import {ElMessage} from "element-plus";
+import NP from "number-precision";
 
 defineOptions({
   name: 'Inbound'
@@ -57,7 +57,7 @@ let changePositions = (value: string[], idx:number) => {
 //计算总金额
 let computeTotalAmount = ()=>{
   receipt.value.total_amount =  materials.value.reduce((total, current)=>{
-    return total+current.price;
+    return total + NP.times(current.price , current.actual_quantity);
   }, 0)
 }
 
@@ -189,20 +189,14 @@ onMounted(async ()=>{
             :value-on-clear="1"
             :step="1"
             size="default"
+            @change="computeTotalAmount"
         />
       </template>
     </el-table-column>
-    <el-table-column label="金额" prop="price" align="center">
+    <el-table-column label="单价" prop="price" align="center" width="200"/>
+    <el-table-column label="金额" width="120">
       <template #default="{row}">
-        <el-input-number
-            v-model="row.price"
-            :controls="false"
-            :precision="3"
-            :step="100"
-            :value-on-clear="1"
-            size="default"
-            @change="computeTotalAmount"
-        />
+        {{ NP.times(row.price , row.actual_quantity) }}
       </template>
     </el-table-column>
     <el-table-column label="仓库/库区/货架/货位" width="500px" align="center">

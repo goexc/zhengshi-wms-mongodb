@@ -1,0 +1,22 @@
+syntax = "v1"
+
+info(
+    title: "供应商流水数据结构"
+    desc: "供应商流水数据结构"
+    author: "董咚懂咚"
+    email: "1024071953@qq.com"
+    version: "1.0.1"
+)
+
+
+type  CustomerTransactionsRequest{
+
+}
+
+type  CustomerTransactionsResponse{
+
+}
+
+type  CustomerTransactionRequest{
+
+}

@@ -25,8 +25,10 @@ import (
 	"apis/carrier.api"
 	"apis/supplier.api"
 	"apis/customer.api"
+	"apis/customer_transaction.api"
 	"apis/material.api"
 	"apis/inbound.api"
+	"apis/outbound.api"
 	"apis/images.api"
 )
 
@@ -501,6 +503,24 @@ service main {
 	@doc "物料分页"
 	@handler list
 	get / (MaterialsRequest) returns (MaterialsResponse)
+
+}
+
+// 物料单价管理
+@server(
+	jwt: Auth
+	group: material/price
+	prefix: material/price
+)
+
+service main {
+	@doc "物料单价"
+	@handler list
+	get / (MaterialIdRequest) returns (MaterialPricesResponse)
+
+	@doc "删除物料单价"
+	@handler remove
+	delete / (MaterialPriceRequest) returns (BaseResponse)
 }
 
 // 入库单管理
@@ -511,13 +531,13 @@ service main {
 )
 
 service main {
-	@doc "创建入库单"
-	@handler add
-	post / (InboundReceiptAddRequest) returns (BaseResponse)
-
 	@doc "入库单分页"
 	@handler page
 	get / (InboundReceiptsRequest) returns (InboundReceiptsResponse)
+
+	@doc "创建入库单"
+	@handler add
+	post / (InboundReceiptAddRequest) returns (BaseResponse)
 
 	@doc "修改入库单"
 	@handler update
@@ -534,8 +554,57 @@ service main {
 	@doc "物料入库"
 	@handler material
 	patch /material (InboundReceiptMaterialRequest) returns (BaseResponse)
-
 }
+
+// 出库单管理
+@server(
+	jwt: Auth
+	group: outbound/receipt
+	prefix: outbound/receipt
+)
+service main {
+	@doc "出库单分页"
+	@handler page
+	get / (OutboundReceiptsRequest) returns (OutbondReceiptsResponse)
+
+	@doc "创建出库单"
+	@handler add
+	post / (OutboundReceiptAddRequest) returns (BaseResponse)
+
+	@doc "修改出库单"
+	@handler edit
+	put / (OutboundReceiptEditRequest) returns (BaseResponse)
+
+	@doc "审核出库单"
+	@handler check
+	patch /check (OutboundReceiptCheckRequest) returns (BaseResponse)
+
+	@doc "删除出库单"
+	@handler remove
+	delete / (OutboundReceiptIdRequest) returns (BaseResponse)
+
+	@doc "物料入库"
+	@handler material
+	patch /material (OutboundReceiptMaterialRequest) returns (BaseResponse)
+}
+
+//供应商流水管理
+@server(
+	jwt: Auth
+	group: customer/transaction
+	prefix: customer/transaction
+)
+
+service main{
+	@doc "供应商流水列表"
+	@handler page
+	get / (CustomerTransactionsRequest) returns (CustomerTransactionsResponse)
+
+	@doc "添加供应商流水"
+	@handler add
+	post / (CustomerTransactionRequest) returns (BaseResponse)
+}
+
 
 //图片管理
 @server(

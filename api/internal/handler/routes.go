@@ -14,7 +14,9 @@ import (
 	images "api/internal/handler/images"
 	inboundreceipt "api/internal/handler/inbound/receipt"
 	material "api/internal/handler/material"
+	materialprice "api/internal/handler/material/price"
 	menu "api/internal/handler/menu"
+	outboundreceipt "api/internal/handler/outbound/receipt"
 	role "api/internal/handler/role"
 	supplier "api/internal/handler/supplier"
 	user "api/internal/handler/user"
@@ -552,14 +554,31 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 	server.AddRoutes(
 		[]rest.Route{
 			{
-				Method:  http.MethodPost,
+				Method:  http.MethodGet,
 				Path:    "/",
-				Handler: inboundreceipt.AddHandler(serverCtx),
+				Handler: materialprice.ListHandler(serverCtx),
 			},
+			{
+				Method:  http.MethodDelete,
+				Path:    "/",
+				Handler: materialprice.RemoveHandler(serverCtx),
+			},
+		},
+		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
+		rest.WithPrefix("/material/price"),
+	)
+
+	server.AddRoutes(
+		[]rest.Route{
 			{
 				Method:  http.MethodGet,
 				Path:    "/",
 				Handler: inboundreceipt.PageHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/",
+				Handler: inboundreceipt.AddHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodPut,
@@ -584,6 +603,43 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 		},
 		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
 		rest.WithPrefix("/inbound/receipt"),
+	)
+
+	server.AddRoutes(
+		[]rest.Route{
+			{
+				Method:  http.MethodGet,
+				Path:    "/",
+				Handler: outboundreceipt.PageHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/",
+				Handler: outboundreceipt.AddHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPut,
+				Path:    "/",
+				Handler: outboundreceipt.EditHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPatch,
+				Path:    "/check",
+				Handler: outboundreceipt.CheckHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodDelete,
+				Path:    "/",
+				Handler: outboundreceipt.RemoveHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPatch,
+				Path:    "/material",
+				Handler: outboundreceipt.MaterialHandler(serverCtx),
+			},
+		},
+		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
+		rest.WithPrefix("/outbound/receipt"),
 	)
 
 	server.AddRoutes(

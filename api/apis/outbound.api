@@ -1,0 +1,227 @@
+syntax = "v1"
+
+info(
+    title: "出库数据结构"
+    desc: "出库数据结构"
+    author: "董咚懂咚"
+    email: "1024071953@qq.com"
+    version: "1.0.1"
+)
+
+//出库单分页
+type OutboundReceiptsRequest {
+    Page int64 `form:"page,optional" validate:"required,gte=1" comment:"页数""`
+    Size int64 `form:"size,optional" validate:"required,gte=5,lte=100" comment:"条数"`
+    Code string `form:"code,optional" validate:"omitempty" comment:"出库单号"`                                                                          //出库单号
+
+                                                                                                                                                        //出库单状态
+                                                                                                                                                        //待审核：出库单已提交但还未通过审核时，状态为待审核。需要相关审核人员对出库单进行审核。
+                                                                                                                                                        //审核不通过：出库单未通过审核时的状态，通常需要重新修改或撤销出库单。
+                                                                                                                                                        //审核通过：出库单经过审核并获得批准后，状态变为审核通过。准备进入执行阶段。
+                                                                                                                                                        //未发货：
+                                                                                                                                                        //在途：
+                                                                                                                                                        //部分出库：当出库单中的部分物料已出库，但尚有未出库的物料时，状态为部分出库。
+                                                                                                                                                        //作废：当出库单发生错误或不再需要时，可以将其状态设置为作废，表示该出库单无效。
+                                                                                                                                                        //出库完成：当出库单中的所有物料都已经成功出库并完成相关操作时，状态为出库完成。
+    Status string `form:"status,optional" validate:"omitempty,oneof=待审核 审核不通过 审核通过 未发货 在途 部分出库 作废 出库完成" comment:"出库单状态"`//出库单状态
+
+    //出库单类型
+    //销售出库
+    //样品出库
+    //报废出库
+    //赠品出库
+    //生产用料出库
+    //退料出库
+    //损耗出库
+    Type string `form:"type,optional" validate:"omitempty,oneof=销售出库 样品出库 报废出库 赠品出库 生产用料出库 退料出库 损耗出库" comment:"出库单类型"`                                       //出库单类型
+    SupplierId string `form:"supplier_id,optional" validate:"omitempty,mongodb" comment:"供应商"`                                                       //供应商
+    CustomerId string `form:"customer_id,optional" validate:"omitempty,mongodb" comment:"客户"`                                                         //客户
+}
+
+type OutbondReceiptsResponse {
+    Code int `json:"code"`
+    Msg string `json:"msg"`
+    Data OutboundReceiptPaginate `json:"data"`
+}
+
+type OutboundReceiptPaginate {
+    Total int64 `json:"total"`
+    List []OutboundReceiptItem `json:"list"` //出库单列表
+}
+
+type OutboundReceiptItem {
+    Id string `json:"id"`
+    Code string `json:"code,optional"`                                //出库单号
+                                                                      //出库单状态
+                                                                      //待审核：出库单已提交但还未通过审核时，状态为待审核。需要相关审核人员对出库单进行审核。
+                                                                      //审核不通过：出库单未通过审核时的状态，通常需要重新修改或撤销出库单。
+                                                                      //审核通过：出库单经过审核并获得批准后，状态变为审核通过。准备进入执行阶段。
+                                                                      //未发货：
+                                                                      //在途：
+                                                                      //部分出库：当出库单中的部分物料已出库，但尚有未出库的物料时，状态为部分出库。
+                                                                      //作废：当出库单发生错误或不再需要时，可以将其状态设置为作废，表示该出库单无效。
+                                                                      //出库完成：当出库单中的所有物料都已经成功出库并完成相关操作时，状态为出库完成。
+    Status string `json:"status"`                                     //出库单状态
+                                                                      //出库单类型
+                                                                      //销售出库
+                                                                      //样品出库
+                                                                      //退货出库
+                                                                      //报废出库
+                                                                      //赠品出库
+                                                                      //生产用料出库
+                                                                      //退料出库
+                                                                      //损耗出库
+    Type string `json:"type"`                                         //出库单类型
+    SupplierId string `json:"supplier_id"`                            //供应商
+    SupplierName string `json:"supplier_name"`                        //供应商名称
+    CustomerId string `json:"customer_id"`                            //客户
+    CustomerName string `json:"customer_name"`                        //客户名称
+    ReceivingDate int64 `json:"receiving_date"`                       //出库日期
+    TotalAmount float64 `json:"total_amount"`                         //总金额
+    Materials []OutboundMaterialItem `json:"materials"`               //物料
+    Annex []string `json:"annex,optional"`                            //附件
+    Remark string `json:"remark,optional"`
+}
+
+
+
+//出库物料和数量
+type OutboundMaterialItem {
+    Index int `json:"index"`                                      //物料顺序
+    Id string `json:"id,optional"`                                //物料id
+    Name string `json:"name,optional"`                            //物料名称
+    Model string `json:"model,optional"`                          //物料型号
+    Unit string `json:"unit,optional"`                            //物料单位
+    Price float64 `json:"price,optional"`                         //单价
+    EstimatedQuantity float64 `json:"estimated_quantity,optional"`//预计出库数量
+    ActualQuantity float64 `json:"actual_quantity,optional"`      //实际出库数量
+                                                                  //物料状态
+                                                                  //40.未发货：
+                                                                  //50.在途：
+                                                                  //60.部分出库
+                                                                  //70.作废
+                                                                  //80.出库完成
+    Status int `json:"status,optional"`                           //出库单状态
+    CreatorName string `json:"creator_name,optional"`             //创建人
+    EditorName string `json:"editor_name,optional"`               //修改人
+    CreatedAt int64 `json:"created_at,optional"`                  //
+    UpdatedAt int64 `json:"updated_at,optional"`                  //
+    WarehouseId string `json:"warehouse_id,optional"`             //仓库id
+    WarehouseZoneId string `json:"warehouse_zone_id,optional"`    //库区id
+    WarehouseRackId string `json:"warehouse_rack_id,optional"`    //货架id
+    WarehouseBinId string `json:"warehouse_bin_id,optional"`      //货位id
+
+    WarehouseName string `json:"warehouse_name,optional"`         //仓库名称
+    WarehouseZoneName string `json:"warehouse_zone_name,optional"`//库区名称
+    WarehouseRackName string `json:"warehouse_rack_name,optional"`//货架名称
+    WarehouseBinName string `json:"warehouse_bin_name,optional"`  //货位名称
+}
+
+//添加出库单
+type OutboundReceiptAddRequest {
+    Code string `json:"code,optional" validate:"required" comment:"出库单号"`                                                                                                                                                                                                            //出库单号
+                                                                                                                                                                                                                                                                                         //出库单状态
+                                                                                                                                                                                                                                                                                         //待审核：出库单已提交但还未通过审核时，状态为待审核。需要相关审核人员对出库单进行审核。
+                                                                                                                                                                                                                                                                                         //审核不通过：出库单未通过审核时的状态，通常需要重新修改或撤销出库单。
+                                                                                                                                                                                                                                                                                         //审核通过：出库单经过审核并获得批准后，状态变为审核通过。准备进入执行阶段。
+                                                                                                                                                                                                                                                                                         //未发货：
+                                                                                                                                                                                                                                                                                         //在途：
+                                                                                                                                                                                                                                                                                         //部分出库：当出库单中的部分物料已出库，但尚有未出库的物料时，状态为部分出库。
+                                                                                                                                                                                                                                                                                         //作废：当出库单发生错误或不再需要时，可以将其状态设置为作废，表示该出库单无效。
+                                                                                                                                                                                                                                                                                         //出库完成：当出库单中的所有物料都已经成功出库并完成相关操作时，状态为出库完成。
+    Status string `json:"status"`                                                                                                                                                                                                                                                        //出库单状态
+                                                                                                                                                                                                                                                                                         //出库单类型
+                                                                                                                                                                                                                                                                                         //销售出库
+                                                                                                                                                                                                                                                                                         //样品出库
+                                                                                                                                                                                                                                                                                         //退货出库
+                                                                                                                                                                                                                                                                                         //报废出库
+                                                                                                                                                                                                                                                                                         //赠品出库
+                                                                                                                                                                                                                                                                                         //生产用料出库
+                                                                                                                                                                                                                                                                                         //退料出库
+                                                                                                                                                                                                                                                                                         //损耗出库
+    Type string `json:"type,optional" validate:"required,oneof=销售出库 样品出库 退货出库 报废出库 赠品出库 生产用料出库 退料出库 损耗出库" comment:"出库单类型"`                                                                                //出库单类型
+    SupplierId string `json:"supplier_id,optional" validate:"excluded_if=type 退货出库,omitempty,mongodb" comment:"供应商"`                                                                                                                                                              //供应商
+    CustomerId string `json:"customer_id,optional" validate:"required_if=type 退货出库,omitempty,mongodb" comment:"客户"`                                                                                                                                                                //供应商
+    TotalAmount float64 `json:"total_amount,optional" validate:"omitempty,gte=0" comment:"总金额"`                                                                                                                                                                                       //总金额
+    ReceivingDate int64 `json:"receiving_date,optional" validate:"omitempty,gte=0" comment:"出库日期"`                                                                                                                                                                                   //出库日期
+    Materials []OutboundMaterial `json:"materials,optional" validate:"required,gt=0,dive" comment:"物料"`                                                                                                                                                                                //物料
+    Annex []string `json:"annex,optional" validate:"omitempty,dive,gt=3" comment:"附件"`                                                                                                                                                                                                 //附件
+    Remark string `json:"remark,optional" validate:"omitempty" comment:"备注"`                                                                                                                                                                                                           //备注
+}
+
+
+//采购物料和数量
+type OutboundMaterial {
+    Index int `json:"index" validate:"required,gte=0" comment:"物料顺序"`                                                 //物料顺序
+    Id string `json:"id,optional" validate:"required,mongodb" comment:"物料"`                                             //物料id
+    Price float64 `json:"price,optional" validate:"number,gte=0" comment:"单价"`                                          //单价
+    EstimatedQuantity float64 `json:"estimated_quantity,optional" validate:"required,number,gt=0" comment:"预计出库数量"` //预计出库数量
+                                                                                                                          //物料状态
+                                                                                                                          //10.未发货：
+                                                                                                                          //30.在途：
+                                                                                                                          //40.部分出库
+                                                                                                                          //50.作废
+                                                                                                                          //60.出库完成
+    Warehousing []string `json:"warehousing,optional" validate:"omitempty,dive,mongodb" comment:"仓储位置id"`             //仓储位置id
+}
+
+//仓储位置
+type Warehousing {
+    WarehouseId string `json:"warehouse_id,optional"`                         //仓库id
+    WarehouseZoneId string `json:"warehouse_zone_id,optional"`                //库区id
+    WarehouseRackId string `json:"warehouse_rack_id,optional"`                //货架id
+    WarehouseBinId string `json:"warehouse_bin_id,optional"`                  //货位id
+}
+
+//修改出库单
+type OutboundReceiptEditRequest {
+    Id string `json:"id,optional" validate:"required,mongodb" comment:"出库单"`
+                                                                                                                                                                                                                          //出库单类型
+                                                                                                                                                                                                                          //销售出库
+                                                                                                                                                                                                                          //样品出库
+                                                                                                                                                                                                                          //退货出库
+                                                                                                                                                                                                                          //报废出库
+                                                                                                                                                                                                                          //赠品出库
+                                                                                                                                                                                                                          //生产用料出库
+                                                                                                                                                                                                                          //退料出库
+                                                                                                                                                                                                                          //损耗出库
+    Type string `json:"type,optional" validate:"required,oneof=销售出库 样品出库 退货出库 报废出库 赠品出库 生产用料出库 退料出库 损耗出库" comment:"出库单类型"`                                                                                //出库单类型
+    SupplierId string `json:"supplier_id,optional" validate:"excluded_if=type 退货出库,omitempty,mongodb" comment:"供应商"`                                                                                               //供应商
+    CustomerId string `json:"customer_id,optional" validate:"required_if=type 退货出库,omitempty,mongodb" comment:"客户"`                                                                                                 //供应商
+    TotalAmount float64 `json:"total_amount,optional" validate:"required,gte=0" comment:"总金额"`                                                                                                                         //总金额
+    Materials []OutboundMaterial `json:"materials,optional" validate:"required,gt=0,dive" comment:"物料"`                                                                                       //物料
+    Annex []string `json:"annex,optional" validate:"omitempty,dive,gt=3" comment:"附件"`                                                                                                       //附件
+    Remark string `json:"remark,optional" validate:"omitempty" comment:"备注"`                                                                                                                 //备注
+}
+
+//出库单审核
+type OutboundReceiptCheckRequest {
+    Id string `json:"id,optional" validate:"required,mongodb" comment:"出库单"`//出库单id
+    Status string `json:"status,optional" validate:"required,oneof=审核不通过 审核通过" comment:"出库单状态"` //出库单状态
+}
+
+type OutboundReceiptIdRequest {
+    Id string `form:"id,optional" validate:"required,mongodb" comment:"出库单"`//出库单id
+}
+
+//物料出库
+type OutboundReceiptMaterialRequest {
+    Id string `json:"id,optional" validate:"required,mongodb" comment:"出库单"`
+    TotalAmount float64 `json:"total_amount,optional" validate:"omitempty,gte=0" comment:"总金额"`                                                                                                                                                                                       //总金额
+    Materials []OutboundMaterialStatus `json:"materials,optional" validate:"omitempty,gt=0,dive" comment:"物料"`                                                                                //物料
+}
+
+
+//出库单物料信息
+type OutboundMaterialStatus {
+    Id string `json:"id,optional" validate:"required,mongodb" comment:"物料"`                                                                             //物料id
+
+                                                                                                                                                          //物料状态
+                                                                                                                                                          //未发货：
+                                                                                                                                                          //在途：
+                                                                                                                                                          //部分出库：当出库单中的部分物料已出库，但尚有未出库的物料时，状态为部分出库。
+                                                                                                                                                          //作废：当出库单发生错误或不再需要时，可以将其状态设置为作废，表示该出库单无效。
+                                                                                                                                                          //出库完成
+    Status string `json:"status,optional" validate:"required,oneof=未发货 在途 部分出库 作废 出库完成" comment:"物料状态"`     //物料状态
+    ActualQuantity float64 `json:"actual_quantity,optional" validate:"number,gte=0" comment:"实际出库数量"`           //实际出库数量
+}

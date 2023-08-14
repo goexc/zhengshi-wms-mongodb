@@ -3,7 +3,7 @@ import {baseResponse} from "@/api/types.ts";
 import request from "@/utils/request.ts";
 import {
   MaterialCategoryIdRequest,
-  MaterialCategoryRequest, MaterialCategorysRequest,
+  MaterialCategoryRequest,
   MaterialCategorysResponse,
   MaterialIdRequest,
   MaterialRequest,
@@ -20,6 +20,9 @@ enum API {
 
   //添加物料分类、修改物料分类、删除物料分类、获取物料分类列表接口
   MATERIAL_CATEGORY_URL = '/material/category',
+
+  //查询/删除物料单价
+  MATERIAL_PRICE_URL = '/material/price',
 
 }
 
@@ -68,3 +71,11 @@ export const reqAddOrUpdateMaterialCategory = (data: MaterialCategoryRequest) =>
 //删除物料分类的接口方法
 export const reqRemoveMaterialCategory = (data: MaterialCategoryIdRequest) =>
   request.delete<any, baseResponse>(API.MATERIAL_CATEGORY_URL, {params: data});
+
+//查询物料单价列表
+export const reqMaterialPrices = (id:string) =>
+  request.get<any, baseResponse>(API.MATERIAL_PRICE_URL, {params: {id:id}})
+
+//删除物料单价列表
+export const reqRemoveMaterialPrice = (id:string, price:number) =>
+  request.delete<any, baseResponse>(API.MATERIAL_PRICE_URL, {params: {id:id, price:price}})

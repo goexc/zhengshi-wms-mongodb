@@ -942,7 +942,7 @@ type MaterialCategoryIdRequest struct {
 }
 
 type MaterialIdRequest struct {
-	Id string `form:"id"`
+	Id string `form:"id" validate:"required,mongodb" comment:"物料"`
 }
 
 type MaterialsRequest struct {
@@ -1003,6 +1003,22 @@ type MaterialRequest struct {
 	Remark           string  `json:"remark,optional" validate:"omitempty" comment:"备注"`                //备注
 }
 
+type MaterialPricesResponse struct {
+	Code int             `json:"code"`
+	Msg  string          `json:"msg"`
+	Data []MaterialPrice `json:"data"`
+}
+
+type MaterialPrice struct {
+	Price float64 `json:"price"` //价格
+	Since int64   `json:"since"` //价格应用时间
+}
+
+type MaterialPriceRequest struct {
+	Id    string  `form:"id" validate:"required,mongodb" comment:"物料"`
+	Price float64 `form:"price" validate:"number" comment:"单价"`
+}
+
 type InboundReceiptAddRequest struct {
 	Id            string            `json:"id,optional" validate:"omitempty,mongodb" comment:"入库单"`
 	Code          string            `json:"code,optional" validate:"required" comment:"入库单号"`                                      //入库单号
@@ -1060,6 +1076,7 @@ type InboundReceiptsRequest struct {
 	Status     string `form:"status,optional" validate:"omitempty,oneof=待审核 审核不通过 审核通过 未发货 在途 部分入库 作废 入库完成" comment:"入库单状态"` //入库单状态
 	Type       string `form:"type,optional" validate:"omitempty,oneof=采购入库 外协入库 退货入库" comment:"入库单类型"`                       //入库单类型
 	SupplierId string `form:"supplier_id,optional" validate:"omitempty,mongodb" comment:"供应商"`                               //供应商
+	CustomerId string `form:"customer_id,optional" validate:"omitempty,mongodb" comment:"客户"`                                //客户
 }
 
 type InboundReceiptsResponse struct {
@@ -1070,7 +1087,7 @@ type InboundReceiptsResponse struct {
 
 type InboundReceiptPaginate struct {
 	Total int64            `json:"total"`
-	List  []InboundReceipt `json:"list"` //用户列表
+	List  []InboundReceipt `json:"list"` //入库单列表
 }
 
 type InboundReceipt struct {
@@ -1090,8 +1107,9 @@ type InboundReceipt struct {
 }
 
 type InboundReceiptMaterialRequest struct {
-	Id        string                  `json:"id,optional" validate:"required,mongodb" comment:"入库单"`
-	Materials []InboundMaterialStatus `json:"materials,optional" validate:"omitempty,gt=0,dive" comment:"物料"` //物料
+	Id          string                  `json:"id,optional" validate:"required,mongodb" comment:"入库单"`
+	TotalAmount float64                 `json:"total_amount,optional" validate:"omitempty,gte=0" comment:"总金额"` //总金额
+	Materials   []InboundMaterialStatus `json:"materials,optional" validate:"omitempty,gt=0,dive" comment:"物料"` //物料
 }
 
 type InboundMaterialStatus struct {
@@ -1101,12 +1119,133 @@ type InboundMaterialStatus struct {
 }
 
 type InboundReceiptCheckRequest struct {
-	Id     string `json:"id,optional" validate:"required,mongodb" comment:"入库单"`                   //入库单id
-	Status string `json:"status,optional" validate:"required,oneof=审核不通过 审核通过 删除" comment:"入库单状态"` //入库单状态
+	Id     string `json:"id,optional" validate:"required,mongodb" comment:"入库单"`                //入库单id
+	Status string `json:"status,optional" validate:"required,oneof=审核不通过 审核通过" comment:"入库单状态"` //入库单状态
 }
 
 type InboundReceiptIdRequest struct {
 	Id string `form:"id,optional" validate:"required,mongodb" comment:"入库单"` //入库单id
+}
+
+type OutboundReceiptsRequest struct {
+	Page       int64  `form:"page,optional" validate:"required,gte=1" comment:"页数""`
+	Size       int64  `form:"size,optional" validate:"required,gte=5,lte=100" comment:"条数"`
+	Code       string `form:"code,optional" validate:"omitempty" comment:"出库单号"`                                             //出库单号
+	Status     string `form:"status,optional" validate:"omitempty,oneof=待审核 审核不通过 审核通过 未发货 在途 部分出库 作废 出库完成" comment:"出库单状态"` //出库单状态
+	Type       string `form:"type,optional" validate:"omitempty,oneof=销售出库 样品出库 报废出库 赠品出库 生产用料出库 退料出库 损耗出库" comment:"出库单类型"` //出库单类型
+	SupplierId string `form:"supplier_id,optional" validate:"omitempty,mongodb" comment:"供应商"`                               //供应商
+	CustomerId string `form:"customer_id,optional" validate:"omitempty,mongodb" comment:"客户"`                                //客户
+}
+
+type OutbondReceiptsResponse struct {
+	Code int                     `json:"code"`
+	Msg  string                  `json:"msg"`
+	Data OutboundReceiptPaginate `json:"data"`
+}
+
+type OutboundReceiptPaginate struct {
+	Total int64                 `json:"total"`
+	List  []OutboundReceiptItem `json:"list"` //出库单列表
+}
+
+type OutboundReceiptItem struct {
+	Id            string                 `json:"id"`
+	Code          string                 `json:"code,optional"`  //出库单号
+	Status        string                 `json:"status"`         //出库单状态
+	Type          string                 `json:"type"`           //出库单类型
+	SupplierId    string                 `json:"supplier_id"`    //供应商
+	SupplierName  string                 `json:"supplier_name"`  //供应商名称
+	CustomerId    string                 `json:"customer_id"`    //客户
+	CustomerName  string                 `json:"customer_name"`  //客户名称
+	ReceivingDate int64                  `json:"receiving_date"` //出库日期
+	TotalAmount   float64                `json:"total_amount"`   //总金额
+	Materials     []OutboundMaterialItem `json:"materials"`      //物料
+	Annex         []string               `json:"annex,optional"` //附件
+	Remark        string                 `json:"remark,optional"`
+}
+
+type OutboundMaterialItem struct {
+	Index             int     `json:"index"`                        //物料顺序
+	Id                string  `json:"id,optional"`                  //物料id
+	Name              string  `json:"name,optional"`                //物料名称
+	Model             string  `json:"model,optional"`               //物料型号
+	Unit              string  `json:"unit,optional"`                //物料单位
+	Price             float64 `json:"price,optional"`               //单价
+	EstimatedQuantity float64 `json:"estimated_quantity,optional"`  //预计出库数量
+	ActualQuantity    float64 `json:"actual_quantity,optional"`     //实际出库数量
+	Status            int     `json:"status,optional"`              //出库单状态
+	CreatorName       string  `json:"creator_name,optional"`        //创建人
+	EditorName        string  `json:"editor_name,optional"`         //修改人
+	CreatedAt         int64   `json:"created_at,optional"`          //
+	UpdatedAt         int64   `json:"updated_at,optional"`          //
+	WarehouseId       string  `json:"warehouse_id,optional"`        //仓库id
+	WarehouseZoneId   string  `json:"warehouse_zone_id,optional"`   //库区id
+	WarehouseRackId   string  `json:"warehouse_rack_id,optional"`   //货架id
+	WarehouseBinId    string  `json:"warehouse_bin_id,optional"`    //货位id
+	WarehouseName     string  `json:"warehouse_name,optional"`      //仓库名称
+	WarehouseZoneName string  `json:"warehouse_zone_name,optional"` //库区名称
+	WarehouseRackName string  `json:"warehouse_rack_name,optional"` //货架名称
+	WarehouseBinName  string  `json:"warehouse_bin_name,optional"`  //货位名称
+}
+
+type OutboundReceiptAddRequest struct {
+	Code          string             `json:"code,optional" validate:"required" comment:"出库单号"`                                                  //出库单号
+	Status        string             `json:"status"`                                                                                            //出库单状态
+	Type          string             `json:"type,optional" validate:"required,oneof=销售出库 样品出库 退货出库 报废出库 赠品出库 生产用料出库 退料出库 损耗出库" comment:"出库单类型"` //出库单类型
+	SupplierId    string             `json:"supplier_id,optional" validate:"excluded_if=type 退货出库,omitempty,mongodb" comment:"供应商"`             //供应商
+	CustomerId    string             `json:"customer_id,optional" validate:"required_if=type 退货出库,omitempty,mongodb" comment:"客户"`              //供应商
+	TotalAmount   float64            `json:"total_amount,optional" validate:"omitempty,gte=0" comment:"总金额"`                                    //总金额
+	ReceivingDate int64              `json:"receiving_date,optional" validate:"omitempty,gte=0" comment:"出库日期"`                                 //出库日期
+	Materials     []OutboundMaterial `json:"materials,optional" validate:"required,gt=0,dive" comment:"物料"`                                     //物料
+	Annex         []string           `json:"annex,optional" validate:"omitempty,dive,gt=3" comment:"附件"`                                        //附件
+	Remark        string             `json:"remark,optional" validate:"omitempty" comment:"备注"`                                                 //备注
+}
+
+type OutboundMaterial struct {
+	Index             int      `json:"index" validate:"required,gte=0" comment:"物料顺序"`                               //物料顺序
+	Id                string   `json:"id,optional" validate:"required,mongodb" comment:"物料"`                         //物料id
+	Price             float64  `json:"price,optional" validate:"number,gte=0" comment:"单价"`                          //单价
+	EstimatedQuantity float64  `json:"estimated_quantity,optional" validate:"required,number,gt=0" comment:"预计出库数量"` //预计出库数量
+	Warehousing       []string `json:"warehousing,optional" validate:"omitempty,dive,mongodb" comment:"仓储位置id"`      //仓储位置id
+}
+
+type Warehousing struct {
+	WarehouseId     string `json:"warehouse_id,optional"`      //仓库id
+	WarehouseZoneId string `json:"warehouse_zone_id,optional"` //库区id
+	WarehouseRackId string `json:"warehouse_rack_id,optional"` //货架id
+	WarehouseBinId  string `json:"warehouse_bin_id,optional"`  //货位id
+}
+
+type OutboundReceiptEditRequest struct {
+	Id          string             `json:"id,optional" validate:"required,mongodb" comment:"出库单"`
+	Type        string             `json:"type,optional" validate:"required,oneof=销售出库 样品出库 退货出库 报废出库 赠品出库 生产用料出库 退料出库 损耗出库" comment:"出库单类型"` //出库单类型
+	SupplierId  string             `json:"supplier_id,optional" validate:"excluded_if=type 退货出库,omitempty,mongodb" comment:"供应商"`             //供应商
+	CustomerId  string             `json:"customer_id,optional" validate:"required_if=type 退货出库,omitempty,mongodb" comment:"客户"`              //供应商
+	TotalAmount float64            `json:"total_amount,optional" validate:"required,gte=0" comment:"总金额"`                                     //总金额
+	Materials   []OutboundMaterial `json:"materials,optional" validate:"required,gt=0,dive" comment:"物料"`                                     //物料
+	Annex       []string           `json:"annex,optional" validate:"omitempty,dive,gt=3" comment:"附件"`                                        //附件
+	Remark      string             `json:"remark,optional" validate:"omitempty" comment:"备注"`                                                 //备注
+}
+
+type OutboundReceiptCheckRequest struct {
+	Id     string `json:"id,optional" validate:"required,mongodb" comment:"出库单"`                //出库单id
+	Status string `json:"status,optional" validate:"required,oneof=审核不通过 审核通过" comment:"出库单状态"` //出库单状态
+}
+
+type OutboundReceiptIdRequest struct {
+	Id string `form:"id,optional" validate:"required,mongodb" comment:"出库单"` //出库单id
+}
+
+type OutboundReceiptMaterialRequest struct {
+	Id          string                   `json:"id,optional" validate:"required,mongodb" comment:"出库单"`
+	TotalAmount float64                  `json:"total_amount,optional" validate:"omitempty,gte=0" comment:"总金额"` //总金额
+	Materials   []OutboundMaterialStatus `json:"materials,optional" validate:"omitempty,gt=0,dive" comment:"物料"` //物料
+}
+
+type OutboundMaterialStatus struct {
+	Id             string  `json:"id,optional" validate:"required,mongodb" comment:"物料"`                         //物料id
+	Status         string  `json:"status,optional" validate:"required,oneof=未发货 在途 部分出库 作废 出库完成" comment:"物料状态"` //物料状态
+	ActualQuantity float64 `json:"actual_quantity,optional" validate:"number,gte=0" comment:"实际出库数量"`            //实际出库数量
 }
 
 type ImageResponse struct {

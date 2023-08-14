@@ -27,6 +27,7 @@
     "lodash": "^4.17.21",
     "moment": "^2.29.4",
     "nprogress": "^0.2.0",
+    "number-precision": "^1.6.0",
     "pinia": "^2.1.6",
     "pinia-plugin-persist": "^1.0.0",
     "vue": "^3.3.4",

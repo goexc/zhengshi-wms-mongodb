@@ -106,3 +106,9 @@ export interface MaterialCategoryRequest {
 export interface MaterialCategoryIdRequest {
   id: string;
 }
+
+//物料单价
+export interface MaterialPrice {
+  price: number;//单价
+  since: number; //应用时间
+}

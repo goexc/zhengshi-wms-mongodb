@@ -102,14 +102,23 @@ func (l *MaterialLogic) Material(req *types.InboundReceiptMaterialRequest) (resp
 		}
 
 		receipt.Materials[idx].Status = code.InboundReceiptStatusCode(materialsMap[one.Id].Status)
+		receipt.Materials[idx].ActualQuantity = materialsMap[one.Id].ActualQuantity
 		statuses[receipt.Materials[idx].Status]++
+
+		//累计总金额
+		receipt.TotalAmount += materialsMap[one.Id].ActualQuantity * receipt.Materials[idx].Price
+	}
+
+	if req.TotalAmount > 0 {
+		receipt.TotalAmount = req.TotalAmount
 	}
 
 	//4.更新物料状态和入库单状态
 	update := bson.M{
 		"$set": bson.M{
-			"status":    getReceiptStatus(statuses),
-			"materials": receipt.Materials,
+			"status":       getReceiptStatus(statuses),
+			"total_amount": receipt.TotalAmount,
+			"materials":    receipt.Materials,
 		},
 	}
 	_, err = l.svcCtx.InboundReceiptModel.UpdateByID(l.ctx, receipt.Id, &update)
@@ -144,8 +153,13 @@ func getReceiptStatus(statuses map[int]int) (status int) {
 			return key
 		}
 
-		if status < key {
+		switch true {
+		case status == 0:
 			status = key
+		case status > key:
+			status = key
+		default:
+			fmt.Println("当前状态：%d，给定状态：%d\n", status, key)
 		}
 	}
 

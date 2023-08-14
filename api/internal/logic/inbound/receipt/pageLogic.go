@@ -52,6 +52,10 @@ func (l *PageLogic) Page(req *types.InboundReceiptsRequest) (resp *types.Inbound
 		filter["supplier_id"] = strings.TrimSpace(req.SupplierId)
 	}
 
+	if strings.TrimSpace(req.CustomerId) != "" {
+		filter["customer_id"] = strings.TrimSpace(req.CustomerId)
+	}
+
 	var opt = options.Find().SetSort(bson.M{"created_at": 1}).SetSkip((req.Page - 1) * req.Size).SetLimit(req.Size)
 
 	cur, err := l.svcCtx.InboundReceiptModel.Find(l.ctx, filter, opt)

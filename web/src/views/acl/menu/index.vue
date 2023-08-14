@@ -305,6 +305,13 @@ const screenType = (t: boolean) => {
             <el-link>{{ row.name }}</el-link>
           </template>
         </el-table-column>
+        <el-table-column label="图标" align="center">
+          <template #default="{row}">
+            <el-icon>
+              <component :is="row.meta.icon"></component>
+            </el-icon>
+          </template>
+        </el-table-column>
         <el-table-column label="排序" prop="sort_id" width="80px" align="center"></el-table-column>
         <el-table-column label="路由" prop="path" width="220px"></el-table-column>
         <el-table-column label="组件路径" prop="component" width="220px"></el-table-column>

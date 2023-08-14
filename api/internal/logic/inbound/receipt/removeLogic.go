@@ -53,7 +53,7 @@ func (l *RemoveLogic) Remove(req *types.InboundReceiptIdRequest) (resp *types.Ba
 
 		if _, ok := canDeleteStatus[code.InboundReceiptStatusText(receipt.Status)]; !ok {
 			resp.Code = http.StatusBadRequest
-			resp.Msg = fmt.Sprintf("无法删除[%s]状态的入库单", receipt.Status)
+			resp.Msg = fmt.Sprintf("无法删除[%s]状态的入库单", code.InboundReceiptStatusText(receipt.Status))
 			return resp, nil
 		}
 

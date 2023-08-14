@@ -46,7 +46,7 @@ type MaterialCategoryIdRequest {
 
 //物料归档
 type MaterialIdRequest {
-    Id string `form:"id"`
+    Id string `form:"id" validate:"required,mongodb" comment:"物料"`
 }
 
 //物料列表
@@ -109,4 +109,20 @@ type MaterialRequest {
     Remark string `json:"remark,optional" validate:"omitempty" comment:"备注"`                     //备注
 }
 
+//物料价格
+type MaterialPricesResponse {
+    Code int `json:"code"`
+    Msg string `json:"msg"`
+    Data []MaterialPrice `json:"data"`
+}
 
+type MaterialPrice {
+    Price float64 `json:"price"` //价格
+    Since int64 `json:"since"`   //价格应用时间
+}
+
+//删除物料价格
+type MaterialPriceRequest {
+    Id string `form:"id" validate:"required,mongodb" comment:"物料"`
+    Price float64 `form:"price" validate:"number" comment:"单价"`
+}

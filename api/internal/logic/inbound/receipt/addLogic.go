@@ -8,6 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"net/http"
 	"strings"
 	"time"
@@ -347,6 +348,25 @@ func (l *AddLogic) Add(req *types.InboundReceiptAddRequest) (resp *types.BaseRes
 
 		materials = append(materials, im)
 
+		//收集物料价格
+		if one.Price > 0 {
+			var update = bson.M{
+				"$set": bson.M{
+					"material": one.Id,
+					"price":    one.Price,
+				},
+			}
+
+			//记录物料单价
+			opts := options.Update().SetUpsert(true) //更新时，不存在就插入
+			_, err = l.svcCtx.MaterialPriceModel.UpdateMany(l.ctx, bson.M{"material": one.Id, "price": one.Price}, update, opts)
+			if err != nil {
+				fmt.Printf("[Error]记录物料价格:%s\n", err.Error())
+				resp.Code = http.StatusInternalServerError
+				resp.Msg = "服务器内部错误"
+				return resp, nil
+			}
+		}
 	}
 
 	//如果请求参数中的总金额>0，那么使用请求参数中的总金额
