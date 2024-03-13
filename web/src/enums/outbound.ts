@@ -1,7 +1,7 @@
 /*出库单*/
 
 //出库单状态
-export const OutboundReceiptStatus= [
+export const OutboundOrderStatus= [
   // '全部' = '',
   { label:'待审核', value: 10},
   { label:'审核不通过', value: 20},
@@ -14,7 +14,7 @@ export const OutboundReceiptStatus= [
 ]
 
 //出库单类型
-export const OutboundReceiptTypes = [
+export const OutboundOrderTypes = [
   '销售出库',//销售出库：将产品从仓库中发货给客户，用于满足销售订单需求。
   // '调拨出库',//调拨出库：从一个仓库将物料调拨到另一个仓库，用于满足不同仓库之间的需求平衡。
   // '内部领料出库',//内部领料出库：将物料从仓库中领取用于企业内部的生产、维修或其他操作。
@@ -23,7 +23,7 @@ export const OutboundReceiptTypes = [
   '赠品出库',//赠品出库：将产品或物料作为赠品送给客户，用于促销或礼品赠送。
   // '补货出库',//补货出库：根据库存监控和预测需求，将物料从仓库中补充到销售点或分销中心。
   '生产用料出库',//生产用料出库：将原料或半成品从仓库中提取，用于生产制造过程。
-  '退料出库',//退料出库：将不符合要求的原料或半成品退回供应商，可能是因为质量问题或订单变更。
+  '退货出库',//退货出库：将不符合要求的原料或半成品退回供应商，可能是因为质量问题或订单变更。
   '损耗出库',//损耗出库：将在生产、运输或其他环节中产生的损耗物料出库记录。
   // '其他出库',//其他出库：用于记录其他不同于上述类型的出库操作，可以根据企业的实际情况进行定义。
 ]
@@ -38,20 +38,20 @@ export const CustomerOutbondReceiptTypes = [
 //针对供应商的出库单类型
 export const SupplierOutbondReceiptTypes = [
   '退货出库',//退货出库：客户将产品退回仓库，可能是因为质量问题、不符合订单等原因。
-  '退料出库',//退料出库：将不符合要求的原料或半成品退回供应商，可能是因为质量问题或订单变更。
+  '退货出库',//退货出库：将不符合要求的原料或半成品退回供应商，可能是因为质量问题或订单变更。
 ]
 
 //物料出库状态
-export const OutboundReceiptMaterialStatus = [
-  {label: ' ', value: 0},
-  {label: '未发货', value: 40},
-  {label: '在途', value: 50},
-  {label: '部分出库', value: 60},
-  {label: '作废', value: 70},
-  {label: '出库完成', value: 80},
+export const OutboundOrderMaterialStatus = [
+   ' ',
+   '未发货',
+   '出库中',
+   '部分出库',
+   '作废',
+   '出库完成',
 ]
 
-export const OutboundReceiptMaterialStatusText = {
+export const OutboundOrderMaterialStatusText = {
   0:'',
   40:'未发货',
   50:'在途',

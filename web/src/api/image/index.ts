@@ -18,3 +18,8 @@ export const reqImages = (req:ImagesRequest) =>
 export const reqAddImage = (data: ImageRequest) => {
   return request.post<any, baseResponse>(API.IMAGE_URL, data);
 };
+
+//删除图片接口
+export const reqRemoveImage = (key:string) => {
+    return request.delete<any, baseResponse>(API.IMAGE_URL,{params: {key:key}})
+}

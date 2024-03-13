@@ -17,11 +17,12 @@ type InboundReceiptAddRequest {
    //入库单类型
    //采购入库
    //外协入库
+   //生产入库
    //退货入库
-    Type string `json:"type,optional" validate:"required,oneof=采购入库 外协入库 退货入库" comment:"入库单类型"`                                                                               //入库单类型
+    Type string `json:"type,optional" validate:"required,oneof=采购入库 外协入库 生产入库 退货入库" comment:"入库单类型"`                                                                               //入库单类型
     SupplierId string `json:"supplier_id,optional" validate:"excluded_if=type 退货入库,omitempty,mongodb" comment:"供应商"`                                                                                               //供应商
     CustomerId string `json:"customer_id,optional" validate:"required_if=type 退货入库,omitempty,mongodb" comment:"客户"`                                                                                               //供应商
-    TotalAmount float64 `json:"total_amount,optional" validate:"required,gte=0" comment:"总金额"`                                                                                              //总金额
+    TotalAmount float64 `json:"total_amount,optional" validate:"omitempty,gte=0" comment:"总金额"`                                                                                              //总金额
     ReceivingDate int64 `json:"receiving_date,optional" validate:"omitempty,gte=0" comment:"入库日期"`                                                                                         //入库日期
     Materials []InboundMaterial `json:"materials,optional" validate:"required,gt=0,dive" comment:"物料"`                                                                                       //物料
     Annex []string `json:"annex,optional" validate:"omitempty,dive,gt=3" comment:"附件"`                                                                                                       //附件
@@ -35,15 +36,16 @@ type InboundReceiptUpdateRequest {
                                                                                                                                                                                               //入库单类型
                                                                                                                                                                                                //采购入库
                                                                                                                                                                                                //外协入库
+                                                                                                                                                                                               //生产入库
                                                                                                                                                                                                //退货入库
-    Type string `json:"type,optional" validate:"required,oneof=采购入库 外协入库 退货入库" comment:"入库单类型"`                                                                               //入库单类型
+    Type string `json:"type,optional" validate:"required,oneof=采购入库 外协入库 生产入库 退货入库" comment:"入库单类型"`                                                                               //入库单类型
     SupplierId string `json:"supplier_id,optional" validate:"excluded_if=type 退货入库,omitempty,mongodb" comment:"供应商"`                                                                                               //供应商
     CustomerId string `json:"customer_id,optional" validate:"required_if=type 退货入库,omitempty,mongodb" comment:"客户"`                                                                                               //供应商
-    TotalAmount float64 `json:"total_amount,optional" validate:"required,gte=0" comment:"总金额"`                                                                                              //总金额
-    ReceivingDate int64 `json:"receiving_date,optional" validate:"omitempty,gte=0" comment:"入库日期"`                                                                                         //入库日期
-    Materials []InboundMaterial `json:"materials,optional" validate:"required,gt=0,dive" comment:"物料"`                                                                                       //物料
-    Annex []string `json:"annex,optional" validate:"omitempty,dive,gt=3" comment:"附件"`                                                                                                       //附件
-    Remark string `json:"remark,optional" validate:"omitempty" comment:"备注"`                                                                                                                 //备注
+    TotalAmount float64 `json:"total_amount,optional" validate:"required,gte=0" comment:"总金额"`                         //总金额
+    ReceivingDate int64 `json:"receiving_date,optional" validate:"omitempty,gte=0" comment:"预计入库日期"`                    //预计入库日期
+    Materials []InboundMaterial `json:"materials,optional" validate:"required,gt=0,dive" comment:"物料"`                  //物料
+    Annex []string `json:"annex,optional" validate:"omitempty,dive,gt=3" comment:"附件"`                                  //附件
+    Remark string `json:"remark,optional" validate:"omitempty" comment:"备注"`                                            //备注
 }
 
 
@@ -51,32 +53,9 @@ type InboundReceiptUpdateRequest {
 type InboundMaterial {
     Index int `json:"index" validate:"required,gte=0" comment:"物料顺序"`                                                 //物料顺序
     Id string `json:"id,optional" validate:"required,mongodb" comment:"物料"`                                             //物料id
-    Name string `json:"name,optional"`                                                                                    //物料名称
-    Model string `json:"model,optional"`                                                                                  //物料型号
-    Unit string `json:"unit,optional"`                                                                                    //物料单位
     Price float64 `json:"price,optional" validate:"number,gte=0" comment:"单价"`                                          //单价
     EstimatedQuantity float64 `json:"estimated_quantity,optional" validate:"required,number,gt=0" comment:"预计入库数量"` //预计入库数量
-    ActualQuantity float64 `json:"actual_quantity,optional" validate:"number,gte=0" comment:"实际入库数量"`               //实际入库数量
-  //物料状态
-  //10.未发货：
-  //30.在途：
-  //40.部分入库
-  //50.作废
-  //60.入库完成
-    Status int `json:"status,optional"`                                //入库单状态
-    CreatorName string `json:"creator_name,optional"`                                                                     //创建人
-    EditorName string `json:"editor_name,optional"`                                                                       //修改人
-    CreatedAt int64 `json:"created_at,optional"`                                                                          //
-    UpdatedAt int64 `json:"updated_at,optional"`                                                                          //
-    WarehouseId string `json:"warehouse_id,optional" validate:"omitempty,mongodb" comment:"仓库"`                         //仓库id
-    WarehouseZoneId string `json:"warehouse_zone_id,optional" validate:"omitempty,mongodb" comment:"库区"`                //库区id
-    WarehouseRackId string `json:"warehouse_rack_id,optional" validate:"omitempty,mongodb" comment:"货架"`                //货架id
-    WarehouseBinId string `json:"warehouse_bin_id,optional" validate:"omitempty,mongodb" comment:"货位"`                  //货位id
-
-    WarehouseName string `json:"warehouse_name,optional"`                                                                 //仓库名称
-    WarehouseZoneName string `json:"warehouse_zone_name,optional"`                                                        //库区名称
-    WarehouseRackName string `json:"warehouse_rack_name,optional"`                                                        //货架名称
-    WarehouseBinName string `json:"warehouse_bin_name,optional"`                                                          //货位名称
+    Position []string `json:"position,optional" validate:"omitempty,dive,mongodb" comment:"仓储位置id"`             //仓储位置id
 }
 
 //入库单分页
@@ -97,8 +76,9 @@ type InboundReceiptsRequest {
                                                                                                                                                                                                          //入库单类型
                                                                                                                                                                                                          //采购入库
                                                                                                                                                                                                          //外协入库
+                                                                                                                                                                                                         //生产入库
                                                                                                                                                                                                          //退货入库
-    Type string `form:"type,optional" validate:"omitempty,oneof=采购入库 外协入库 退货入库" comment:"入库单类型"`                                                                                        //入库单类型
+    Type string `form:"type,optional" validate:"omitempty,oneof=采购入库 外协入库 生产入库 退货入库" comment:"入库单类型"`                                                                                        //入库单类型
     SupplierId string `form:"supplier_id,optional" validate:"omitempty,mongodb" comment:"供应商"`                                                                                                        //供应商
     CustomerId string `form:"customer_id,optional" validate:"omitempty,mongodb" comment:"客户"`                                                         //客户
 }
@@ -130,6 +110,7 @@ type InboundReceipt {
                                                                  //入库单类型
                                                                  //采购入库
                                                                  //外协入库
+                                                                 //生产入库
                                                                  //退货入库
     Type string `json:"type"`                                    //入库单类型
     SupplierId string `json:"supplier_id"`                       //供应商
@@ -138,30 +119,32 @@ type InboundReceipt {
     CustomerName string `json:"customer_name"`                   //客户名称
     ReceivingDate int64 `json:"receiving_date"`                  //入库日期
     TotalAmount float64 `json:"total_amount"`                    //总金额
-    Materials []InboundMaterial `json:"materials"`               //物料
+    Materials []InboundMaterialItem `json:"materials"`               //物料
     Annex []string `json:"annex,optional"`                       //附件
     Remark string `json:"remark,optional"`
 }
 
-//物料入库
-type InboundReceiptMaterialRequest {
-    Id string `json:"id,optional" validate:"required,mongodb" comment:"入库单"`
-    TotalAmount float64 `json:"total_amount,optional" validate:"omitempty,gte=0" comment:"总金额"`                                                                                                                                                                                       //总金额
-    Materials []InboundMaterialStatus `json:"materials,optional" validate:"omitempty,gt=0,dive" comment:"物料"`                                                                                //物料
-}
-
-//入库单物料信息
-type InboundMaterialStatus {
-    Id string `json:"id,optional" validate:"required,mongodb" comment:"物料"`                                                                             //物料id
-
-                                                                                          //物料状态
-                                                                                          //未发货：
-                                                                                          //在途：
-                                                                                          //部分入库：当入库单中的部分物料已入库，但尚有未入库的物料时，状态为部分入库。
-                                                                                          //作废：当入库单发生错误或不再需要时，可以将其状态设置为作废，表示该入库单无效。
-                                                                                          //入库完成
-    Status string `json:"status,optional" validate:"required,oneof=未发货 在途 部分入库 作废 入库完成" comment:"物料状态"`     //物料状态
-    ActualQuantity float64 `json:"actual_quantity,optional" validate:"number,gte=0" comment:"实际入库数量"`           //实际入库数量
+//采购物料和数量
+type InboundMaterialItem {
+    Index int `json:"index"`                                                 //物料顺序
+    Id string `json:"id,optional"`                                             //物料id
+    Name string `json:"name,optional"`                                                                                    //物料名称
+    Model string `json:"model,optional"`                                                                                  //物料型号
+    Unit string `json:"unit,optional"`                                                                                    //物料单位
+    Price float64 `json:"price,optional"`                                          //单价
+    EstimatedQuantity float64 `json:"estimated_quantity,optional"` //预计入库数量
+    ActualQuantity float64 `json:"actual_quantity,optional"`               //实际入库数量
+  //物料状态
+  //10.未发货：
+  //30.在途：
+  //40.部分入库
+  //50.作废
+  //60.入库完成
+    Status string `json:"status,optional"`                                //入库单状态
+    CreatorName string `json:"creator_name,optional"`    //创建人
+    EditorName string `json:"editor_name,optional"`   //修改人
+    CreatedAt int64 `json:"created_at,optional"`      //
+    UpdatedAt int64 `json:"updated_at,optional"`      //
 }
 
 //入库单审核
@@ -174,4 +157,79 @@ type InboundReceiptCheckRequest {
 //删除入库单
 type InboundReceiptIdRequest {
     Id string `form:"id,optional" validate:"required,mongodb" comment:"入库单"`//入库单id
+}
+
+
+//批次入库
+type InboundReceiptReceiveRequest {
+    Id string `json:"id,optional" validate:"required,mongodb" comment:"入库单"`
+    Code string `json:"code,optional" validate:"required" comment:"批次入库编号"`//批次入库编号
+    ReceivingDate int64 `json:"receiving_date,optional" validate:"omitempty,gte=0" comment:"批次入库日期"`//批次入库日期
+    CarrierId string `json:"carrier_id" validate:"omitempty,mongodb" comment:"承运商"`//承运商id
+    CarrierCost float64 `json:"carrier_cost" validate:"omitempty,gte=0" comment:"运费"`//运费
+    OtherCost float64 `json:"other_cost" validate:"omitempty,gte=0" comment:"其他费用"`//其他费用
+    Materials []InboundReceived `json:"materials,optional" validate:"omitempty,gt=0,dive" comment:"物料"`//批次入库物料
+    Remark string `json:"remark,optional" validate:"omitempty,lte=128" comment:"备注"` //备注
+}
+
+//批次入库物料和数量
+type InboundReceived {
+    Index int `json:"index,optional" validate:"required,gte=0" comment:"物料顺序"`                                                 //物料顺序
+    Id string `json:"id,optional" validate:"required,mongodb" comment:"物料"`                                             //物料id
+    Price float64 `json:"price,optional" validate:"number,gte=0" comment:"单价"`                                          //单价
+    ActualQuantity float64 `json:"actual_quantity,optional" validate:"number,gte=0" comment:"实际入库数量"`           //实际入库数量
+    Position []string `json:"position,optional" validate:"omitempty,dive,mongodb" comment:"仓储位置id"`             //仓储位置id
+                                                                                                                                   //物料状态
+                                                                                                                                   //部分入库：当入库单中的部分物料已入库，但尚有未入库的物料时，状态为部分入库。
+                                                                                                                                   //作废：当入库单发生错误或不再需要时，可以将其状态设置为作废，表示该入库单无效。
+                                                                                                                                   //入库完成
+    Status string `json:"status,optional" validate:"required,oneof=未发货 在途 部分入库 作废 入库完成" comment:"物料状态"`     //物料状态
+}
+
+//入库记录
+type InboundReceivedRecordsRequest{
+    InboundReceiptId string `form:"inbound_receipt_id,optional" validate:"required,mongodb" comment:"入库单"`
+}
+
+type InboundReceivedRecordsResponse {
+    Code int `json:"code"`
+    Msg string `json:"msg"`
+    Data []InboundReceivedRecord `json:"data"`
+}
+
+type InboundReceivedRecord{
+    Id string `json:"id"` //入库记录id
+    InboundReceiptId string `json:"inbound_receipt_id"` //入库单id
+    Code string `json:"code"` //批次入库编号
+    CarrierName      string                   `json:"carrier_name"`             //承运商名称
+    CarrierCost      float64                  `json:"carrier_cost"`             //运费
+    OtherCost        float64                  `json:"other_cost"`                 //其他费用
+    TotalAmount      float64                  `json:"total_amount"`             //批次入库物料总金额
+    ReceivingDate    int64                    `json:"receiving_date"`         //入库日期
+    Materials        []InboundReceiveMaterial `json:"materials"`         //批次入库物料清单
+    Annex            []string                 `json:"annex"`            //附件
+    Remark           string                   `json:"remark"`            //备注
+    CreatorId        string                   `json:"creator_id"`        //创建人id
+    CreatorName      string                   `json:"creator_name"`    //创建人名称
+    CreatedAt int64 `json:"created_at"`
+}
+
+type InboundReceiveMaterial {
+    Id             string  `json:"id"`                           //物料id
+    Index          int     `json:"index"`                     //物料顺序
+    Price          float64 `json:"price"`                     //物料单价
+    Name           string  `json:"name"`                       //物料名称：包括型号、材质、规格、表面处理、强度等级等
+    Model          string  `json:"model"`                     //型号：用于唯一标识和区分不同种类的钢材。
+    Unit           string  `json:"unit"`                       //计量单位
+    ActualQuantity float64 `json:"actual_quantity"` //实际入库数量
+                                                                           //物料状态：
+                                                                           //未发货
+                                                                           //部分入库
+                                                                           //作废
+                                                                           //入库完成
+    Status string `json:"status"` //物料状态
+    WarehouseName     string `json:"warehouse_name"`           //仓库名称
+    WarehouseZoneName string `json:"warehouse_zone_name"` //库区名称
+    WarehouseRackName string `json:"warehouse_rack_name"` //货架名称
+    WarehouseBinName  string `json:"warehouse_bin_name"`   //货位名称
 }

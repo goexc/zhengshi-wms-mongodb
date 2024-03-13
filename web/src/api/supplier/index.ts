@@ -1,7 +1,13 @@
 //统一管理供应商相关接口
 
 import request from "@/utils/request.ts";
-import {SupplierRequest, SuppliersRequest, SuppliersResponse, SupplierStatusRequest} from "@/api/supplier/types.ts";
+import {
+  SupplierOrdersRequest, SupplierOrdersResponse,
+  SupplierRequest,
+  SuppliersRequest,
+  SuppliersResponse,
+  SupplierStatusRequest
+} from "@/api/supplier/types.ts";
 import {baseResponse} from "@/api/types.ts";
 
 enum API {
@@ -13,6 +19,9 @@ enum API {
 
   //修改供应商状态/删除供应商
   SUPPLIER_STATUS_URL = '/supplier/status',
+
+  //供应商订单分页
+  SUPPLIER_ORDERS_URL = '/supplier/orders',
 }
 
 //获取供应商列表接口
@@ -41,3 +50,13 @@ export const reqAddOrUpdateSupplier = (data: SupplierRequest) => {
 //修改供应商状态[包括删除]
 export const reqChangeSupplierStatus = (data: SupplierStatusRequest) =>
   request.patch<any, baseResponse>(API.SUPPLIER_STATUS_URL, data);
+
+//供应商订单分页
+export const reqSupplierOrders = (req: SupplierOrdersRequest) =>
+  request.get<any, SupplierOrdersResponse>(API.SUPPLIER_ORDERS_URL, {
+    params: req,
+  });
+
+//供应商订单删除
+export const reqRemoveSupplierOrder = (id: string) =>
+  request.delete<any, baseResponse>(API.SUPPLIER_ORDERS_URL , {params: {id:id}});

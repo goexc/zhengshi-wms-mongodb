@@ -4,6 +4,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+// 承运商
 type Carrier struct {
 	Id                            primitive.ObjectID `json:"_id" bson:"_id,omitempty"`
 	Type                          string             `json:"type" bson:"type"`                                                         //承运商类型：个人、企业、组织

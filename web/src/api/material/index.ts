@@ -5,7 +5,7 @@ import {
   MaterialCategoryIdRequest,
   MaterialCategoryRequest,
   MaterialCategorysResponse,
-  MaterialIdRequest,
+  MaterialIdRequest, MaterialPricesResponse,
   MaterialRequest,
   MaterialsRequest,
   MaterialsResponse
@@ -73,9 +73,9 @@ export const reqRemoveMaterialCategory = (data: MaterialCategoryIdRequest) =>
   request.delete<any, baseResponse>(API.MATERIAL_CATEGORY_URL, {params: data});
 
 //查询物料单价列表
-export const reqMaterialPrices = (id:string) =>
-  request.get<any, baseResponse>(API.MATERIAL_PRICE_URL, {params: {id:id}})
+export const reqMaterialPrices = (material_id:string, customer_id:string) =>
+  request.get<any, MaterialPricesResponse>(API.MATERIAL_PRICE_URL, {params: {material_id:material_id,customer_id:customer_id}})
 
-//删除物料单价列表
-export const reqRemoveMaterialPrice = (id:string, price:number) =>
-  request.delete<any, baseResponse>(API.MATERIAL_PRICE_URL, {params: {id:id, price:price}})
+//删除物料单价
+export const reqRemoveMaterialPrice = (id:string, customer_id:string, price:number) =>
+  request.delete<any, baseResponse>(API.MATERIAL_PRICE_URL, {params: {id:id, customer_id:customer_id, price:price}})

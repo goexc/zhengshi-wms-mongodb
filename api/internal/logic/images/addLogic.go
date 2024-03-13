@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"net/http"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -54,26 +55,24 @@ func (l *AddLogic) Add(r *http.Request) (resp *types.ImageResponse, err error) {
 	fmt.Printf("File Size: %+v\n", h.Size)
 	fmt.Printf("MIME Header: %+v\n", h.Header)
 
-	bucket, err := l.svcCtx.OSS.Bucket(l.svcCtx.Config.OSS.Bucket)
+	objectKey := fmt.Sprintf("%s-%d%s", time.Now().Format("20060102150405"), rand.Intn(10000), strings.ToLower(filepath.Ext(h.Filename)))
+	//objectPath := filepath.Join("images", objectKey)
+	objectPath := "images/" + objectKey
+	_, err = l.svcCtx.Cos.Object.Put(l.ctx, objectPath, f, nil)
 	if err != nil {
-		fmt.Printf("[Error]Bucket 初始化失败：%s\n", err.Error())
-		resp.Code = http.StatusInternalServerError
-		resp.Msg = "服务器内部错误"
+		fmt.Printf("[Error]图片上传：%s,%s\n", objectPath, err.Error())
+		resp.Code = http.StatusBadRequest
+		resp.Msg = "图片上传失败"
 		return resp, nil
 	}
 
-	objectKey := fmt.Sprintf("%s-%d%s", time.Now().Format("20060102150405"), rand.Intn(10000), filepath.Ext(h.Filename))
-	//if err = bucket.PutObjectFromFile("1.jpg", h.Filename); err != nil {
-	if err = bucket.PutObject(objectKey, f); err != nil {
-		fmt.Printf("[Error]上传图片[%s]失败：%s\n", h.Filename, err.Error())
-		resp.Code = http.StatusInternalServerError
-		resp.Msg = "服务器内部错误"
-		return resp, nil
-	}
+	// 去掉文件名中的后缀部分
+	alt := h.Filename[:len(h.Filename)-len(filepath.Ext(h.Filename))]
 
 	//入库
 	image := model.Image{
 		ObjectKey: objectKey,
+		Alt:       alt,
 		Size:      h.Size / 1024,
 		CreatedAt: time.Now().Unix(),
 	}

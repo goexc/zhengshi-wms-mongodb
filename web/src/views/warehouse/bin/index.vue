@@ -10,6 +10,8 @@ import {TimeFormat} from "@/utils/time.ts";
 import Item from "./components/Item.vue";
 import Status from "./components/Status.vue";
 import RackPageItem from "@/components/WarehouseRack/RackPageItem.vue";
+import WarehousePageItem from "@/components/Warehouse/WarehousePageItem.vue";
+import ZonePageItem from "@/components/WarehouseZone/ZonePageItem.vue";
 
 //货位列表
 const initBinsForm = () => {
@@ -18,6 +20,7 @@ const initBinsForm = () => {
     size: 10,
     warehouse_id: '',
     warehouse_zone_id: '',
+    warehouse_rack_id: '',
     type: '',
     name: '',
     code: '',
@@ -171,13 +174,13 @@ onMounted(async () => {
             :form="form"
         />
         <el-form-item label="货位名称" prop="name">
-          <el-input v-model="form.name" clearable placeholder="请填写货位名称"/>
+          <el-input v-model.trim="form.name" clearable placeholder="请填写货位名称"/>
         </el-form-item>
         <el-form-item label="货位编号" prop="code">
-          <el-input v-model="form.code" clearable placeholder="请填写货位编号"/>
+          <el-input v-model.trim="form.code" clearable placeholder="请填写货位编号"/>
         </el-form-item>
         <el-form-item label="货位状态" prop="status">
-          <el-select v-model="form.status" clearable placeholder="请选择货位状态">
+          <el-select v-model.trim="form.status" clearable placeholder="请选择货位状态">
             <el-option v-for="(item,idx) in BinStatus" :key="idx" :label="`${idx+1}.${item}`"
                        :value="item"></el-option>
           </el-select>
@@ -193,7 +196,7 @@ onMounted(async () => {
     <el-card
         class="data"
     >
-      <el-button type="primary" plain icon="Plus" @click="add">添加货位</el-button>
+      <el-button type="primary" plain icon="CirclePlus" @click="add">添加货位</el-button>
       <el-table
           class="table"
           border
@@ -332,7 +335,7 @@ onMounted(async () => {
       ></el-pagination>
     </el-card>
     <el-dialog
-        v-model="visible"
+        v-model.trim="visible"
         :title="title"
         draggable
         width="800"

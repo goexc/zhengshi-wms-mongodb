@@ -28,6 +28,7 @@ export interface Rack {
   name: string; //货架名称
   type: string; //货架类型:标准货架 重型货架 中型货架 轻型货架
   code: string; //货架编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
+  image: string; //图片
   capacity: number; //货架容量
   capacity_unit: string; //货架容量单位：面积、体积或其他度量单位
   status: string; //货架状态:激活 禁用 盘点中 关闭

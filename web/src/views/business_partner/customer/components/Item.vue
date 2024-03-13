@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {nextTick, ref, reactive, onMounted} from "vue";
+import {nextTick, ref, reactive} from "vue";
 import {ElMessage, FormInstance, FormRules} from "element-plus";
 import {reqAddOrUpdateCustomer} from "@/api/customer";
 import {Customer, CustomerRequest} from "@/api/customer/types.ts";
@@ -15,6 +15,10 @@ const props = defineProps(['customer'])
 const form = ref<Customer>(JSON.parse(JSON.stringify(props.customer)))
 const formRef = ref<FormInstance>()
 const emit = defineEmits(['success', 'cancel'])
+
+//图片域名
+const oss_domain = ref<string>(import.meta.env.VITE_OSS_DOMAIN)
+
 
 //更换客户图片
 const handleSelect = (image: string) => {
@@ -91,6 +95,15 @@ const rules = reactive<FormRules>({
       type: 'string',
       trigger: ['blue', 'change'],
     }
+  ],
+  receivable_balance: [
+    {
+      required: true,
+      type: 'number',
+      min: 0,
+      message: '请填写应收账款余额',
+      trigger: ['blue', 'change'],
+    }
   ]
 
 })
@@ -132,6 +145,7 @@ const submit = async () => {
     email: form.value.email,
     address: form.value.address,
     remark: form.value.remark,
+    receivable_balance: form.value.receivable_balance,
   })
 
   if (res.code === 200) {
@@ -164,9 +178,27 @@ const submit = async () => {
           :url="form.image"
       />
     </el-form-item>
+    <el-form-item label="">
+      <el-image
+          v-if="form.image&&form.image.endsWith('.svg')"
+          :src="`${ oss_domain }${form.image}`"
+          :infinite="true"
+          :preview-teleported="true"
+          :preview-src-list="[`${ oss_domain }${form.image}`]"
+          style="width: 148px;height: 148px;"
+      ></el-image>
+      <el-image
+          v-if="form.image&&!form.image.endsWith('.svg')"
+          :src="`${ oss_domain }${form.image}_148x148`"
+          :infinite="true"
+          :preview-teleported="true"
+          :preview-src-list="[`${ oss_domain }${form.image}`]"
+          style="width: 148px;height: 148px;"
+      ></el-image>
+    </el-form-item>
     <el-form-item label="客户类型" prop="name">
       <el-select
-          v-model="form.type"
+          v-model.trim="form.type"
           placeholder="请选择客户类型"
           clearable
       >
@@ -174,34 +206,37 @@ const submit = async () => {
       </el-select>
     </el-form-item>
     <el-form-item label="客户名称" prop="name">
-      <el-input v-model="form.name" clearable/>
+      <el-input v-model.trim="form.name" clearable/>
     </el-form-item>
     <el-form-item label="客户编号" prop="code">
-      <el-input v-model="form.code" clearable/>
+      <el-input v-model.trim="form.code" clearable/>
     </el-form-item>
     <el-form-item label="法定代表人" prop="legal_representative">
       <el-input v-model.number="form.legal_representative" clearable/>
     </el-form-item>
     <el-form-item v-if="form.type === '个人'" label="身份证号码" prop="unified_social_credit_identifier">
-      <el-input v-model="form.unified_social_credit_identifier" clearable/>
+      <el-input v-model.trim="form.unified_social_credit_identifier" clearable/>
     </el-form-item>
     <el-form-item v-if="form.type !== '个人'" label="统一社会信用代码" prop="unified_social_credit_identifier">
-      <el-input v-model="form.unified_social_credit_identifier" clearable/>
+      <el-input v-model.trim="form.unified_social_credit_identifier" clearable/>
     </el-form-item>
     <el-form-item label="负责人" prop="manager">
-      <el-input v-model="form.manager" clearable/>
+      <el-input v-model.trim="form.manager" clearable/>
     </el-form-item>
     <el-form-item label="联系方式" prop="contact">
-      <el-input v-model="form.contact" clearable/>
+      <el-input v-model.trim="form.contact" clearable/>
     </el-form-item>
     <el-form-item label="Email" prop="email">
-      <el-input v-model="form.email" clearable/>
+      <el-input v-model.trim="form.email" clearable/>
     </el-form-item>
     <el-form-item label="地址" prop="address">
-      <el-input v-model="form.address" clearable/>
+      <el-input v-model.trim="form.address" clearable/>
     </el-form-item>
     <el-form-item label="备注" prop="remark">
-      <el-input v-model="form.remark" clearable/>
+      <el-input v-model.trim="form.remark" clearable/>
+    </el-form-item>
+    <el-form-item label="应收账款余额" prop="receivable_balance">
+      <el-input v-model.number="form.receivable_balance" clearable/>
     </el-form-item>
     <el-form-item>
       <el-button plain @click="cancel">取消</el-button>

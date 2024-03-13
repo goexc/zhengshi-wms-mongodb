@@ -2,7 +2,6 @@ package receipt
 
 import (
 	"api/model"
-	"api/pkg/code"
 	"context"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
@@ -49,7 +48,8 @@ func (l *CheckLogic) Check(req *types.InboundReceiptCheckRequest) (resp *types.B
 			return resp, nil
 		}
 
-		if receipt.Status != code.InboundReceiptStatusCode("待审核") {
+		//if receipt.Status != code.InboundReceiptStatusCode("待审核") {
+		if receipt.Status != "待审核" {
 			resp.Code = http.StatusBadRequest
 			resp.Msg = "入库单不能重复审核"
 			return resp, nil
@@ -69,7 +69,8 @@ func (l *CheckLogic) Check(req *types.InboundReceiptCheckRequest) (resp *types.B
 	//2.审核
 	update := bson.M{
 		"$set": bson.M{
-			"status": code.InboundReceiptStatusCode(req.Status),
+			//"status": code.InboundReceiptStatusCode(req.Status),
+			"status": req.Status,
 		},
 	}
 

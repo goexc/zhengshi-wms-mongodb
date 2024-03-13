@@ -41,7 +41,7 @@ router.beforeEach(async (to, from, next) => {
 
   // 2.动态设置标题
   const title = import.meta.env.VITE_TITLE;
-  document.title = to.name ? `${to.name} - ${title}` : title;
+  document.title = to.name ? `${to.name as string} - ${title}` : title;
 
   // 3.判断是访问登录页，有 Token 就在当前页面，没有 Token 重置路由到登录页
   if (to.path.toLocaleLowerCase() === LOGIN_URL) {

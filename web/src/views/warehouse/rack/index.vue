@@ -159,19 +159,19 @@ onMounted(async () => {
             :form="form"
         />
         <el-form-item label="货架名称" prop="name">
-          <el-input v-model="form.name" clearable placeholder="请填写货架名称"/>
+          <el-input v-model.trim="form.name" clearable placeholder="请填写货架名称"/>
         </el-form-item>
         <el-form-item label="货架编号" prop="code">
-          <el-input v-model="form.code" clearable placeholder="请填写货架编号"/>
+          <el-input v-model.trim="form.code" clearable placeholder="请填写货架编号"/>
         </el-form-item>
         <el-form-item label="货架类型" prop="type">
-          <el-select v-model="form.type" clearable placeholder="请选择货架类型">
+          <el-select v-model.trim="form.type" clearable placeholder="请选择货架类型">
             <el-option v-for="(item,idx) in RackTypes" :key="idx" :label="`${idx+1}.${item}`"
                        :value="item"></el-option>
           </el-select>
         </el-form-item>
         <el-form-item label="货架状态" prop="status">
-          <el-select v-model="form.status" clearable placeholder="请选择货架状态">
+          <el-select v-model.trim="form.status" clearable placeholder="请选择货架状态">
             <el-option v-for="(item,idx) in RackStatus" :key="idx" :label="`${idx+1}.${item}`"
                        :value="item"></el-option>
           </el-select>
@@ -187,7 +187,7 @@ onMounted(async () => {
     <el-card
         class="data"
     >
-      <el-button type="primary" plain icon="Plus" @click="add">添加货架</el-button>
+      <el-button type="primary" plain icon="CirclePlus" @click="add">添加货架</el-button>
       <el-table
           class="table"
           border
@@ -321,7 +321,7 @@ onMounted(async () => {
       ></el-pagination>
     </el-card>
     <el-dialog
-        v-model="visible"
+        v-model.trim="visible"
         :title="title"
         draggable
         width="800"

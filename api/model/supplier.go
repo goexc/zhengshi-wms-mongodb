@@ -4,6 +4,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+// 供应商
 type Supplier struct {
 	Id                            primitive.ObjectID `json:"_id" bson:"_id,omitempty"`
 	Type                          string             `json:"type" bson:"type"`                                                         //供应商类型：个人、企业、组织

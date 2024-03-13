@@ -34,5 +34,16 @@ type ImagesResponse {
 
 type ImagePaginate {
     Total int64 `json:"total"`
-    List []string `json:"list"` //图片列表
+//    List []string `json:"list"` //图片列表
+    List []ImageItem `json:"list"` //图片列表
+}
+
+type ImageItem {
+    Url string `json:"url"`
+    Alt string `json:"alt"`
+}
+
+//删除图片
+type ImageRemoveRequest {
+    Key string `form:"key,optional" validate:"required" comment:"图片链接"`
 }

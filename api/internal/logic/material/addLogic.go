@@ -36,10 +36,8 @@ func (l *AddLogic) Add(req *types.MaterialRequest) (resp *types.BaseResponse, er
 
 	//1.物料编号是否占用，物料名称是否占用
 	var filter = bson.M{
-		"$or": []bson.M{
-			{"model": strings.TrimSpace(req.Model)},
-			{"name": strings.TrimSpace(req.Name)},
-		},
+		"model": strings.TrimSpace(req.Model),
+		"name":  strings.TrimSpace(req.Name),
 	}
 
 	singleRes := l.svcCtx.MaterialModel.FindOne(l.ctx, filter)
@@ -53,12 +51,7 @@ func (l *AddLogic) Add(req *types.MaterialRequest) (resp *types.BaseResponse, er
 			return resp, nil
 		}
 
-		switch true {
-		case one.Model == strings.TrimSpace(req.Model):
-			resp.Msg = "物料型号已占用"
-		case one.Name == strings.TrimSpace(req.Name):
-			resp.Msg = "物料名称已占用"
-		}
+		resp.Msg = fmt.Sprintf("%s(%s)已存在", one.Name, one.Model)
 		resp.Code = http.StatusBadRequest
 		return resp, nil
 	case mongo.ErrNoDocuments: //物料标号、名称未占用
@@ -133,11 +126,33 @@ func (l *AddLogic) Add(req *types.MaterialRequest) (resp *types.BaseResponse, er
 		UpdatedAt:        time.Now().Unix(),
 	}
 
-	_, err = l.svcCtx.MaterialModel.InsertOne(l.ctx, &m)
+	oneRes, err := l.svcCtx.MaterialModel.InsertOne(l.ctx, &m)
 	if err != nil {
 		fmt.Printf("[Error]物料入库:%s\n", err.Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务器内部错误"
+		return resp, nil
+	}
+
+	//5.存储物料单价
+	fmt.Printf("[Info]物料[%s]单价:%.f\n", oneRes.InsertedID.(primitive.ObjectID).Hex(), req.Price)
+	if req.Price <= 0 { //忽略无效的物料单价
+		resp.Code = http.StatusOK
+		resp.Msg = "成功"
+		return resp, nil
+	}
+
+	_, err = l.svcCtx.MaterialPriceModel.InsertOne(l.ctx, &model.MaterialPrice{
+		Material:    oneRes.InsertedID.(primitive.ObjectID).Hex(),
+		Price:       req.Price,
+		Creator:     uid,
+		CreatorName: l.ctx.Value("name").(string),
+		CreatedAt:   time.Now().Unix(),
+	})
+	if err != nil {
+		fmt.Printf("[Error]存储物料[%s][%s]单价:%s\n", oneRes.InsertedID.(primitive.ObjectID).Hex(), req.Model, err.Error())
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "物料单价存储失败，请另行添加"
 		return resp, nil
 	}
 

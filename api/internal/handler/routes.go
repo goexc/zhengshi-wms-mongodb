@@ -10,13 +10,15 @@ import (
 	carrier "api/internal/handler/carrier"
 	company "api/internal/handler/company"
 	customer "api/internal/handler/customer"
+	customertransaction "api/internal/handler/customer/transaction"
 	department "api/internal/handler/department"
 	images "api/internal/handler/images"
 	inboundreceipt "api/internal/handler/inbound/receipt"
+	inventory "api/internal/handler/inventory"
 	material "api/internal/handler/material"
 	materialprice "api/internal/handler/material/price"
 	menu "api/internal/handler/menu"
-	outboundreceipt "api/internal/handler/outbound/receipt"
+	outbound "api/internal/handler/outbound"
 	role "api/internal/handler/role"
 	supplier "api/internal/handler/supplier"
 	user "api/internal/handler/user"
@@ -33,49 +35,33 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 	server.AddRoutes(
 		[]rest.Route{
 			{
-				Method:  http.MethodPost,
-				Path:    "/register",
-				Handler: auth.RegisterHandler(serverCtx),
+				Method:  http.MethodPatch,
+				Path:    "/avatar",
+				Handler: account.ChangeAvatarHandler(serverCtx),
 			},
-			{
-				Method:  http.MethodPost,
-				Path:    "/login",
-				Handler: auth.LoginHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPost,
-				Path:    "/logout",
-				Handler: auth.LogoutHandler(serverCtx),
-			},
-		},
-		rest.WithPrefix("/auth"),
-	)
-
-	server.AddRoutes(
-		[]rest.Route{
 			{
 				Method:  http.MethodGet,
-				Path:    "/list",
-				Handler: menu.ListHandler(serverCtx),
+				Path:    "/menu",
+				Handler: account.MenuHandler(serverCtx),
 			},
 			{
-				Method:  http.MethodPost,
-				Path:    "/",
-				Handler: menu.AddHandler(serverCtx),
+				Method:  http.MethodPatch,
+				Path:    "/password",
+				Handler: account.ChangePasswordHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/profile",
+				Handler: account.ProfileHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodPut,
-				Path:    "/",
-				Handler: menu.UpdateHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodDelete,
-				Path:    "/",
-				Handler: menu.RemoveHandler(serverCtx),
+				Path:    "/profile",
+				Handler: account.EditProfileHandler(serverCtx),
 			},
 		},
 		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
-		rest.WithPrefix("/menu"),
+		rest.WithPrefix("/account"),
 	)
 
 	server.AddRoutes(
@@ -108,240 +94,29 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 	server.AddRoutes(
 		[]rest.Route{
 			{
-				Method:  http.MethodGet,
-				Path:    "/list",
-				Handler: role.ListHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodGet,
-				Path:    "/",
-				Handler: role.PaginateHandler(serverCtx),
+				Method:  http.MethodPost,
+				Path:    "/login",
+				Handler: auth.LoginHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodPost,
-				Path:    "/",
-				Handler: role.AddHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPut,
-				Path:    "/",
-				Handler: role.UpdateHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodDelete,
-				Path:    "/",
-				Handler: role.RemoveHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPatch,
-				Path:    "/status",
-				Handler: role.StatusHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodGet,
-				Path:    "/menus",
-				Handler: role.MenusHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPost,
-				Path:    "/menus",
-				Handler: role.MenuDistributeHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodGet,
-				Path:    "/apis",
-				Handler: role.ApisHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPost,
-				Path:    "/apis",
-				Handler: role.ApiDistributeHandler(serverCtx),
+				Path:    "/register",
+				Handler: auth.RegisterHandler(serverCtx),
 			},
 		},
-		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
-		rest.WithPrefix("/role"),
+		rest.WithPrefix("/auth"),
 	)
 
 	server.AddRoutes(
 		[]rest.Route{
 			{
-				Method:  http.MethodGet,
-				Path:    "/",
-				Handler: department.ListHandler(serverCtx),
-			},
-			{
 				Method:  http.MethodPost,
-				Path:    "/",
-				Handler: department.AddHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPut,
-				Path:    "/",
-				Handler: department.UpdateHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodDelete,
-				Path:    "/",
-				Handler: department.RemoveHandler(serverCtx),
+				Path:    "/logout",
+				Handler: auth.LogoutHandler(serverCtx),
 			},
 		},
 		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
-		rest.WithPrefix("/department"),
-	)
-
-	server.AddRoutes(
-		[]rest.Route{
-			{
-				Method:  http.MethodGet,
-				Path:    "/",
-				Handler: user.PaginateHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPost,
-				Path:    "/",
-				Handler: user.AddHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPut,
-				Path:    "/",
-				Handler: user.UpdateHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodDelete,
-				Path:    "/",
-				Handler: user.RemoveHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPatch,
-				Path:    "/password",
-				Handler: user.ChangePasswordHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPatch,
-				Path:    "/status",
-				Handler: user.StatusHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPatch,
-				Path:    "/roles",
-				Handler: user.RolesHandler(serverCtx),
-			},
-		},
-		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
-		rest.WithPrefix("/user"),
-	)
-
-	server.AddRoutes(
-		[]rest.Route{
-			{
-				Method:  http.MethodGet,
-				Path:    "/profile",
-				Handler: account.ProfileHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPut,
-				Path:    "/profile",
-				Handler: account.EditProfileHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPatch,
-				Path:    "/password",
-				Handler: account.ChangePasswordHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPatch,
-				Path:    "/avatar",
-				Handler: account.ChangeAvatarHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodGet,
-				Path:    "/menu",
-				Handler: account.MenuHandler(serverCtx),
-			},
-		},
-		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
-		rest.WithPrefix("/account"),
-	)
-
-	server.AddRoutes(
-		[]rest.Route{
-			{
-				Method:  http.MethodGet,
-				Path:    "/",
-				Handler: company.InfoHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPut,
-				Path:    "/",
-				Handler: company.UpdateHandler(serverCtx),
-			},
-		},
-		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
-		rest.WithPrefix("/company"),
-	)
-
-	server.AddRoutes(
-		[]rest.Route{
-			{
-				Method:  http.MethodGet,
-				Path:    "/list",
-				Handler: supplier.ListHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodGet,
-				Path:    "/",
-				Handler: supplier.PaginateHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPost,
-				Path:    "/",
-				Handler: supplier.AddHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPut,
-				Path:    "/",
-				Handler: supplier.UpdateHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPatch,
-				Path:    "/status",
-				Handler: supplier.StatusHandler(serverCtx),
-			},
-		},
-		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
-		rest.WithPrefix("/supplier"),
-	)
-
-	server.AddRoutes(
-		[]rest.Route{
-			{
-				Method:  http.MethodGet,
-				Path:    "/list",
-				Handler: customer.ListHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodGet,
-				Path:    "/",
-				Handler: customer.PageHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPost,
-				Path:    "/",
-				Handler: customer.AddHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPut,
-				Path:    "/",
-				Handler: customer.UpdateHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPatch,
-				Path:    "/status",
-				Handler: customer.StatusHandler(serverCtx),
-			},
-		},
-		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
-		rest.WithPrefix("/customer"),
+		rest.WithPrefix("/auth"),
 	)
 
 	server.AddRoutes(
@@ -375,157 +150,188 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 		[]rest.Route{
 			{
 				Method:  http.MethodGet,
-				Path:    "/tree",
-				Handler: warehouse.TreeHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodGet,
-				Path:    "/list",
-				Handler: warehouse.ListHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodGet,
 				Path:    "/",
-				Handler: warehouse.PaginateHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPost,
-				Path:    "/",
-				Handler: warehouse.AddHandler(serverCtx),
+				Handler: company.InfoHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodPut,
 				Path:    "/",
-				Handler: warehouse.UpdateHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPatch,
-				Path:    "/status",
-				Handler: warehouse.StatusHandler(serverCtx),
+				Handler: company.UpdateHandler(serverCtx),
 			},
 		},
 		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
-		rest.WithPrefix("/warehouse"),
+		rest.WithPrefix("/company"),
 	)
 
 	server.AddRoutes(
 		[]rest.Route{
 			{
 				Method:  http.MethodGet,
-				Path:    "/list",
-				Handler: warehouse_zone.ListHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodGet,
 				Path:    "/",
-				Handler: warehouse_zone.PaginateHandler(serverCtx),
+				Handler: customer.PageHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodPost,
 				Path:    "/",
-				Handler: warehouse_zone.AddHandler(serverCtx),
+				Handler: customer.AddHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodPut,
 				Path:    "/",
-				Handler: warehouse_zone.UpdateHandler(serverCtx),
+				Handler: customer.UpdateHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/list",
+				Handler: customer.ListHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/recount",
+				Handler: customer.RecountHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodPatch,
 				Path:    "/status",
-				Handler: warehouse_zone.StatusHandler(serverCtx),
+				Handler: customer.StatusHandler(serverCtx),
 			},
 		},
 		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
-		rest.WithPrefix("/warehouse_zone"),
+		rest.WithPrefix("/customer"),
 	)
 
 	server.AddRoutes(
 		[]rest.Route{
 			{
 				Method:  http.MethodGet,
-				Path:    "/list",
-				Handler: warehouse_rack.ListHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodGet,
 				Path:    "/",
-				Handler: warehouse_rack.PaginateHandler(serverCtx),
+				Handler: customertransaction.PageHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodPost,
 				Path:    "/",
-				Handler: warehouse_rack.AddHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPut,
-				Path:    "/",
-				Handler: warehouse_rack.UpdateHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPatch,
-				Path:    "/status",
-				Handler: warehouse_rack.StatusHandler(serverCtx),
+				Handler: customertransaction.AddHandler(serverCtx),
 			},
 		},
 		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
-		rest.WithPrefix("/warehouse_rack"),
+		rest.WithPrefix("/customer/transaction"),
 	)
 
 	server.AddRoutes(
 		[]rest.Route{
 			{
 				Method:  http.MethodGet,
-				Path:    "/list",
-				Handler: warehouse_bin.ListHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodGet,
 				Path:    "/",
-				Handler: warehouse_bin.PaginateHandler(serverCtx),
+				Handler: department.ListHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodPost,
 				Path:    "/",
-				Handler: warehouse_bin.AddHandler(serverCtx),
+				Handler: department.AddHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodPut,
 				Path:    "/",
-				Handler: warehouse_bin.UpdateHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPatch,
-				Path:    "/status",
-				Handler: warehouse_bin.StatusHandler(serverCtx),
-			},
-		},
-		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
-		rest.WithPrefix("/warehouse_bin"),
-	)
-
-	server.AddRoutes(
-		[]rest.Route{
-			{
-				Method:  http.MethodGet,
-				Path:    "/category",
-				Handler: material.CategoryListHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPost,
-				Path:    "/category",
-				Handler: material.AddCategoryHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPut,
-				Path:    "/category",
-				Handler: material.UpdateCategoryHandler(serverCtx),
+				Handler: department.UpdateHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodDelete,
-				Path:    "/category",
-				Handler: material.RemoveCategoryHandler(serverCtx),
+				Path:    "/",
+				Handler: department.RemoveHandler(serverCtx),
 			},
+		},
+		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
+		rest.WithPrefix("/department"),
+	)
+
+	server.AddRoutes(
+		[]rest.Route{
+			{
+				Method:  http.MethodPost,
+				Path:    "/",
+				Handler: images.AddHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/",
+				Handler: images.PageHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodDelete,
+				Path:    "/",
+				Handler: images.RemoveHandler(serverCtx),
+			},
+		},
+		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
+		rest.WithPrefix("/images"),
+	)
+
+	server.AddRoutes(
+		[]rest.Route{
+			{
+				Method:  http.MethodGet,
+				Path:    "/",
+				Handler: inboundreceipt.PageHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/",
+				Handler: inboundreceipt.AddHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPut,
+				Path:    "/",
+				Handler: inboundreceipt.UpdateHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodDelete,
+				Path:    "/",
+				Handler: inboundreceipt.RemoveHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPatch,
+				Path:    "/check",
+				Handler: inboundreceipt.CheckHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/receive",
+				Handler: inboundreceipt.ReceiveHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/receive",
+				Handler: inboundreceipt.RecordHandler(serverCtx),
+			},
+		},
+		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
+		rest.WithPrefix("/inbound/receipt"),
+	)
+
+	server.AddRoutes(
+		[]rest.Route{
+			{
+				Method:  http.MethodGet,
+				Path:    "/",
+				Handler: inventory.PageHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/list",
+				Handler: inventory.ListHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/record",
+				Handler: inventory.RecordHandler(serverCtx),
+			},
+		},
+		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
+		rest.WithPrefix("/inventory"),
+	)
+
+	server.AddRoutes(
+		[]rest.Route{
 			{
 				Method:  http.MethodPost,
 				Path:    "/",
@@ -545,6 +351,26 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Method:  http.MethodGet,
 				Path:    "/",
 				Handler: material.ListHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/category",
+				Handler: material.CategoryListHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/category",
+				Handler: material.AddCategoryHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPut,
+				Path:    "/category",
+				Handler: material.UpdateCategoryHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodDelete,
+				Path:    "/category",
+				Handler: material.RemoveCategoryHandler(serverCtx),
 			},
 		},
 		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
@@ -571,75 +397,28 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 	server.AddRoutes(
 		[]rest.Route{
 			{
-				Method:  http.MethodGet,
-				Path:    "/",
-				Handler: inboundreceipt.PageHandler(serverCtx),
-			},
-			{
 				Method:  http.MethodPost,
 				Path:    "/",
-				Handler: inboundreceipt.AddHandler(serverCtx),
+				Handler: menu.AddHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodPut,
 				Path:    "/",
-				Handler: inboundreceipt.UpdateHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPatch,
-				Path:    "/check",
-				Handler: inboundreceipt.CheckHandler(serverCtx),
+				Handler: menu.UpdateHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodDelete,
 				Path:    "/",
-				Handler: inboundreceipt.RemoveHandler(serverCtx),
+				Handler: menu.RemoveHandler(serverCtx),
 			},
-			{
-				Method:  http.MethodPatch,
-				Path:    "/material",
-				Handler: inboundreceipt.MaterialHandler(serverCtx),
-			},
-		},
-		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
-		rest.WithPrefix("/inbound/receipt"),
-	)
-
-	server.AddRoutes(
-		[]rest.Route{
 			{
 				Method:  http.MethodGet,
-				Path:    "/",
-				Handler: outboundreceipt.PageHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPost,
-				Path:    "/",
-				Handler: outboundreceipt.AddHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPut,
-				Path:    "/",
-				Handler: outboundreceipt.EditHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPatch,
-				Path:    "/check",
-				Handler: outboundreceipt.CheckHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodDelete,
-				Path:    "/",
-				Handler: outboundreceipt.RemoveHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPatch,
-				Path:    "/material",
-				Handler: outboundreceipt.MaterialHandler(serverCtx),
+				Path:    "/list",
+				Handler: menu.ListHandler(serverCtx),
 			},
 		},
 		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
-		rest.WithPrefix("/outbound/receipt"),
+		rest.WithPrefix("/menu"),
 	)
 
 	server.AddRoutes(
@@ -647,15 +426,334 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			{
 				Method:  http.MethodPost,
 				Path:    "/",
-				Handler: images.AddHandler(serverCtx),
+				Handler: outbound.AddHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodDelete,
+				Path:    "/",
+				Handler: outbound.RemoveHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPatch,
+				Path:    "/confirm",
+				Handler: outbound.ConfirmHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPatch,
+				Path:    "/departure",
+				Handler: outbound.DepartureHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodGet,
-				Path:    "/",
-				Handler: images.PageHandler(serverCtx),
+				Path:    "/materials",
+				Handler: outbound.MaterialsHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPatch,
+				Path:    "/pack",
+				Handler: outbound.PackHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/page",
+				Handler: outbound.PageHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/page2",
+				Handler: outbound.Page2Handler(serverCtx),
+			},
+			{
+				Method:  http.MethodPatch,
+				Path:    "/pick",
+				Handler: outbound.PickHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPatch,
+				Path:    "/receipt",
+				Handler: outbound.ReceiptHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPatch,
+				Path:    "/revise",
+				Handler: outbound.ReviseHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/summary",
+				Handler: outbound.SummaryHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPatch,
+				Path:    "/weigh",
+				Handler: outbound.WeighHandler(serverCtx),
 			},
 		},
 		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
-		rest.WithPrefix("/images"),
+		rest.WithPrefix("/outbound"),
+	)
+
+	server.AddRoutes(
+		[]rest.Route{
+			{
+				Method:  http.MethodGet,
+				Path:    "/",
+				Handler: role.PaginateHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/",
+				Handler: role.AddHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPut,
+				Path:    "/",
+				Handler: role.UpdateHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodDelete,
+				Path:    "/",
+				Handler: role.RemoveHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/apis",
+				Handler: role.ApisHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/apis",
+				Handler: role.ApiDistributeHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/list",
+				Handler: role.ListHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/menus",
+				Handler: role.MenusHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/menus",
+				Handler: role.MenuDistributeHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPatch,
+				Path:    "/status",
+				Handler: role.StatusHandler(serverCtx),
+			},
+		},
+		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
+		rest.WithPrefix("/role"),
+	)
+
+	server.AddRoutes(
+		[]rest.Route{
+			{
+				Method:  http.MethodGet,
+				Path:    "/",
+				Handler: supplier.PaginateHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/",
+				Handler: supplier.AddHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPut,
+				Path:    "/",
+				Handler: supplier.UpdateHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/list",
+				Handler: supplier.ListHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPatch,
+				Path:    "/status",
+				Handler: supplier.StatusHandler(serverCtx),
+			},
+		},
+		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
+		rest.WithPrefix("/supplier"),
+	)
+
+	server.AddRoutes(
+		[]rest.Route{
+			{
+				Method:  http.MethodGet,
+				Path:    "/",
+				Handler: user.PaginateHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/",
+				Handler: user.AddHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPut,
+				Path:    "/",
+				Handler: user.UpdateHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodDelete,
+				Path:    "/",
+				Handler: user.RemoveHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPatch,
+				Path:    "/password",
+				Handler: user.ChangePasswordHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPatch,
+				Path:    "/roles",
+				Handler: user.RolesHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPatch,
+				Path:    "/status",
+				Handler: user.StatusHandler(serverCtx),
+			},
+		},
+		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
+		rest.WithPrefix("/user"),
+	)
+
+	server.AddRoutes(
+		[]rest.Route{
+			{
+				Method:  http.MethodGet,
+				Path:    "/",
+				Handler: warehouse.PaginateHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/",
+				Handler: warehouse.AddHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPut,
+				Path:    "/",
+				Handler: warehouse.UpdateHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/list",
+				Handler: warehouse.ListHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPatch,
+				Path:    "/status",
+				Handler: warehouse.StatusHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/tree",
+				Handler: warehouse.TreeHandler(serverCtx),
+			},
+		},
+		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
+		rest.WithPrefix("/warehouse"),
+	)
+
+	server.AddRoutes(
+		[]rest.Route{
+			{
+				Method:  http.MethodGet,
+				Path:    "/",
+				Handler: warehouse_bin.PaginateHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/",
+				Handler: warehouse_bin.AddHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPut,
+				Path:    "/",
+				Handler: warehouse_bin.UpdateHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/list",
+				Handler: warehouse_bin.ListHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPatch,
+				Path:    "/status",
+				Handler: warehouse_bin.StatusHandler(serverCtx),
+			},
+		},
+		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
+		rest.WithPrefix("/warehouse_bin"),
+	)
+
+	server.AddRoutes(
+		[]rest.Route{
+			{
+				Method:  http.MethodGet,
+				Path:    "/",
+				Handler: warehouse_rack.PaginateHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/",
+				Handler: warehouse_rack.AddHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPut,
+				Path:    "/",
+				Handler: warehouse_rack.UpdateHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/list",
+				Handler: warehouse_rack.ListHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPatch,
+				Path:    "/status",
+				Handler: warehouse_rack.StatusHandler(serverCtx),
+			},
+		},
+		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
+		rest.WithPrefix("/warehouse_rack"),
+	)
+
+	server.AddRoutes(
+		[]rest.Route{
+			{
+				Method:  http.MethodGet,
+				Path:    "/",
+				Handler: warehouse_zone.PaginateHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/",
+				Handler: warehouse_zone.AddHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPut,
+				Path:    "/",
+				Handler: warehouse_zone.UpdateHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/list",
+				Handler: warehouse_zone.ListHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPatch,
+				Path:    "/status",
+				Handler: warehouse_zone.StatusHandler(serverCtx),
+			},
+		},
+		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
+		rest.WithPrefix("/warehouse_zone"),
 	)
 }

@@ -6,8 +6,8 @@ export interface DepartmentListResponse {
 
 export interface Department {
   id: string;
-  sort_id: string; //排序
   parent_id: string; //上级部门
+  sort_id: number; //排序
   name: string; //部门名称
   code: string; //部门编码
   remark: string; //备注
@@ -18,7 +18,7 @@ export interface Department {
 
 export interface DepartmentRequest {
   id: string;
-  sort_id: string; //排序
+  sort_id: number; //排序
   parent_id: string; //上级部门
   name: string; //部门名称
   code: string; //部门编码

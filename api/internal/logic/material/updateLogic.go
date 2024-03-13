@@ -42,13 +42,13 @@ func (l *UpdateLogic) Update(req *types.MaterialRequest) (resp *types.BaseRespon
 		return resp, nil
 	}
 
+	fmt.Println("物料id：", req.Id)
+
 	//1.物料编号是否占用，物料名称是否占用
 	var filter = bson.M{
-		"$or": []bson.M{
-			{"model": strings.TrimSpace(req.Model)},
-			{"name": strings.TrimSpace(req.Name)},
-		},
-		"_id": bson.M{"$ne": id},
+		"model": strings.TrimSpace(req.Model),
+		"name":  strings.TrimSpace(req.Name),
+		"_id":   bson.M{"$ne": id},
 	}
 	singleRes := l.svcCtx.MaterialModel.FindOne(l.ctx, filter)
 	switch singleRes.Err() {
@@ -61,12 +61,7 @@ func (l *UpdateLogic) Update(req *types.MaterialRequest) (resp *types.BaseRespon
 			return resp, nil
 		}
 
-		switch true {
-		case one.Model == strings.TrimSpace(req.Model):
-			resp.Msg = "物料型号已占用"
-		case one.Name == strings.TrimSpace(req.Name):
-			resp.Msg = "物料名称已占用"
-		}
+		resp.Msg = fmt.Sprintf("%s(%s)已存在", one.Name, one.Model)
 		resp.Code = http.StatusBadRequest
 		return resp, nil
 	case mongo.ErrNoDocuments: //物料标号、名称未占用
@@ -138,6 +133,31 @@ func (l *UpdateLogic) Update(req *types.MaterialRequest) (resp *types.BaseRespon
 		return resp, nil
 	}
 
+	//3.存储物料单价(缺少参数：客户id)
+	//if req.Price <= 0 { //忽略无效的物料单价
+	//	resp.Code = http.StatusOK
+	//	resp.Msg = "成功"
+	//	return resp, nil
+	//}
+	//
+	//update = bson.M{
+	//	"$set": bson.M{
+	//		"material":     req.Id,
+	//		"price":        req.Price,
+	//		"creator":      l.ctx.Value("uid").(string),
+	//		"creator_name": l.ctx.Value("name").(string),
+	//		"created_at":   time.Now().Unix(),
+	//	},
+	//}
+	//var opts = options.Update().SetUpsert(true)
+	//
+	//_, err = l.svcCtx.MaterialPriceModel.UpdateOne(l.ctx, bson.M{"material": req.Id, "price": req.Price}, update, opts)
+	//if err != nil {
+	//	fmt.Printf("[Error]存储物料[%s][%s]单价:%s\n", req.Id, req.Model, err.Error())
+	//	resp.Code = http.StatusInternalServerError
+	//	resp.Msg = "物料单价存储失败，请另行添加"
+	//	return resp, nil
+	//}
 	resp.Code = http.StatusOK
 	resp.Msg = "成功"
 	return resp, nil

@@ -29,6 +29,8 @@ func (l *LogoutLogic) Logout() (resp *types.BaseResponse, err error) {
 
 	uid := l.ctx.Value("uid").(string)
 
+	fmt.Println("uid:", uid)
+
 	//1.删除token缓存
 	if uid != "" {
 		err = l.svcCtx.Cache.DelCtx(l.ctx, fmt.Sprintf(userTokenKey, uid))

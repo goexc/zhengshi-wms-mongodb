@@ -16,6 +16,10 @@ const form = ref<Warehouse>(JSON.parse(JSON.stringify(props.warehouse)))
 const formRef = ref<FormInstance>()
 const emit = defineEmits(['success', 'cancel'])
 
+//图片域名
+const oss_domain = ref<string>(import.meta.env.VITE_OSS_DOMAIN)
+
+
 //更换仓库图片
 const handleSelect = (image:string) => {
   form.value.image = image
@@ -194,39 +198,57 @@ const submit = async () => {
         :url="form.image"
         />
     </el-form-item>
+    <el-form-item label="">
+      <el-image
+          v-if="form.image&&form.image.endsWith('.svg')"
+          :src="`${ oss_domain }${form.image}`"
+          :infinite="true"
+          :preview-teleported="true"
+          :preview-src-list="[`${ oss_domain }${form.image}`]"
+          style="width: 148px;height: 148px;"
+      ></el-image>
+      <el-image
+          v-if="form.image&&!form.image.endsWith('.svg')"
+          :src="`${ oss_domain }${form.image}_148x148`"
+          :infinite="true"
+          :preview-teleported="true"
+          :preview-src-list="[`${ oss_domain }${form.image}`]"
+          style="width: 148px;height: 148px;"
+      ></el-image>
+    </el-form-item>
     <el-form-item label="仓库类型" prop="type">
-      <el-select v-model="form.type" clearable placeholder="请选择仓库类型">
+      <el-select v-model.trim="form.type" clearable placeholder="请选择仓库类型">
         <el-option v-for="(item,idx) in WarehouseTypes" :key="idx" :label="`${idx+1}.${item}`" :value="item"></el-option>
       </el-select>
     </el-form-item>
     <el-form-item label="仓库名称" prop="name">
-      <el-input v-model="form.name" clearable/>
+      <el-input v-model.trim="form.name" clearable/>
     </el-form-item>
     <el-form-item label="仓库编号" prop="code">
-      <el-input v-model="form.code" clearable/>
+      <el-input v-model.trim="form.code" clearable/>
     </el-form-item>
 <!--    <el-form-item label="仓库状态" prop="status">-->
-<!--      <el-select v-model="form.status" clearable placeholder="请选择仓库状态">-->
+<!--      <el-select v-model.trim="form.status" clearable placeholder="请选择仓库状态">-->
 <!--        <el-option v-for="(item,idx) in WarehouseStatus" :key="idx" :label="`${idx+1}.${item}`" :value="item"></el-option>-->
 <!--      </el-select>-->
 <!--    </el-form-item>-->
     <el-form-item label="仓库地址" prop="address">
-      <el-input v-model="form.address" clearable/>
+      <el-input v-model.trim="form.address" clearable/>
     </el-form-item>
     <el-form-item label="仓库容量" prop="capacity">
       <el-input v-model.number="form.capacity" clearable/>
     </el-form-item>
     <el-form-item label="仓库容量单位" prop="capacity_unit">
-      <el-input v-model="form.capacity_unit" clearable/>
+      <el-input v-model.trim="form.capacity_unit" clearable/>
     </el-form-item>
     <el-form-item label="负责人" prop="manager">
-      <el-input v-model="form.manager" clearable/>
+      <el-input v-model.trim="form.manager" clearable/>
     </el-form-item>
     <el-form-item label="联系方式" prop="contact">
-      <el-input v-model="form.contact" clearable/>
+      <el-input v-model.trim="form.contact" clearable/>
     </el-form-item>
     <el-form-item label="备注" prop="remark">
-      <el-input v-model="form.remark" clearable/>
+      <el-input v-model.trim="form.remark" clearable/>
     </el-form-item>
     <el-form-item>
       <el-button plain @click="cancel">取消</el-button>

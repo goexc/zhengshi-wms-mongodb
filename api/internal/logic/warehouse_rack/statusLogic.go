@@ -141,7 +141,10 @@ func (l *StatusLogic) Status(req *types.WarehouseRackStatusRequest) (resp *types
 
 	//4.货架状态修改为“删除”时，应该先检测是否存在下级货位。
 	if strings.TrimSpace(req.Status) == "删除" {
-		count, e := l.svcCtx.WarehouseBinModel.CountDocuments(l.ctx, bson.M{"warehouse_rack_id": id})
+		count, e := l.svcCtx.WarehouseBinModel.CountDocuments(l.ctx, bson.M{
+			"warehouse_rack_id": id,
+			"status":            bson.M{"$ne": code.WarehouseBinStatusCode("删除")},
+		})
 		if e != nil {
 			fmt.Printf("[Error]查询货架[%s]是否存在下级货位:%s\n", req.Id, e.Error())
 			resp.Code = http.StatusInternalServerError

@@ -2,16 +2,17 @@ import { defineStore } from "pinia";
 import {  getAuthMenuListApi } from "@/api/modules/login";
 import { AuthState } from "@/store/interface";
 import { getFlatMenuList } from "@/utils/menu.ts";
-import piniaPersistConfig from "@/config/piniaPersist.ts";
+import {Button, Menu} from "@/api/acl/menu/types.ts";
+// import piniaPersistConfig from "@/config/piniaPersist.ts";
 
 export const useAuthStore = defineStore({
   id: "zs-auth",
   state: (): AuthState => ({
     // 按钮权限列表
     // authButtonList: {},
-    authButtonList: [],
+    authButtonList: <Button[]>[],
     // 菜单权限列表
-    authMenuList: [],
+    authMenuList: <Menu[]>[],
     // 当前页面的 router name，用来做按钮权限筛选
     routeName: "",
   }),
@@ -28,6 +29,7 @@ export const useAuthStore = defineStore({
     async getAuthMenuList() {
       const { data } = await getAuthMenuListApi();
       this.authMenuList = data.menus.sort((a, b) => a.sort_id - b.sort_id);
+      this.authMenuList.forEach(item=>item.children&&item.children.sort((a, b) => a.sort_id - b.sort_id));//对二级菜单进行排序
       this.authButtonList = data.buttons;
     },
     // Set RouteName

@@ -16,10 +16,11 @@ type InboundReceipt struct {
 	//60.部分入库：当入库单中的部分物料已入库，但尚有未入库的物料时，状态为部分入库。
 	//70.作废：当入库单发生错误或不再需要时，可以将其状态设置为作废，表示该入库单无效。
 	//80.入库完成：当入库单中的所有物料都已经成功入库并完成相关操作时，状态为入库完成。
-	Status int `json:"status" bson:"status"` //入库单状态
+	Status string `json:"status" bson:"status"` //入库单状态
 	//入库单类型
 	//采购入库
 	//外协入库
+	//生产入库
 	//退货入库
 	Type          string            `json:"type" bson:"type"`                     //入库单类型
 	Code          string            `json:"code" bson:"code"`                     //入库单号
@@ -55,7 +56,8 @@ type InboundMaterial struct {
 	//60.部分入库
 	//70.作废
 	//80.入库完成
-	Status int `json:"status" bson:"status"` //物料状态
+	//Status int `json:"status" bson:"status"` //物料状态
+	Status string `json:"status" bson:"status"` //物料状态
 
 	WarehouseId       string `json:"warehouse_id" bson:"warehouse_id"`               //仓库id
 	WarehouseName     string `json:"warehouse_name" bson:"warehouse_name"`           //仓库名称

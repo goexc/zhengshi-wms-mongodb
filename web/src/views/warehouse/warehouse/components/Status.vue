@@ -14,7 +14,10 @@ const props = defineProps(['warehouse'])
 const emit = defineEmits(['success', 'cancel'])
 
 const formRef = ref<FormInstance>()
-const form = ref<WarehouseStatusRequest>({id: props.warehouse.id, name: props.warehouse.name, status: props.warehouse.status})
+const form = ref<WarehouseStatusRequest>({
+  id: props.warehouse.id,
+  // name: props.warehouse.name,
+  status: props.warehouse.status})
 const rules = reactive<FormRules>({
   status: [
     {
@@ -72,7 +75,7 @@ const cancel = () => {
 >
 
   <el-form-item label="仓库状态" prop="status">
-    <el-select v-model="form.status" clearable placeholder="请选择仓库状态">
+    <el-select v-model.trim="form.status" clearable placeholder="请选择仓库状态">
       <el-option v-for="(item,idx) in WarehouseStatus" :key="idx" :label="`${idx+1}.${item}`" :value="item"></el-option>
     </el-select>
   </el-form-item>

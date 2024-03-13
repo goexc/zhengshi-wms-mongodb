@@ -168,19 +168,19 @@ onMounted(() => {
           style="display: flex; flex-wrap: wrap;"
       >
         <el-form-item prop="name" label="名称">
-          <el-input v-model="carriersForm.name" placeholder="请填写承运商名称" clearable/>
+          <el-input v-model.trim="carriersForm.name" placeholder="请填写承运商名称" clearable/>
         </el-form-item>
         <el-form-item prop="code" label="编号">
-          <el-input v-model="carriersForm.code" placeholder="请填写承运商编号" clearable/>
+          <el-input v-model.trim="carriersForm.code" placeholder="请填写承运商编号" clearable/>
         </el-form-item>
         <el-form-item prop="manager" label="负责人">
-          <el-input v-model="carriersForm.manager" placeholder="请填写负责人" clearable/>
+          <el-input v-model.trim="carriersForm.manager" placeholder="请填写负责人" clearable/>
         </el-form-item>
         <el-form-item prop="contact" label="联系方式">
-          <el-input v-model="carriersForm.contact" placeholder="请填写联系方式" clearable/>
+          <el-input v-model.trim="carriersForm.contact" placeholder="请填写联系方式" clearable/>
         </el-form-item>
         <el-form-item prop="email" label="Email">
-          <el-input v-model="carriersForm.email" placeholder="请填写Email" clearable/>
+          <el-input v-model.trim="carriersForm.email" placeholder="请填写Email" clearable/>
         </el-form-item>
         <el-form-item label=" ">
           <perms-button
@@ -250,7 +250,8 @@ onMounted(() => {
         </el-table-column>
         <el-table-column label="编号" prop="code" width="150px"/>
         <el-table-column label="应收账款" class="money" width="250px" align="center">
-          <template #default="{row}">
+<!--          <template #default="{row}">-->
+          <template >
             <p>10000.000</p>
             <el-text class="money" type="primary" size="small">+应收</el-text>
             <el-text class="money" type="primary" size="small">-结款</el-text>
@@ -342,7 +343,7 @@ onMounted(() => {
       ></el-pagination>
     </el-card>
     <el-dialog
-        v-model="visible"
+        v-model.trim="visible"
         :title="title"
         draggable
         width="800"
@@ -378,6 +379,6 @@ onMounted(() => {
 .money {
   cursor: pointer;
   padding: 5px 11px;
-    margin-left: 12px;
+  margin-left: 12px;
 }
 </style>

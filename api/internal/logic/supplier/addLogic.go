@@ -51,7 +51,7 @@ func (l *AddLogic) Add(req *types.SupplierRequest) (resp *types.BaseResponse, er
 			{"code": strings.TrimSpace(req.Code)},
 			{"unified_social_credit_identifier": strings.TrimSpace(req.UnifiedSocialCreditIdentifier)},
 		},
-		"status": bson.M{"$ne": 100},
+		"status": bson.M{"$ne": "删除"},
 	}
 	singleRes := l.svcCtx.SupplierModel.FindOne(l.ctx, filter)
 	switch singleRes.Err() {

@@ -2,10 +2,10 @@
 
 import request from "@/utils/request.ts";
 import {
-  InboundReceiptCheckRequest, InboundReceiptMaterialRequest,
+  InboundReceiptCheckRequest, InboundReceiptMaterialRequest, InboundReceiptReceiveRequest,
   InboundReceiptRequest,
   InboundReceiptsRequest,
-  InboundReceiptsResponse
+  InboundReceiptsResponse, InboundReceivedRecordsRequest, InboundReceivedRecordsResponse
 } from "@/api/inbound/types.ts";
 import {baseResponse} from "@/api/types.ts";
 
@@ -20,7 +20,11 @@ enum API {
   INBOUND_CHECK_URL='/inbound/receipt/check',
 
   //修改物料信息
-  INBOUND_MATERIAL_URL='/inbound/receipt/material'
+  INBOUND_MATERIAL_URL='/inbound/receipt/material',
+
+  //批次入库
+  INBOUND_RECEIVE_URL='/inbound/receipt/receive',
+
 }
 
 //获取入库单列表接口
@@ -57,3 +61,11 @@ export const reqCheckInboundReceipt = (data:InboundReceiptCheckRequest)=>
 //修改物料信息
 export const reqUpdateInboundReceiptMaterial = (data:InboundReceiptMaterialRequest) =>
     request.patch<any, baseResponse>(API.INBOUND_MATERIAL_URL,data)
+
+//添加批次入库
+export const reqInboundReceiptReceive = (req:InboundReceiptReceiveRequest) =>
+  request.post<any, baseResponse>(API.INBOUND_RECEIVE_URL, req)
+
+//批次入库记录
+export const reqInboundReceiptRecords = (req:InboundReceivedRecordsRequest) =>
+  request.get<any, InboundReceivedRecordsResponse>(API.INBOUND_RECEIVE_URL, { params: req });

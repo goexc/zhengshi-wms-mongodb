@@ -1,0 +1,5 @@
+npm run build:prod
+
+goctl api go -api main.api -style goZero -home ./template -dir .
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o wmsx main.go
+

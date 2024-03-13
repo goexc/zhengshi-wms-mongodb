@@ -1,10 +1,10 @@
 syntax = "v1"
 
-info(
-	title: "商城管理后台api"
-	desc: "商城管理后台api"
-	author: "董咚懂咚"
-	email: "1024071953@qq.com"
+info (
+	title:   "商城管理后台api"
+	desc:    "商城管理后台api"
+	author:  "董咚懂咚"
+	email:   "1024071953@qq.com"
 	version: "v1.0.1"
 )
 
@@ -29,15 +29,15 @@ import (
 	"apis/material.api"
 	"apis/inbound.api"
 	"apis/outbound.api"
+	"apis/inventory.api"
 	"apis/images.api"
 )
 
 //身份验证
-@server(
-	group: auth
+@server (
+	group:  auth
 	prefix: auth
 )
-
 service main {
 	@doc "注册"
 	@handler register
@@ -46,19 +46,26 @@ service main {
 	@doc "登录"
 	@handler login
 	post /login (LoginRequest) returns (LoginResponse)
+}
 
+//身份验证
+@server (
+	jwt:    Auth
+	group:  auth
+	prefix: auth
+)
+service main {
 	@doc "退出登录"
 	@handler logout
 	post /logout returns (BaseResponse)
 }
 
 // 菜单管理
-@server(
-	jwt: Auth
-	group: menu
+@server (
+	jwt:    Auth
+	group:  menu
 	prefix: menu
 )
-
 service main {
 	@doc "菜单列表"
 	@handler list
@@ -78,12 +85,11 @@ service main {
 }
 
 // api管理
-@server(
-	jwt: Auth
-	group: api
+@server (
+	jwt:    Auth
+	group:  api
 	prefix: api
 )
-
 service main {
 	@doc "api列表"
 	@handler list
@@ -103,12 +109,11 @@ service main {
 }
 
 // 角色管理
-@server(
-	jwt: Auth
-	group: role
+@server (
+	jwt:    Auth
+	group:  role
 	prefix: role
 )
-
 service main {
 	@doc "角色列表"
 	@handler list
@@ -152,12 +157,11 @@ service main {
 }
 
 // 部门管理
-@server(
-	jwt: Auth
-	group: department
+@server (
+	jwt:    Auth
+	group:  department
 	prefix: department
 )
-
 service main {
 	@doc "部门列表"
 	@handler list
@@ -177,12 +181,11 @@ service main {
 }
 
 // 用户管理
-@server(
-	jwt: Auth
-	group: user
+@server (
+	jwt:    Auth
+	group:  user
 	prefix: user
 )
-
 service main {
 	@doc "用户分页"
 	@handler paginate
@@ -214,12 +217,11 @@ service main {
 }
 
 // 账号中心
-@server(
-	jwt: Auth
-	group: account
+@server (
+	jwt:    Auth
+	group:  account
 	prefix: account
 )
-
 service main {
 	@doc "个人信息"
 	@handler profile
@@ -243,12 +245,11 @@ service main {
 }
 
 // 企业信息
-@server(
-	jwt: Auth
-	group: company
+@server (
+	jwt:    Auth
+	group:  company
 	prefix: company
 )
-
 service main {
 	@doc "获取企业信息"
 	@handler info
@@ -260,12 +261,11 @@ service main {
 }
 
 // 供应商管理
-@server(
-	jwt: Auth
-	group: supplier
+@server (
+	jwt:    Auth
+	group:  supplier
 	prefix: supplier
 )
-
 service main {
 	@doc "供应商列表"
 	@handler list
@@ -289,12 +289,11 @@ service main {
 }
 
 // 客户管理
-@server(
-	jwt: Auth
-	group: customer
+@server (
+	jwt:    Auth
+	group:  customer
 	prefix: customer
 )
-
 service main {
 	@doc "客户列表"
 	@handler list
@@ -315,15 +314,18 @@ service main {
 	@doc "修改客户状态/删除客户"
 	@handler status
 	patch /status (CustomerStatusRequest) returns (BaseResponse)
+
+	@doc "重新统计应收账款"
+	@handler recount
+	get /recount returns (BaseResponse)
 }
 
 // 承运商管理
-@server(
-	jwt: Auth
-	group: carrier
+@server (
+	jwt:    Auth
+	group:  carrier
 	prefix: carrier
 )
-
 service main {
 	@doc "承运商分页"
 	@handler list
@@ -343,12 +345,11 @@ service main {
 }
 
 // 仓库管理
-@server(
-	jwt: Auth
-	group: warehouse
+@server (
+	jwt:    Auth
+	group:  warehouse
 	prefix: warehouse
 )
-
 service main {
 	@doc "仓库/库区/货架/货位树"
 	@handler tree
@@ -376,12 +377,11 @@ service main {
 }
 
 // 库区管理
-@server(
-	jwt: Auth
-	group: warehouse_zone
+@server (
+	jwt:    Auth
+	group:  warehouse_zone
 	prefix: warehouse_zone
 )
-
 service main {
 	@doc "库区列表"
 	@handler list
@@ -405,12 +405,11 @@ service main {
 }
 
 // 货架管理
-@server(
-	jwt: Auth
-	group: warehouse_rack
+@server (
+	jwt:    Auth
+	group:  warehouse_rack
 	prefix: warehouse_rack
 )
-
 service main {
 	@doc "货架列表"
 	@handler list
@@ -434,12 +433,11 @@ service main {
 }
 
 // 货位管理
-@server(
-	jwt: Auth
-	group: warehouse_bin
+@server (
+	jwt:    Auth
+	group:  warehouse_bin
 	prefix: warehouse_bin
 )
-
 service main {
 	@doc "货位列表"
 	@handler list
@@ -463,12 +461,11 @@ service main {
 }
 
 // 物料管理
-@server(
-	jwt: Auth
-	group: material
+@server (
+	jwt:    Auth
+	group:  material
 	prefix: material
 )
-
 service main {
 	//物料分类相关
 	@doc "物料分类列表"
@@ -503,20 +500,18 @@ service main {
 	@doc "物料分页"
 	@handler list
 	get / (MaterialsRequest) returns (MaterialsResponse)
-
 }
 
 // 物料单价管理
-@server(
-	jwt: Auth
-	group: material/price
+@server (
+	jwt:    Auth
+	group:  material/price
 	prefix: material/price
 )
-
 service main {
 	@doc "物料单价"
 	@handler list
-	get / (MaterialIdRequest) returns (MaterialPricesResponse)
+	get / (MaterialPricesRequest) returns (MaterialPricesResponse)
 
 	@doc "删除物料单价"
 	@handler remove
@@ -524,12 +519,11 @@ service main {
 }
 
 // 入库单管理
-@server(
-	jwt: Auth
-	group: inbound/receipt
+@server (
+	jwt:    Auth
+	group:  inbound/receipt
 	prefix: inbound/receipt
 )
-
 service main {
 	@doc "入库单分页"
 	@handler page
@@ -551,68 +545,117 @@ service main {
 	@handler remove
 	delete / (InboundReceiptIdRequest) returns (BaseResponse)
 
-	@doc "物料入库"
-	@handler material
-	patch /material (InboundReceiptMaterialRequest) returns (BaseResponse)
+	@doc "批次入库"
+	@handler receive
+	post /receive (InboundReceiptReceiveRequest) returns (BaseResponse)
+
+	@doc "入库记录"
+	@handler record
+	get /receive (InboundReceivedRecordsRequest) returns (InboundReceivedRecordsResponse)
 }
 
 // 出库单管理
-@server(
-	jwt: Auth
-	group: outbound/receipt
-	prefix: outbound/receipt
+@server (
+	jwt:    Auth
+	group:  outbound
+	prefix: outbound
 )
 service main {
-	@doc "出库单分页"
+	@doc "出库单分页(不携带物料列表)"
 	@handler page
-	get / (OutboundReceiptsRequest) returns (OutbondReceiptsResponse)
+	get /page (OutboundOrdersRequest) returns (OutboundOrdersResponse)
+
+	@doc "出库单分页(携带物料列表)"
+	@handler page2
+	get /page2 (OutboundOrdersRequest) returns (OutboundOrdersResponse)
+
+	@doc "出库单物料列表"
+	@handler materials
+	get /materials (OutboundOrderMaterialsRequest) returns (OutboundOrderMaterialsResponse)
 
 	@doc "创建出库单"
 	@handler add
-	post / (OutboundReceiptAddRequest) returns (BaseResponse)
-
-	@doc "修改出库单"
-	@handler edit
-	put / (OutboundReceiptEditRequest) returns (BaseResponse)
-
-	@doc "审核出库单"
-	@handler check
-	patch /check (OutboundReceiptCheckRequest) returns (BaseResponse)
+	post / (OutboundOrderAddRequest) returns (BaseResponse)
 
 	@doc "删除出库单"
 	@handler remove
-	delete / (OutboundReceiptIdRequest) returns (BaseResponse)
+	delete / (OutboundOrderIdRequest) returns (BaseResponse)
 
-	@doc "物料入库"
-	@handler material
-	patch /material (OutboundReceiptMaterialRequest) returns (BaseResponse)
+	@doc "确认出库单"
+	@handler confirm
+	patch /confirm (OutboundOrderConfirmRequest) returns (BaseResponse)
+
+	@doc "确认拣货"
+	@handler pick
+	patch /pick (OutboundOrderPickRequest) returns (BaseResponse)
+
+	@doc "确认打包"
+	@handler pack
+	patch /pack (OutboundOrderPackRequest) returns (BaseResponse)
+
+	@doc "确认称重"
+	@handler weigh
+	patch /weigh (OutboundOrderWeighRequest) returns (BaseResponse)
+
+	@doc "出库"
+	@handler departure
+	patch /departure (OutboundOrderDepartureRequest) returns (BaseResponse)
+
+	@doc "签收"
+	@handler receipt
+	patch /receipt (OutboundOrderReceiptRequest) returns (BaseResponse)
+
+	@doc "修改出库单物料单价"
+	@handler revise
+	patch /revise (OutboundOrderReviseRequest) returns (BaseResponse)
+
+	@doc "出库单汇总"
+	@handler summary
+	get /summary (OutboundSummaryRequest) returns (OutboundSummaryResponse)
 }
 
-//供应商流水管理
-@server(
-	jwt: Auth
-	group: customer/transaction
+//库存管理
+@server (
+	jwt:    Auth
+	group:  inventory
+	prefix: inventory
+)
+service main {
+	@doc "库存管理"
+	@handler page
+	get / (InventorysRequest) returns (InventorysResponse)
+
+	@doc "物料库存(用于确认出库单时，查询物料库存)"
+	@handler list
+	get /list (InventoryListRequest) returns (InventoryListResponse)
+
+	@doc "库存记录"
+	@handler record
+	get /record (InventorysRequest) returns (InventorysResponse)
+}
+
+//客户交易流水
+@server (
+	jwt:    Auth
+	group:  customer/transaction
 	prefix: customer/transaction
 )
-
-service main{
-	@doc "供应商流水列表"
+service main {
+	@doc "客户交易流水分页"
 	@handler page
-	get / (CustomerTransactionsRequest) returns (CustomerTransactionsResponse)
+	get / (CustomerTransactionPageRequest) returns (CustomerTransactionsResponse)
 
-	@doc "添加供应商流水"
+	@doc "添加客户交易记录"
 	@handler add
-	post / (CustomerTransactionRequest) returns (BaseResponse)
+	post / (CustomerTransactionAddRequest) returns (BaseResponse)
 }
 
-
 //图片管理
-@server(
-	jwt: Auth
-	group: images
+@server (
+	jwt:    Auth
+	group:  images
 	prefix: images
 )
-
 service main {
 	@doc "上传图片"
 	@handler add
@@ -621,4 +664,9 @@ service main {
 	@doc "图片分页"
 	@handler page
 	get / (ImagesRequest) returns (ImagesResponse)
+
+	@doc "删除图片"
+	@handler remove
+	delete / (ImageRemoveRequest) returns (BaseResponse)
 }
+

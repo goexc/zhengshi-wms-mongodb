@@ -1,17 +1,6 @@
 package receipt
 
-import (
-	"api/pkg/validatorx"
-	"github.com/go-playground/validator/v10"
-	"net/http"
-	"strings"
-
-	"api/internal/logic/inbound/receipt"
-	"api/internal/svc"
-	"api/internal/types"
-	"github.com/zeromicro/go-zero/rest/httpx"
-)
-
+/*
 func MaterialHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req types.InboundReceiptMaterialRequest
@@ -45,3 +34,4 @@ func MaterialHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		}
 	}
 }
+*/

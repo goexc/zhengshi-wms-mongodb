@@ -105,7 +105,10 @@ func (l *StatusLogic) Status(req *types.WarehouseZoneStatusRequest) (resp *types
 
 	//3.库区状态修改为“删除”时，应该先检测是否存在下级货架、货位。
 	if strings.TrimSpace(req.Status) == "删除" {
-		count, e := l.svcCtx.WarehouseRackModel.CountDocuments(l.ctx, bson.M{"warehouse_zone_id": zoneId})
+		count, e := l.svcCtx.WarehouseRackModel.CountDocuments(l.ctx, bson.M{
+			"warehouse_zone_id": zoneId,
+			"status":            bson.M{"$ne": code.WarehouseRackStatusCode("删除")},
+		})
 		if e != nil {
 			fmt.Printf("[Error]查询库区[%s]是否存在下级货架:%s\n", req.Id, e.Error())
 			resp.Code = http.StatusInternalServerError
@@ -117,7 +120,10 @@ func (l *StatusLogic) Status(req *types.WarehouseZoneStatusRequest) (resp *types
 			resp.Msg = "请先删除绑定的货架"
 			return resp, nil
 		}
-		count, e = l.svcCtx.WarehouseBinModel.CountDocuments(l.ctx, bson.M{"warehouse_zone_id": zoneId})
+		count, e = l.svcCtx.WarehouseBinModel.CountDocuments(l.ctx, bson.M{
+			"warehouse_zone_id": zoneId,
+			"status":            bson.M{"$ne": code.WarehouseBinStatusCode("删除")},
+		})
 		if e != nil {
 			fmt.Printf("[Error]查询库区[%s]是否存在下级货位:%s\n", req.Id, e.Error())
 			resp.Code = http.StatusInternalServerError

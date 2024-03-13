@@ -27,16 +27,20 @@ const initDepartmentForm = () => {
     id: '',
     parent_id: '',
     sort_id: 0,
-    path: '',
+    // path: '',
     name: '',
-    component: '',
-    icon: 'search',
-    hidden: false,
-    fixed: true,
-    is_full: false,
-    perms: '',
-    transition: '',
+    code: '',
+    // component: '',
+    // icon: 'search',
+    // hidden: false,
+    // fixed: true,
+    // is_full: false,
+    // perms: '',
+    // transition: '',
     remark: '',
+    created_at: '',
+    updated_at: '',
+    children: [],
   })
 }
 const departmentForm = ref<Department>(initDepartmentForm())
@@ -66,7 +70,7 @@ const addDepartment = (parent: Department) => {
   departmentForm.value.parent_id = parent.id as string
 
   if (parent.id.length > 0) {
-    parentDepartment.value = hashTable.get(parent.id)?.name
+    parentDepartment.value = hashTable.get(parent.id)?.name || ''
   } else {
     parentDepartment.value = ''
   }
@@ -82,7 +86,7 @@ const editDepartment = (department: Department) => {
   action.value = 'editDepartment'
   Object.assign(departmentForm.value, department)//对象浅拷贝
 
-  parentDepartment.value = hashTable.get(department.parent_id)?.name
+  parentDepartment.value = hashTable.get(department.parent_id)?.name || ''
 
   visible.value = true
 }
@@ -194,7 +198,7 @@ onMounted(() => {
               :size="Sizes.small"
               :plain="true"
               @action="addDepartment(row)"/>
-<!--          <el-button type="primary" plain size="small" icon="Plus" @click="addDepartment(row)">添加子部门</el-button>-->
+<!--          <el-button type="primary" plain size="small" icon="CirclePlus" @click="addDepartment(row)">添加子部门</el-button>-->
           <perms-button
               perms="privilege:department:edit"
               :type="Types.warning"
@@ -226,7 +230,7 @@ onMounted(() => {
 
     </el-table>
     <el-dialog
-        v-model="visible"
+        v-model.trim="visible"
         :title="title"
         draggable
         width="800"
@@ -240,12 +244,12 @@ onMounted(() => {
               {{ parentDepartment }}
             </el-form-item>
             <el-form-item label="部门编码" prop="code">
-              <el-input v-model="departmentForm.code"/>
+              <el-input v-model.trim="departmentForm.code"/>
             </el-form-item>
           </el-col>
           <el-col :xs="24" :sm="24" :md="12" :lg="12" :xl="12">
             <el-form-item label="部门名称" prop="name">
-              <el-input v-model="departmentForm.name"/>
+              <el-input v-model.trim="departmentForm.name"/>
             </el-form-item>
             <el-form-item label="部门排序" prop="sort_id">
               <el-input v-model.number="departmentForm.sort_id"/>

@@ -2,6 +2,8 @@ Name: main
 Host: 0.0.0.0
 Port: 8080
 
+#上传文件限制：20MB
+MaxBytes: 20971520
 #
 Auth:
   AccessSecret: ''
@@ -27,3 +29,39 @@ MongoDB:
   UserName: admin
   Password: '12345'
   Database: mall
+
+Ids:
+  SystemInit: ''
+  Company: ''
+  Department: ''
+  Role: ''
+  User: ''
+
+Collections:
+  SystemInit: ''
+  Company: ''
+  User: ''
+  Api: ''
+  Menu: ''
+  Department: ''
+  Role: ''
+  RoleMenu: ''
+  Supplier: ''
+
+#图片目录
+Images:
+  Path: ''
+
+OSS:
+  EndPoint: ''
+  AccessKeyID: ''
+  AccessKeySecret: ''
+  Bucket: ''
+  Domain: ''
+
+COS:
+  EndPoint: ''
+  SecretID: ''
+  SecretKey: ''
+  Bucket: ''
+  Domain: ''

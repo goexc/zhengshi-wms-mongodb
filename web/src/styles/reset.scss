@@ -11,7 +11,7 @@
 
   outline: none;
 }
-
+/*
 html,
 body,
 div,
@@ -102,7 +102,7 @@ video {
   vertical-align: baseline;
 
   border: 0;
-}
+}*/
 
 article,
 aside,
@@ -120,6 +120,7 @@ section {
 
 body {
   line-height: 1;
+  margin: 0;  //防止页面滚动
 }
 
 ol,
@@ -186,3 +187,8 @@ pre {
   font-family: monospace, monospace;
   font-size: 1em;
 }
+
+//重置tab标签页
+//.el-tabs__item {
+//  padding: 0;
+//}

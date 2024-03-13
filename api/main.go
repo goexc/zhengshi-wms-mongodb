@@ -24,6 +24,13 @@ func main() {
 	conf.MustLoad(*configFile, &c)
 
 	server := rest.MustNewServer(c.RestConf, rest.WithCors())
+	//server := rest.MustNewServer(c.RestConf, rest.WithCustomCors(nil, func(w http.ResponseWriter) {
+	//	w.Header().Set("Access-Control-Allow-Origin", "*")
+	//	w.Header().Set("Access-Control-Allow-Headers", "*")
+	//	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
+	//	w.Header().Set("Access-Control-Expose-Headers", "Authorization,DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range, Content-Length, Access-Control-Allow-Origin, Access-Control-Allow-Headers")
+	//	w.Header().Set("Access-Control-Allow-Credentials", "true")
+	//}, "*"))
 	defer server.Stop()
 
 	ctx := svc.NewServiceContext(c)
@@ -56,15 +63,14 @@ func main() {
 				}
 			}
 			//2.1 提取用户id
-			uid := r.Context().Value("uid").(string)
-			if uid == "" {
+			if r.Context().Value("uid") == nil {
 				fmt.Printf("[Error]Token为空\n")
 				w.Write([]byte(`{"code": 401, "msg":"请登录"}`))
 				return
 			}
+			uid := r.Context().Value("uid").(string)
 
 			//2.3 权限校验
-
 			//2.3.1 判断用户是否具有超级管理员角色
 			var isSystemRole bool //超级管理员标记
 			var casbinRoles []string

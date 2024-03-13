@@ -50,4 +50,11 @@ type Config struct {
 		Bucket          string
 		Domain          string
 	}
+	COS struct {
+		EndPoint  string
+		SecretID  string
+		SecretKey string
+		Bucket    string
+		Domain    string
+	}
 }

@@ -1,7 +1,7 @@
 //菜单相关api
 import request from "@/utils/request.ts";
 import { baseResponse } from "@/api/types";
-import {Menu, MenuListResponse, MenuRemoveRequest, MenuStatusRequest} from "./types";
+import {Menu, MenuListResponse, MenuRemoveRequest} from "./types";
 
 //菜单管理模块接口地址
 enum API {

@@ -36,10 +36,9 @@ func (l *ListLogic) List(req *types.MaterialsRequest) (resp *types.MaterialsResp
 	//1.构造过滤条件
 	var filter = bson.M{}
 	var option = options.Find().SetSort(bson.M{"created_at": -1}).SetSkip((req.Page - 1) * req.Size).SetLimit(req.Size)
-	name := strings.TrimSpace(req.Name)
-	if name != "" {
+	if strings.TrimSpace(req.Name) != "" {
 		//i 表示不区分大小写
-		regex := bson.M{"$regex": primitive.Regex{Pattern: ".*" + name + ".*", Options: "i"}}
+		regex := bson.M{"$regex": primitive.Regex{Pattern: ".*" + strings.TrimSpace(req.Name) + ".*", Options: "i"}}
 		filter["name"] = regex
 	}
 
@@ -61,7 +60,9 @@ func (l *ListLogic) List(req *types.MaterialsRequest) (resp *types.MaterialsResp
 	}
 
 	if strings.TrimSpace(req.Model) != "" {
-		filter["model"] = strings.TrimSpace(req.Model)
+		//i 表示不区分大小写
+		regex := bson.M{"$regex": primitive.Regex{Pattern: ".*" + strings.TrimSpace(req.Model) + ".*", Options: "i"}}
+		filter["model"] = regex
 	}
 
 	if strings.TrimSpace(req.SurfaceTreatment) != "" {
@@ -71,8 +72,6 @@ func (l *ListLogic) List(req *types.MaterialsRequest) (resp *types.MaterialsResp
 	if strings.TrimSpace(req.StrengthGrade) != "" {
 		filter["strength_grade"] = strings.TrimSpace(req.StrengthGrade)
 	}
-
-	fmt.Println("过滤条件：", filter)
 
 	//2.查询分页
 	cur, err := l.svcCtx.MaterialModel.Find(l.ctx, filter, option)
@@ -91,7 +90,6 @@ func (l *ListLogic) List(req *types.MaterialsRequest) (resp *types.MaterialsResp
 		resp.Msg = "服务内部错误"
 		return resp, nil
 	}
-	fmt.Println(materials)
 
 	//3.统计总数
 	total, err := l.svcCtx.MaterialModel.CountDocuments(l.ctx, filter)
@@ -100,6 +98,40 @@ func (l *ListLogic) List(req *types.MaterialsRequest) (resp *types.MaterialsResp
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务器内部错误"
 		return resp, nil
+	}
+
+	//4.查询物料价格
+	var materialsId = make([]string, 0)
+	for _, one := range materials {
+		materialsId = append(materialsId, one.Id.Hex())
+	}
+
+	cur, err = l.svcCtx.MaterialPriceModel.Find(l.ctx, bson.M{"material": bson.M{"$in": materialsId}})
+	if err != nil {
+		fmt.Printf("[Error]查询物料列表单价:%s\n", err.Error())
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "服务器内部错误"
+		return resp, nil
+	}
+	defer cur.Close(l.ctx)
+
+	var prices []model.MaterialPrice
+	if err = cur.All(l.ctx, &prices); err != nil {
+		fmt.Printf("[Error]解析物料单价分页:%s\n", err.Error())
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "服务内部错误"
+		return resp, nil
+	}
+
+
+	var pricesMap = make(map[string][]types.MaterialPrice)
+	for _, one := range prices {
+		pricesMap[one.Material] = append(pricesMap[one.Material], types.MaterialPrice{
+			Price:        one.Price,
+			CustomerId:   one.CustomerId,
+			CustomerName: one.CustomerName,
+			Since:        one.CreatedAt,
+		})
 	}
 
 	resp.Data.Total = total
@@ -119,6 +151,7 @@ func (l *ListLogic) List(req *types.MaterialsRequest) (resp *types.MaterialsResp
 			Quantity:         m.Quantity,
 			Unit:             m.Unit,
 			Remark:           m.Remark,
+			Prices:           pricesMap[m.Id.Hex()],
 			Creator:          m.Creator.Hex(),
 			CreatorName:      m.CreatorName,
 			CreatedAt:        m.CreatedAt,

@@ -111,10 +111,18 @@ func (l *LoginLogic) Login(req *types.LoginRequest) (resp *types.LoginResponse, 
 		return resp, nil
 	}
 
+	resp.Data = types.LoginData{
+		Name:           user.Name,
+		Avatar:         user.Avatar,
+		Mobile:         user.Mobile,
+		Email:          user.Email,
+		DepartmentId:   user.DepartmentId,
+		DepartmentName: user.DepartmentName,
+		Token:          token,
+		Exp:            now.Unix() + l.svcCtx.Config.Auth.AccessExpire,
+	}
 	resp.Code = http.StatusOK
 	resp.Msg = "成功"
-	resp.Data.Name = user.Name
-	resp.Data.Token = token
-	resp.Data.Exp = now.Unix() + l.svcCtx.Config.Auth.AccessExpire
+
 	return resp, nil
 }

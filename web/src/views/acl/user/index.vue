@@ -414,7 +414,7 @@ const statusType = (status: string) => {
     <!--  添加、修改用户信息  -->
     <el-drawer
         direction="rtl"
-        v-model="visible"
+        v-model.trim="visible"
         :title="title"
         @open="getRoles"
         :before-close="close"
@@ -431,7 +431,7 @@ const statusType = (status: string) => {
               prop="name"
           >
             <el-input
-                v-model="userForm.name"
+                v-model.trim="userForm.name"
                 minlength="2"
                 maxlength="21"
                 :show-word-limit="true"
@@ -439,21 +439,21 @@ const statusType = (status: string) => {
           </el-form-item>
           <el-form-item v-if="userForm.id.trim().length===0" label="账号密码" prop="password">
             <el-input
-                v-model="userForm.password"
+                v-model.trim="userForm.password"
                 :show-password="true"
                 minlength="6"
                 :show-word-limit="true"
                 placeholder="请填写账号密码"/>
           </el-form-item>
           <el-form-item label="手机号码" prop="mobile">
-            <el-input v-model="userForm.mobile" placeholder="请填写手机号码，例如：+8618810509066"/>
+            <el-input v-model.trim="userForm.mobile" placeholder="请填写手机号码，例如：+8618810509066"/>
           </el-form-item>
           <el-form-item label="Email" prop="email">
-            <el-input v-model="userForm.email" placeholder="请填写Email，例如：mahuateng@qq.com"/>
+            <el-input v-model.trim="userForm.email" placeholder="请填写Email，例如：mahuateng@qq.com"/>
           </el-form-item>
           <el-form-item label="角色列表" prop="roles_id">
             <el-checkbox
-                v-model="checkAllRoles"
+                v-model.trim="checkAllRoles"
                 :indeterminate="isIndeterminate"
                 @change="handleCheckAllChange"
             >
@@ -462,7 +462,7 @@ const statusType = (status: string) => {
           </el-form-item>
           <el-form-item label="">
             <el-checkbox-group
-                v-model="userForm.roles_id"
+                v-model.trim="userForm.roles_id"
                 @change="handleCheckedRolesChange"
             >
               <el-checkbox
@@ -477,7 +477,7 @@ const statusType = (status: string) => {
             </el-checkbox-group>
           </el-form-item>
           <el-form-item label="性别" prop="sex">
-            <el-select v-model="userForm.sex" clearable placeholder="请选择性别">
+            <el-select v-model.trim="userForm.sex" clearable placeholder="请选择性别">
               <el-option label="男" value="男"></el-option>
               <el-option label="女" value="女"></el-option>
             </el-select>
@@ -494,13 +494,13 @@ const statusType = (status: string) => {
             </el-cascader>
           </el-form-item>
           <el-form-item label="状态" prop="status">
-            <el-select v-model="userForm.status" clearable placeholder="请选择状态">
+            <el-select v-model.trim="userForm.status" clearable placeholder="请选择状态">
               <el-option label="启用" value="启用"></el-option>
               <el-option label="禁用" value="禁用"></el-option>
             </el-select>
           </el-form-item>
-          <el-form-item v-model="userForm.remark" label="备注" prop="remark">
-            <el-input v-model="userForm.remark" type="textarea" rows="3" maxlength="125" :show-word-limit="true"
+          <el-form-item v-model.trim="userForm.remark" label="备注" prop="remark">
+            <el-input v-model.trim="userForm.remark" type="textarea" rows="3" maxlength="125" :show-word-limit="true"
                       placeholder="请填写备注"/>
           </el-form-item>
         </el-form>
@@ -517,7 +517,7 @@ const statusType = (status: string) => {
 
     <el-drawer
         direction="rtl"
-        v-model="rolesVisible"
+        v-model.trim="rolesVisible"
         title="分配角色"
         @open="getRoles"
         :before-close="rolesClose"
@@ -529,7 +529,7 @@ const statusType = (status: string) => {
           </el-form-item>
           <el-form-item label="角色列表">
             <el-checkbox
-                v-model="checkAllRoles"
+                v-model.trim="checkAllRoles"
                 :indeterminate="isIndeterminate"
                 @change="handleCheckAllChange"
             >
@@ -538,7 +538,7 @@ const statusType = (status: string) => {
           </el-form-item>
           <el-form-item>
             <el-checkbox-group
-                v-model="userForm.roles_id"
+                v-model.trim="userForm.roles_id"
                 @change="handleCheckedRolesChange"
             >
               <el-checkbox

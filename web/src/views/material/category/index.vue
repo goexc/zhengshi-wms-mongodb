@@ -1,10 +1,10 @@
 <script setup lang="ts">
 
 import {Sizes, Types} from "@/utils/enum.ts";
-import {nextTick, onMounted, reactive, ref} from "vue";
-import {reqAddOrUpdateMaterialCategory, reqMaterialCategoryList, reqRemoveMaterialCategory} from "@/api/material";
-import {MaterialCategory, MaterialCategorysResponse} from "@/api/material/types.ts";
-import {ElMessage, FormInstance} from "element-plus";
+import {nextTick, onMounted,  ref} from "vue";
+import { reqMaterialCategoryList, reqRemoveMaterialCategory} from "@/api/material";
+import {MaterialCategory, MaterialCategoryIdRequest, MaterialCategorysResponse} from "@/api/material/types.ts";
+import {ElMessage} from "element-plus";
 import {TimeFormat} from "@/utils/time.ts";
 import Item from "./components/Item.vue";
 
@@ -63,6 +63,7 @@ const initMaterialCategory = () => {
     parent_id: '',
     sort_id: 1,
     name: '',
+    image: '',
     status: '',//状态：启用、停用
     remark: '',
   })
@@ -89,7 +90,7 @@ const edit = (item: MaterialCategory) => {
 
 //删除物料分类
 const remove = async (id: string) => {
-  let req = <MaterialCategoryRemoveRequest>({id: id})
+  let req = <MaterialCategoryIdRequest>({id: id})
   let res = await reqRemoveMaterialCategory(req)
   if (res.code === 200) {
     ElMessage.success(res.msg)
@@ -195,7 +196,7 @@ const remove = async (id: string) => {
         </el-table-column>
       </el-table>
       <el-dialog
-          v-model="visible"
+          v-model.trim="visible"
           :title="title"
           draggable
           width="800"

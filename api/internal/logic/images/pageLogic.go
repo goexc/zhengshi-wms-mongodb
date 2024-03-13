@@ -51,9 +51,12 @@ func (l *PageLogic) Page(req *types.ImagesRequest) (resp *types.ImagesResponse, 
 		resp.Msg = "服务内部错误"
 		return resp, nil
 	}
-	fmt.Println(images)
+
 	for _, one := range images {
-		resp.Data.List = append(resp.Data.List, one.ObjectKey)
+		resp.Data.List = append(resp.Data.List, types.ImageItem{
+			Url: one.ObjectKey,
+			Alt: one.Alt,
+		})
 	}
 
 	//3.统计总数

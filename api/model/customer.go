@@ -4,6 +4,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+// 客户
 type Customer struct {
 	Id                            primitive.ObjectID `json:"_id" bson:"_id,omitempty"`
 	Name                          string             `json:"name" bson:"name"`                                                         //客户名称
@@ -26,9 +27,10 @@ type Customer struct {
 	//黑名单（Blacklisted）：表示客户因违规行为或其他原因被列入黑名单，系统会限制与该客户的交互或合作。
 	//合同到期（Contract Expired）：表示客户的合同已到期，需要进行续签或重新协商合同条款。
 	//删除(Deleted)
-	Status      string             `json:"status" bson:"status"`                      //状态
-	Creator     primitive.ObjectID `json:"creator" bson:"creator"`                    //创建人
-	CreatorName string             `json:"creator_name,optional" bson:"creator_name"` //创建人
-	CreatedAt   int64              `json:"created_at,optional" bson:"created_at"`
-	UpdatedAt   int64              `json:"updated_at,optional" bson:"updated_at"`
+	Status            string             `json:"status" bson:"status"`                         //状态
+	ReceivableBalance float64            `json:"receivable_balance" bson:"receivable_balance"` //应收账款
+	Creator           primitive.ObjectID `json:"creator" bson:"creator"`                       //创建人
+	CreatorName       string             `json:"creator_name,optional" bson:"creator_name"`    //创建人
+	CreatedAt         int64              `json:"created_at,optional" bson:"created_at"`
+	UpdatedAt         int64              `json:"updated_at,optional" bson:"updated_at"`
 }

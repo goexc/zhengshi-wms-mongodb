@@ -51,7 +51,7 @@ func (l *AddLogic) Add(req *types.CustomerRequest) (resp *types.BaseResponse, er
 			{"code": strings.TrimSpace(req.Code)},
 			{"unified_social_credit_identifier": strings.TrimSpace(req.UnifiedSocialCreditIdentifier)},
 		},
-		"status": bson.M{"$ne": 100},
+		"status": bson.M{"$ne": "删除"},
 	}
 	singleRes := l.svcCtx.CustomerModel.FindOne(l.ctx, filter)
 	switch singleRes.Err() {
@@ -98,6 +98,7 @@ func (l *AddLogic) Add(req *types.CustomerRequest) (resp *types.BaseResponse, er
 		Status:                        "潜在", //默认:潜在
 		Email:                         req.Email,
 		Remark:                        strings.TrimSpace(req.Remark),
+		ReceivableBalance:             req.ReceivableBalance,
 		Creator:                       uObjectID,
 		CreatedAt:                     time.Now().Unix(),
 		UpdatedAt:                     time.Now().Unix(),

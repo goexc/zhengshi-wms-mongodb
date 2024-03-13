@@ -32,7 +32,7 @@ onMounted(()=>{
 
 <template>
   <el-form-item label="仓库列表" prop="warehouse_id">
-    <el-select v-model="form.warehouse_id" autocomplete="off" clearable>
+    <el-select v-model.trim="form.warehouse_id" autocomplete="off" clearable>
       <el-option v-for="(one,idx) in warehouses"
                  :label="`${ idx+1 }. ${one.name}`"
                  :value="one.id" :key="idx"/>

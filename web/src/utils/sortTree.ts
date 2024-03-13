@@ -1,4 +1,6 @@
-export function sortTree(tree) {
+import {Api} from "@/api/acl/api/types.ts";
+
+export function sortTree(tree:Api[]) {
   if (!tree || !Array.isArray(tree)) {
     return tree;
   }

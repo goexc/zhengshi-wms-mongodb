@@ -14,7 +14,7 @@ const props = defineProps(['customer'])
 const emit = defineEmits(['success', 'cancel'])
 
 const formRef = ref<FormInstance>()
-const form = ref<CustomerStatusRequest>({id: props.customer.id, name: props.customer.name, status: props.customer.status})
+const form = ref<CustomerStatusRequest>({id: props.customer.id, status: props.customer.status})
 const rules = reactive<FormRules>({
   status: [
     {
@@ -72,7 +72,7 @@ const cancel = () => {
 >
 
   <el-form-item label="客户状态" prop="status">
-    <el-select v-model="form.status" clearable placeholder="请选择客户状态">
+    <el-select v-model.trim="form.status" clearable placeholder="请选择客户状态">
       <el-option v-for="(item,idx) in CustomerStatus" :key="idx" :label="`${idx+1}.${item}`" :value="item"></el-option>
     </el-select>
   </el-form-item>

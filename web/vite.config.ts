@@ -38,6 +38,7 @@ export default defineConfig(({mode}: ConfigEnv) => {
       },
     },
     server: {
+      port: 8000,
       proxy: {
         [env.VITE_BASE_API]: {
           //服务器地址
@@ -50,6 +51,8 @@ export default defineConfig(({mode}: ConfigEnv) => {
       },
     },
     build: {
+      // 设置生产环境下的 NODE_ENV
+      nodeEnv: 'production',
       chunkSizeWarningLimit:1300,
       rollupOptions: {
         output: {

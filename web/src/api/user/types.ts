@@ -5,7 +5,7 @@ export interface loginForm {
 }
 
 export interface dataType {
-  token?: string;
+  token: string;
 }
 
 //登录接口返回数据类型

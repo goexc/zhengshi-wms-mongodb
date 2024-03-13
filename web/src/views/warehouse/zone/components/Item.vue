@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import {nextTick, ref, reactive, onMounted} from "vue";
+import {nextTick, ref, reactive,} from "vue";
 import {ElMessage, FormInstance, FormRules} from "element-plus";
-import {Zone, ZoneRequest} from "@/api/zone/types.ts";
+import {Zone, ZoneRequest} from "@/api/warehouse_zone/types.ts";
 import {reqAddOrUpdateZone} from "@/api/warehouse_zone";
 import WarehouseListItem from "@/components/Warehouse/WarehouseListItem.vue";
 
@@ -15,6 +15,10 @@ const props = defineProps(['zone'])
 const form = ref<Zone>(JSON.parse(JSON.stringify(props.zone)))
 const formRef = ref<FormInstance>()
 const emit = defineEmits(['success', 'cancel'])
+
+//图片域名
+const oss_domain = ref<string>(import.meta.env.VITE_OSS_DOMAIN)
+
 
 //更换库区图片
 const handleSelect = (image:string) => {
@@ -197,39 +201,57 @@ const submit = async () => {
         :url="form.image"
         />
     </el-form-item>
+    <el-form-item label="">
+      <el-image
+          v-if="form.image&&form.image.endsWith('.svg')"
+          :src="`${ oss_domain }${form.image}`"
+          :infinite="true"
+          :preview-teleported="true"
+          :preview-src-list="[`${ oss_domain }${form.image}`]"
+          style="width: 148px;height: 148px;"
+      ></el-image>
+      <el-image
+          v-if="form.image&&!form.image.endsWith('.svg')"
+          :src="`${ oss_domain }${form.image}_148x148`"
+          :infinite="true"
+          :preview-teleported="true"
+          :preview-src-list="[`${ oss_domain }${form.image}`]"
+          style="width: 148px;height: 148px;"
+      ></el-image>
+    </el-form-item>
 <!--    <el-form-item label="库区类型" prop="type">
-      <el-select v-model="form.type" clearable placeholder="请选择库区类型">
+      <el-select v-model.trim="form.type" clearable placeholder="请选择库区类型">
         <el-option v-for="(item,idx) in WarehouseTypes" :key="idx" :label="`${idx+1}.${item}`" :value="item"></el-option>
       </el-select>
     </el-form-item>-->
     <el-form-item label="库区名称" prop="name">
-      <el-input v-model="form.name" clearable/>
+      <el-input v-model.trim="form.name" clearable/>
     </el-form-item>
     <el-form-item label="库区编号" prop="code">
-      <el-input v-model="form.code" clearable/>
+      <el-input v-model.trim="form.code" clearable/>
     </el-form-item>
 <!--    <el-form-item label="库区状态" prop="status">-->
-<!--      <el-select v-model="form.status" clearable placeholder="请选择库区状态">-->
+<!--      <el-select v-model.trim="form.status" clearable placeholder="请选择库区状态">-->
 <!--        <el-option v-for="(item,idx) in ZoneStatus" :key="idx" :label="`${idx+1}.${item}`" :value="item"></el-option>-->
 <!--      </el-select>-->
 <!--    </el-form-item>-->
 <!--    <el-form-item label="库区地址" prop="address">
-      <el-input v-model="form.address" clearable/>
+      <el-input v-model.trim="form.address" clearable/>
     </el-form-item>-->
     <el-form-item label="库区容量" prop="capacity">
       <el-input v-model.number="form.capacity" clearable/>
     </el-form-item>
     <el-form-item label="库区容量单位" prop="capacity_unit">
-      <el-input v-model="form.capacity_unit" clearable/>
+      <el-input v-model.trim="form.capacity_unit" clearable/>
     </el-form-item>
     <el-form-item label="负责人" prop="manager">
-      <el-input v-model="form.manager" clearable/>
+      <el-input v-model.trim="form.manager" clearable/>
     </el-form-item>
     <el-form-item label="联系方式" prop="contact">
-      <el-input v-model="form.contact" clearable/>
+      <el-input v-model.trim="form.contact" clearable/>
     </el-form-item>
     <el-form-item label="备注" prop="remark">
-      <el-input v-model="form.remark" clearable/>
+      <el-input v-model.trim="form.remark" clearable/>
     </el-form-item>
     <el-form-item>
       <el-button plain @click="cancel">取消</el-button>

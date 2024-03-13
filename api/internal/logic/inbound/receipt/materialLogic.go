@@ -1,20 +1,11 @@
 package receipt
 
 import (
-	"api/internal/svc"
-	"api/internal/types"
-	"api/model"
 	"api/pkg/code"
-	"context"
 	"fmt"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
-	"net/http"
-
-	"github.com/zeromicro/go-zero/core/logx"
 )
 
+/*
 type MaterialLogic struct {
 	logx.Logger
 	ctx    context.Context
@@ -35,7 +26,7 @@ func (l *MaterialLogic) Material(req *types.InboundReceiptMaterialRequest) (resp
 	id, _ := primitive.ObjectIDFromHex(req.Id)
 	if id.IsZero() {
 		resp.Code = http.StatusBadRequest
-		resp.Msg = "参数id错误"
+		resp.Msg = "入库单不存在"
 		return resp, nil
 	}
 
@@ -67,7 +58,7 @@ func (l *MaterialLogic) Material(req *types.InboundReceiptMaterialRequest) (resp
 	//待审核、审核不通过：不能执行发货/入库操作
 	if receipt.Status == code.InboundReceiptStatusCode("待审核") || receipt.Status == code.InboundReceiptStatusCode("审核不通过") {
 		resp.Code = http.StatusBadRequest
-		resp.Msg = "请审核后再操作"
+		resp.Msg = "请审核通过再操作"
 		return resp, nil
 	}
 
@@ -116,7 +107,7 @@ func (l *MaterialLogic) Material(req *types.InboundReceiptMaterialRequest) (resp
 	//4.更新物料状态和入库单状态
 	update := bson.M{
 		"$set": bson.M{
-			"status":       getReceiptStatus(statuses),
+			"status":       code.Material2InboundReceiptStatus(statuses),
 			"total_amount": receipt.TotalAmount,
 			"materials":    receipt.Materials,
 		},
@@ -133,7 +124,7 @@ func (l *MaterialLogic) Material(req *types.InboundReceiptMaterialRequest) (resp
 	resp.Msg = "成功"
 	return resp, nil
 }
-
+*/
 // 根据物料状态确定入库单状态
 // statuses: map[物料状态值]对应的物料数量
 func getReceiptStatus(statuses map[int]int) (status int) {

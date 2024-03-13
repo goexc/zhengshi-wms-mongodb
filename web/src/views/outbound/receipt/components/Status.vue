@@ -2,8 +2,8 @@
 
 import {nextTick, reactive, ref} from "vue";
 import {ElMessage, FormInstance, FormRules} from "element-plus";
-import {reqCheckOutboundReceipt} from "@/api/outbound";
-import {OutboundReceiptCheckRequest} from "@/api/outbound/types.ts";
+import {reqCheckOutboundOrder} from "@/api/outbound";
+import {OutboundOrderCheckRequest} from "@/api/outbound/types.ts";
 
 defineOptions({
   name: "Status"
@@ -14,7 +14,11 @@ const props = defineProps(['receipt'])
 const emit = defineEmits(['success', 'cancel'])
 
 const formRef = ref<FormInstance>()
-const form = ref<OutboundReceiptCheckRequest>({id: props.receipt.id, code: props.receipt.code, status: ''})
+const form = ref<OutboundOrderCheckRequest>({
+  id: props.receipt.id,
+  // code: props.receipt.code,
+  status: ''
+})
 const rules = reactive<FormRules>({
   status: [
     {
@@ -43,7 +47,7 @@ const handleSubmit = async ()=>{
   }
 
 
-  let res = await reqCheckOutboundReceipt(form.value)
+  let res = await reqCheckOutboundOrder(form.value)
   if(res.code === 200){
     await nextTick(() => {
       formRef.value?.clearValidate()
@@ -73,7 +77,7 @@ const cancel = () => {
   >
 
     <el-form-item label="审核状态" prop="status">
-      <el-select v-model="form.status" clearable placeholder="请选择审核状态">
+      <el-select v-model.trim="form.status" clearable placeholder="请选择审核状态">
         <el-option v-for="(item,idx) in ['审核通过', '审核不通过']" :key="idx" :label="`${idx+1}.${item}`" :value="item"></el-option>
       </el-select>
     </el-form-item>

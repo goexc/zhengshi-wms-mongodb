@@ -57,7 +57,7 @@ func (l *ListLogic) List(req *types.CustomerListRequest) (resp *types.CustomersR
 	var matchStage = bson.D{{"$match", filter}}
 
 	//$lookup 阶段进行关联查询，
-	//将 supplier 集合中的 create_by 字段与 user 集合中的 _id 字段进行关联
+	//将 customer 集合中的 create_by 字段与 user 集合中的 _id 字段进行关联
 	lookupStage := bson.D{
 		{"$lookup", bson.D{
 			{"from", "user"},
@@ -87,6 +87,7 @@ func (l *ListLogic) List(req *types.CustomerListRequest) (resp *types.CustomersR
 			{"level", 1},
 			{"status", 1},
 			{"remark", 1},
+			{"receivable_balance", 1},
 			{"creator_name", bson.D{
 				//在投影中，使用 $ifNull 操作符检查 user.name 字段，
 				//如果为空（即关联集合没有数据），则将 create_by 字段置为空字符串。
@@ -122,14 +123,13 @@ func (l *ListLogic) List(req *types.CustomerListRequest) (resp *types.CustomersR
 	}
 	defer cur.Close(l.ctx)
 
-	var suppliers []model.Customer
-	if err = cur.All(l.ctx, &suppliers); err != nil {
+	var customers []model.Customer
+	if err = cur.All(l.ctx, &customers); err != nil {
 		fmt.Println("[Error]解析客户列表：", err.Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务器内部错误"
 		return resp, nil
 	}
-	fmt.Printf("客户数量:%d\n", len(suppliers))
 
 	//2.客户总数量
 	total, err := l.svcCtx.CustomerModel.CountDocuments(l.ctx, filter)
@@ -142,23 +142,24 @@ func (l *ListLogic) List(req *types.CustomerListRequest) (resp *types.CustomersR
 
 	resp.Data.Total = total
 	resp.Data.List = make([]types.Customer, 0)
-	for _, supplier := range suppliers {
+	for _, customer := range customers {
 		resp.Data.List = append(resp.Data.List, types.Customer{
-			Id:                            supplier.Id.Hex(),
-			Type:                          supplier.Type,
-			Code:                          strings.TrimSpace(supplier.Code),
-			Image:                         supplier.Image,
-			LegalRepresentative:           strings.TrimSpace(supplier.LegalRepresentative),
-			UnifiedSocialCreditIdentifier: strings.TrimSpace(supplier.UnifiedSocialCreditIdentifier),
-			Name:                          supplier.Name,
-			Address:                       supplier.Address,
-			Contact:                       supplier.Contact,
-			Manager:                       supplier.Manager,
-			Status:                        supplier.Status,
-			Remark:                        supplier.Remark,
-			CreateBy:                      supplier.CreatorName,
-			CreatedAt:                     supplier.CreatedAt,
-			UpdatedAt:                     supplier.UpdatedAt,
+			Id:                            customer.Id.Hex(),
+			Type:                          customer.Type,
+			Code:                          strings.TrimSpace(customer.Code),
+			Image:                         customer.Image,
+			LegalRepresentative:           strings.TrimSpace(customer.LegalRepresentative),
+			UnifiedSocialCreditIdentifier: strings.TrimSpace(customer.UnifiedSocialCreditIdentifier),
+			Name:                          customer.Name,
+			Address:                       customer.Address,
+			Contact:                       customer.Contact,
+			Manager:                       customer.Manager,
+			Status:                        customer.Status,
+			Remark:                        customer.Remark,
+			ReceivableBalance:             customer.ReceivableBalance,
+			CreateBy:                      customer.CreatorName,
+			CreatedAt:                     customer.CreatedAt,
+			UpdatedAt:                     customer.UpdatedAt,
 		})
 	}
 

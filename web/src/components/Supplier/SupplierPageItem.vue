@@ -15,6 +15,12 @@ const initSuppliersForm = () => {
   return {
     page: 1,
     size: 10,
+    name: '',
+    code: '',
+    manager: '',
+    contact: '',
+    email: '',
+    level: 0,
   }
 }
 let suppliers = ref<Supplier[]>([])
@@ -41,7 +47,7 @@ onMounted(()=>{
 
 <template>
   <el-form-item label="供应商" prop="supplier_id">
-    <el-select v-model="form.supplier_id" autocomplete="off" clearable>
+    <el-select v-model.trim="form.supplier_id" autocomplete="off" clearable>
       <el-pagination
           v-model:page-size="suppliersForm.size"
           v-model:current-page="suppliersForm.page"

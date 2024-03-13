@@ -56,6 +56,7 @@ type Customer {
     Email string `json:"email"`                                                    //Email
     Remark string `json:"remark"`                                                 //备注
     Status string `json:"status"`                                                 //状态
+    ReceivableBalance float64            `json:"receivable_balance"` //应收账款
     CreateBy string `json:"create_by,optional"`                                   //创建人
     CreatedAt int64 `json:"created_at,optional"`
     UpdatedAt int64 `json:"updated_at,optional"`
@@ -86,7 +87,8 @@ type CustomerRequest {
     Contact string `json:"contact,optional" validate:"required,e164" comment:"联系方式"`                                                           //联系方式
     Manager string `json:"manager,optional" validate:"required" comment:"负责人"`                                                                  //负责人
     Email string `json:"email,optional" validate:"omitempty,email" comment:"Email"`                                                                //Email
-    Remark string `json:"remark,optional"`
+    Remark string `json:"remark,optional" validate:"omitempty" comment:"备注"`
+    ReceivableBalance float64 `json:"receivable_balance,optional" validate:"omitempty,gte=0" comment:"应收账款"`//应收账款
 }
 
 

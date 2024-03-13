@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {reactive, ref} from "vue";
 import {reqImages} from "@/api/image";
-import {ImagesRequest} from "@/api/image/types.ts";
+import {ImageItem, ImagesRequest} from "@/api/image/types.ts";
 import {ElMessage} from "element-plus";
 import {useUserStore} from "@/store/modules/user.ts";
 
@@ -13,6 +13,10 @@ const props = defineProps({
   title: {
     type: String,
     default: '',
+  },
+  urls: {// 默认图片链接
+    type: Array,
+    default: [],
   },
   url: {// 默认图片链接
     type: String,
@@ -39,7 +43,7 @@ const total = ref<number>(0)
 const select = new Set()
 
 //图片域名
-const oss_domain=ref<string>(import.meta.env.VITE_OSS_DOMAIN)
+const oss_domain = ref<string>(import.meta.env.VITE_OSS_DOMAIN)
 
 // 图片提交url
 const action = ref<string>(import.meta.env.VITE_IMAGE_UPLOAD)
@@ -52,11 +56,12 @@ const handleCover = () => {
 // 分页
 const form = reactive<ImagesRequest>({
   page: 1,
-  size: 10
+  size: 10,
+  name: ''
 })
 
 //素材列表
-const images = ref<string[]>([])
+const images = ref<ImageItem[]>([])
 
 
 const loadImages = async () => {
@@ -109,16 +114,17 @@ const handleExceed = (files: FileList, fileList: FileList) => {
 
 // 选择封面素材
 const handleSelect = (image: string) => {
-  if(select.has(image)){
-    select.delete(image.url)
-    emit('remove', image.url)// 让父组件删除素材链接
+  if (select.has(image)) {
+    // select.delete(image.url)
+    // emit('remove', image.url)// 让父组件删除素材链接
+    select.delete(image)
+    emit('remove', image)// 让父组件删除素材链接
     return;
   }
 
   if (select.size < props.limit) {
     // 向父组件传递素材链接
     emit('select', image)
-
     return
   }
 
@@ -127,7 +133,6 @@ const handleSelect = (image: string) => {
     console.log('图片上限', select.size)
     return
   }
-
 }
 
 const handleTabChange = async () => {
@@ -145,25 +150,30 @@ const handleTabChange = async () => {
         class="el-upload el-upload--picture-card"
         @click="handleCover"
     >
-      <el-icon v-if="!url"><Plus/></el-icon>
-      <el-image
-          v-if="url&&url.endsWith('.svg')"
-          :src="`${ oss_domain }${url}`"
-      ></el-image>
-      <el-image
-          v-if="url&&!url.endsWith('.svg')"
-          :src="`${ oss_domain }${url}_148x148`"
-      ></el-image>
+      <!--
+            <el-icon v-if="!url"><Plus/></el-icon>
+            <el-image
+                v-if="url&&url.endsWith('.svg')"
+                :src="`${ oss_domain }${url}`"
+            ></el-image>
+            <el-image
+                v-if="url&&!url.endsWith('.svg')"
+                :src="`${ oss_domain }${url}_148x148`"
+            ></el-image>
+            -->
+      <el-icon>
+        <Plus/>
+      </el-icon>
     </div>
     <el-dialog
-        v-model="visible"
+        v-model.trim="visible"
         :title="title"
         draggable
         width="800"
         :close-on-click-modal="true"
     >
       <el-tabs
-          v-model="activeTab"
+          v-model.trim="activeTab"
           type="card"
           @tab-change="handleTabChange"
       >
@@ -174,22 +184,13 @@ const handleTabChange = async () => {
                     :key="$index"
             >
               <el-image
-                  v-if="$image.endsWith('.svg')"
                   class="image-item"
                   style="height: 148px;width: 148px"
-                  :src="`${oss_domain}${$image}`"
+                  :src="`${oss_domain}${$image.url}_148x148`"
                   fit="cover"
-                  @click="handleSelect($image)"
+                  @click="handleSelect($image.url)"
               ></el-image>
-              <el-image
-                  v-else
-                  class="image-item"
-                  style="height: 148px;width: 148px"
-                  :src="`${oss_domain}${$image}_148x148`"
-                  fit="cover"
-                  @click="handleSelect($image)"
-              ></el-image>
-              <div v-if="$image" class="image-selected" @click="handleSelect($image)"></div>
+              <div v-if="$image" class="image-selected" @click="handleSelect($image.url)"></div>
             </el-col>
           </el-row>
           <el-pagination
@@ -234,5 +235,4 @@ const handleTabChange = async () => {
 </template>
 
 <style scoped lang="scss">
-
 </style>

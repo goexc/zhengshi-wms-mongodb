@@ -12,6 +12,10 @@
 
 }
 
+.m-1 {
+  margin: 10px;
+}
+
 .m-4 {
   margin: 40px;
 }
@@ -20,10 +24,42 @@
   margin: 0 10px !important;
 }
 
+.m-y-1{
+  margin: 10px 0 !important;
+}
+
 .m-y-2{
   margin: 20px 0 !important;
 }
 
+.m-t-1{
+  margin-top: 10px !important;
+}
+
 .m-t-2{
   margin-top: 20px !important;
+}
+
+.m-b-1{
+  margin-bottom: 10px !important;
+}
+
+.m-b-2{
+  margin-bottom: 20px !important;
+}
+
+.p-x-2{
+  padding: 0 20px !important;
+}
+
+.align-center{
+  text-align: center;
+}
+
+.space-evenly{
+  justify-content: space-evenly;
+}
+
+.color-white{
+  color: white;
 }

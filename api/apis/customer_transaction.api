@@ -9,14 +9,36 @@ info(
 )
 
 
-type  CustomerTransactionsRequest{
-
+type CustomerTransactionPageRequest {
+    Page int64 `form:"page,optional" validate:"required,gte=1" comment:"页数""`
+    Size int64 `form:"size,optional" validate:"required,gte=5,lte=100" comment:"条数"`
+    CustomerId string `form:"customer_id,optional" validate:"required,mongodb" comment:"客户"`
 }
 
-type  CustomerTransactionsResponse{
-
+type CustomerTransactionsResponse {
+    Code int    `json:"code"`
+    Msg  string `json:"msg"`
+    Data CustomerTransactionPaginate `json:"data"`
 }
 
-type  CustomerTransactionRequest{
+type CustomerTransactionPaginate {
+    Total int64 `json:"total"` //交易流水条数
+    List []CustomerTransaction `json:"list"` //客户交易流水列表
+}
 
+type CustomerTransaction {
+    Type string `json:"type"` //交易类型：应收账款、回款、退货
+    Time int64 `json:"time"` //交易时间
+    Amount float64 `json:"amount"` //交易金额
+    Remark string `json:"remark"` //备注
+}
+
+//添加客户交易流水
+type CustomerTransactionAddRequest {
+    CustomerId string `json:"customer_id,optional" validate:"required,mongodb" comment:"客户"`
+    Time int64 `json:"time,optional" validate:"required,gt=0" comment:"交易时间"` //交易时间
+    Type string `json:"type,optional" validate:"required,oneof=应收账款 回款 退货" comment:"交易类型"` //交易类型：应收账款、回款、退货
+    Amount float64 `json:"amount,optional" validate:"required,gt=0" comment:"交易金额"` //交易金额
+    Annex []string `json:"annex,optional" validate:"omitempty,dive,gt=3" comment:"附件"`                                  //附件
+    Remark string `json:"remark,optional" validate:"omitempty" comment:"备注"` //备注
 }

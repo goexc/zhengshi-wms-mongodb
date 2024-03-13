@@ -32,6 +32,7 @@ export interface Carrier {
   address: string; //承运商地址
   manager: string; //负责人
   contact: string; //联系方式
+  email: string; //email
   status: string; //承运商状态:10.审核中;20.审核不通过;30.活动;40.停用;50.黑名单;60.合同到期;100.删除
   remark: string; //备注
   create_by?: string; //新增承运商没有create_by，创建人

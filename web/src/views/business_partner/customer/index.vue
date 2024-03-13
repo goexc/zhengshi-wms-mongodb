@@ -3,11 +3,12 @@
 import {onMounted, ref} from "vue";
 import {ElMessage, FormInstance} from "element-plus";
 import {Customer, CustomersRequest, CustomerStatusRequest} from "@/api/customer/types.ts";
-import {reqChangeCustomerStatus, reqCustomers} from "@/api/customer";
+import {reqChangeCustomerStatus, reqCustomers, reqRecountReceivableBalance} from "@/api/customer";
 import {Sizes, Types} from "@/utils/enum.ts";
 import {TimeFormat} from "@/utils/time.ts";
 import Item from "./components/Item.vue";
 import Status from "./components/Status.vue";
+import Transaction from "@/views/business_partner/customer/components/Transaction.vue";
 
 
 let initCustomersForm = () => {
@@ -93,6 +94,7 @@ const remove = async (id: string) => {
 const title = ref<string>('')
 const visible = ref<boolean>(false)
 const action = ref<string>('')
+const dialogWidth = ref<number>(800)
 
 let initCustomer = () => {
   return <Customer>{
@@ -108,6 +110,7 @@ let initCustomer = () => {
     contact: '',
     status: '',
     remark: '',
+    receivable_balance: 0,
   }
 }
 
@@ -144,6 +147,27 @@ const handleSuccess = () => {
   visible.value = false
 }
 
+//重新统计应收账款
+const recountReceivableBalance = async () => {
+  loading.value = true
+  let res = await reqRecountReceivableBalance()
+  if (res.code === 200) {
+    ElMessage.success(res.msg)
+  } else {
+    ElMessage.error(res.msg)
+  }
+  loading.value = false
+}
+
+//查看客户交易流水
+const handleTransaction = async (item: Customer) => {
+  action.value = 'transaction'
+  customer.value = item
+  title.value = `客户[${item.name}]交易流水`
+  dialogWidth.value = 1600
+  visible.value = true
+}
+
 onMounted(() => {
   getCustomers()
 })
@@ -162,19 +186,19 @@ onMounted(() => {
           style="display: flex; flex-wrap: wrap;"
       >
         <el-form-item prop="name" label="名称">
-          <el-input v-model="customersForm.name" placeholder="请填写客户名称" clearable/>
+          <el-input v-model.trim="customersForm.name" placeholder="请填写客户名称" clearable/>
         </el-form-item>
         <el-form-item prop="code" label="编号">
-          <el-input v-model="customersForm.code" placeholder="请填写客户编号" clearable/>
+          <el-input v-model.trim="customersForm.code" placeholder="请填写客户编号" clearable/>
         </el-form-item>
         <el-form-item prop="manager" label="负责人">
-          <el-input v-model="customersForm.manager" placeholder="请填写负责人" clearable/>
+          <el-input v-model.trim="customersForm.manager" placeholder="请填写负责人" clearable/>
         </el-form-item>
         <el-form-item prop="contact" label="联系方式">
-          <el-input v-model="customersForm.contact" placeholder="请填写联系方式" clearable/>
+          <el-input v-model.trim="customersForm.contact" placeholder="请填写联系方式" clearable/>
         </el-form-item>
         <el-form-item prop="email" label="Email">
-          <el-input v-model="customersForm.email" placeholder="请填写Email" clearable/>
+          <el-input v-model.trim="customersForm.email" placeholder="请填写Email" clearable/>
         </el-form-item>
         <el-form-item label=" ">
           <perms-button
@@ -200,7 +224,23 @@ onMounted(() => {
     <el-card
         class="data"
     >
-      <el-button type="primary" plain icon="Plus" @click="add">添加客户</el-button>
+      <el-button type="success" plain icon="CirclePlus" @click="add">添加客户</el-button>
+      <el-button :disabled="loading" type="warning" plain icon="WarningFilled" @click="recountReceivableBalance">重新统计应收账款</el-button>
+      <!--   分页   -->
+      <el-pagination
+          class="m-t-2"
+          v-model:current-page="customersForm.page"
+          v-model:page-size="customersForm.size"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+          :page-sizes="[10, 20, 30, 40]"
+          background
+          layout="total, sizes, prev, pager, next, ->,jumper"
+          :pager-count="9"
+          :disabled="loading"
+          :hide-on-single-page="false"
+          :total="total"
+      ></el-pagination>
       <el-table
           class="table"
           border
@@ -238,10 +278,13 @@ onMounted(() => {
         <el-table-column label="编号" prop="code" width="150px"/>
         <el-table-column label="应收账款" width="250px" align="center">
           <template #default="{row}">
-            <p>10000.000</p>
-            <el-text class="money" type="primary" size="small">+应收</el-text>
-            <el-text class="money" type="primary" size="small">-结款</el-text>
-            <el-text class="money" type="primary" size="small">查看流水</el-text>
+<!--          <template>-->
+            <el-text class="money" type="danger" size="default">{{ row.receivable_balance.toFixed(4) }}</el-text>
+            <el-row>
+              <el-text class="money" type="primary" size="small">+应收</el-text>
+              <el-text class="money" type="primary" size="small">-结款</el-text>
+              <el-text class="money" type="primary" size="small" @click="handleTransaction(row)">查看流水</el-text>
+            </el-row>
           </template>
         </el-table-column>
         <el-table-column label="客户状态" prop="status" width="120px" align="center">
@@ -328,10 +371,10 @@ onMounted(() => {
       ></el-pagination>
     </el-card>
     <el-dialog
-        v-model="visible"
+        v-model.trim="visible"
         :title="title"
         draggable
-        width="800"
+        :width="dialogWidth"
         :close-on-click-modal="false"
     >
       <Item
@@ -346,6 +389,10 @@ onMounted(() => {
           @success="handleSuccess"
           @cancel="visible=false"
       />
+      <Transaction
+          v-if="visible&&action === 'transaction'"
+          :customer="customer"
+        />
     </el-dialog>
 
   </div>

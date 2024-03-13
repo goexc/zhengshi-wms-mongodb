@@ -2,7 +2,7 @@
 import {nextTick, ref, onMounted, reactive} from "vue";
 import {Sizes, Types} from "@/utils/enum.ts";
 import {TimeFormat} from "@/utils/time.ts";
-import {Api, ApiListResponse, ApiStatusRequest} from "@/api/acl/api/types.ts";
+import {Api, ApiListResponse} from "@/api/acl/api/types.ts";
 import {reqApiList, reqDeleteApi} from "@/api/acl/api";
 import {ElMessage, FormInstance} from "element-plus";
 import {reqAddOrUpdateApi} from "@/api/acl/api";
@@ -224,7 +224,7 @@ const handleClose = () => {
         </el-table-column>
       </el-table>
       <el-dialog
-          v-model="visible"
+          v-model.trim="visible"
           :title="title"
           draggable
           width="800"
@@ -249,7 +249,7 @@ const handleClose = () => {
             </el-col>
             <el-col :xs="24" :sm="24" :md="12" :lg="12" :xl="12">
               <el-form-item label="Api名称" prop="name">
-                <el-input v-model="apiForm.name" placeholder="例如：权限管理"/>
+                <el-input v-model.trim="apiForm.name" placeholder="例如：权限管理"/>
               </el-form-item>
               <el-form-item label="Api排序" prop="sort_id">
                 <el-input v-model.number="apiForm.sort_id"/>
@@ -260,14 +260,14 @@ const handleClose = () => {
           <el-row>
             <el-col :xs="24" :sm="24" :md="12" :lg="12" :xl="12">
               <el-form-item label="方法" prop="method" v-if="apiForm.type!==1">
-                <el-select v-model="apiForm.method" :disabled="apiForm.type===1">
+                <el-select v-model.trim="apiForm.method" :disabled="apiForm.type===1">
                   <el-option v-for="($item, $index) in Methods" :key="$index" :label="$item" :value="$item"></el-option>
                 </el-select>
               </el-form-item>
             </el-col>
             <el-col :xs="24" :sm="24" :md="12" :lg="12" :xl="12">
               <el-form-item label="URI" prop="uri" v-if="apiForm.type!==1">
-                <el-input v-model="apiForm.uri" :disabled="apiForm.type===1"/>
+                <el-input v-model.trim="apiForm.uri" :disabled="apiForm.type===1"/>
               </el-form-item>
             </el-col>
           </el-row>

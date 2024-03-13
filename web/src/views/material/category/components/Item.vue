@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {nextTick, ref, reactive, onMounted} from "vue";
+import {nextTick, ref, reactive} from "vue";
 import {ElMessage, FormInstance, FormRules} from "element-plus";
 import {reqAddOrUpdateMaterialCategory} from "@/api/material";
 import {MaterialCategory, MaterialCategoryRequest} from "@/api/material/types.ts";
@@ -17,13 +17,13 @@ const formRef = ref<FormInstance>()
 const emit = defineEmits(['success', 'cancel'])
 
 //更换物料分类图片
-const handleSelect = (image: string) => {
-  form.value.image = image
-}
-
-const handleRemove = (image: string) => {
-  console.log('handleRemove:', image)
-}
+// const handleSelect = (image: string) => {
+//   form.value.image = image
+// }
+//
+// const handleRemove = (image: string) => {
+//   console.log('handleRemove:', image)
+// }
 
 
 const rules = reactive<FormRules>({
@@ -123,21 +123,21 @@ const submit = async () => {
       :rules="rules"
   >
     <el-form-item label="物料分类名称" prop="name">
-      <el-input v-model="form.name" clearable/>
+      <el-input v-model.trim="form.name" clearable/>
     </el-form-item>
     <el-form-item label="排序" prop="sort_id">
       <el-input v-model.number="form.sort_id" clearable/>
     </el-form-item>
     <el-form-item label="状态" prop="status">
       <el-select
-          v-model="form.status"
+          v-model.trim="form.status"
           clearable
         >
         <el-option v-for="(one, idx) in MaterialCategoryStatus" :key="idx" :label="one" :value="one" />
       </el-select>
     </el-form-item>
     <el-form-item label="备注" prop="remark">
-      <el-input v-model="form.remark" clearable/>
+      <el-input v-model.trim="form.remark" clearable/>
     </el-form-item>
     <el-form-item>
       <el-button plain @click="cancel">取消</el-button>

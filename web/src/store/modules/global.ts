@@ -43,7 +43,8 @@ export const useGlobalStore = defineStore({
   getters: {},
   actions: {
     // Set GlobalState
-    setGlobalState(...args: ObjToKeyValArray<GlobalState>) {
+    // setGlobalState(...args: ObjToKeyValArray<GlobalState>[]) {
+    setGlobalState(...args: any[]) {
       this.$patch({ [args[0]]: args[1] });
     },
   },

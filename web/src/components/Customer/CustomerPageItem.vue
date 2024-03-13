@@ -15,6 +15,12 @@ const initCustomersForm = () => {
   return {
     page: 1,
     size: 10,
+    name: '',
+    code: '',
+    manager: '',
+    contact: '',
+    email: '',
+    level: 0,
   }
 }
 let customers = ref<Customer[]>([])
@@ -41,7 +47,7 @@ onMounted(()=>{
 
 <template>
   <el-form-item label="客户" prop="customer_id">
-    <el-select v-model="form.customer_id" autocomplete="off" clearable>
+    <el-select v-model.trim="form.customer_id" autocomplete="off" clearable>
       <el-pagination
           v-model:page-size="customersForm.size"
           v-model:current-page="customersForm.page"

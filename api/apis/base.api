@@ -1,40 +1,48 @@
 syntax = "v1"
 
-
-info(
-    title: "基础数据结构"
-    desc: "基础数据结构"
-    author: "董咚懂咚"
-    email: "1024071953@qq.com"
-    version: "1.0.1"
+info (
+	title:   "基础数据结构"
+	desc:    "基础数据结构"
+	author:  "董咚懂咚"
+	email:   "1024071953@qq.com"
+	version: "1.0.1"
 )
 
 type BaseResponse {
-    Code int `json:"code"`
-    Msg string `json:"msg"`
+	Code int    `json:"code"`
+	Msg  string `json:"msg"`
 }
 
 type Menu {
-    Id string `json:"id"`
-    Type int64 `json:"type"`                       //路由类型：1.菜单，2.按钮
-    SortId int64 `json:"sort_id"`                  //排序
-    ParentId string `json:"parent_id"`             //父路由id
-    Path string `json:"path,optional"`             //路由路径
-    Name string `json:"name,optional"`             //路由名称
-    Component string `json:"component,optional"`   //路由组件
-    Meta MetaProps `json:"meta"`
-    Remark string `json:"remark"`                  //备注
-    CreatedAt int64 `json:"created_at,optional"`
-    UpdatedAt int64 `json:"updated_at,optional"`
-    Children []*Menu `json:"children,optional"`
+	Id        string    `json:"id"`
+	Type      int64     `json:"type"` //路由类型：1.菜单，2.按钮
+	SortId    int64     `json:"sort_id"` //排序
+	ParentId  string    `json:"parent_id"` //父路由id
+	Path      string    `json:"path,optional"` //路由路径
+	Name      string    `json:"name,optional"` //路由名称
+	Component string    `json:"component,optional"` //路由组件
+	Meta      MetaProps `json:"meta"`
+	Remark    string    `json:"remark"` //备注
+	CreatedAt int64     `json:"created_at,optional"`
+	UpdatedAt int64     `json:"updated_at,optional"`
+	Children  []*Menu   `json:"children,optional"`
 }
 
 type MetaProps {
-    Title string `json:"title,optional"`                   //路由标题
-    Icon string `json:"icon"`                               //元信息：图标
-    Transition string `json:"transition"`                   //元信息：过渡动画
-    Hidden bool `json:"hidden"`                             //元信息：是否隐藏
-    Fixed bool `json:"fixed"`                               //元信息：是否固定
-    IsFull bool `json:"is_full"`                            //元信息：是否全屏
-    Perms string `json:"perms,optional"`                    //权限标识
+	Title      string `json:"title,optional"` //路由标题
+	Icon       string `json:"icon"` //元信息：图标
+	Transition string `json:"transition"` //元信息：过渡动画
+	Hidden     bool   `json:"hidden"` //元信息：是否隐藏
+	Fixed      bool   `json:"fixed"` //元信息：是否固定
+	IsFull     bool   `json:"is_full"` //元信息：是否全屏
+	Perms      string `json:"perms,optional"` //权限标识
 }
+
+//仓储位置
+type Warehousing {
+	WarehouseId     string `json:"warehouse_id,optional"` //仓库id
+	WarehouseZoneId string `json:"warehouse_zone_id,optional"` //库区id
+	WarehouseRackId string `json:"warehouse_rack_id,optional"` //货架id
+	WarehouseBinId  string `json:"warehouse_bin_id,optional"` //货位id
+}
+

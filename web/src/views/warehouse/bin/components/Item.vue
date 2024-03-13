@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {nextTick, ref, reactive, onMounted} from "vue";
+import {nextTick, ref, reactive} from "vue";
 import {ElMessage, FormInstance, FormRules} from "element-plus";
 import {reqAddOrUpdateWarehouseBin} from "@/api/warehouse_bin";
 import {WarehouseBin, WarehouseBinRequest} from "@/api/warehouse_bin/types.ts";
@@ -14,6 +14,10 @@ const props = defineProps(['bin'])
 const form = ref<WarehouseBin>(JSON.parse(JSON.stringify(props.bin)))
 const formRef = ref<FormInstance>()
 const emit = defineEmits(['success', 'cancel'])
+
+//图片域名
+const oss_domain = ref<string>(import.meta.env.VITE_OSS_DOMAIN)
+
 
 //更换货架图片
 const handleSelect = (image: string) => {
@@ -194,26 +198,44 @@ const submit = async () => {
           :url="form.image"
       />
     </el-form-item>
+    <el-form-item label="">
+      <el-image
+          v-if="form.image&&form.image.endsWith('.svg')"
+          :src="`${ oss_domain }${form.image}`"
+          :infinite="true"
+          :preview-teleported="true"
+          :preview-src-list="[`${ oss_domain }${form.image}`]"
+          style="width: 148px;height: 148px;"
+      ></el-image>
+      <el-image
+          v-if="form.image&&!form.image.endsWith('.svg')"
+          :src="`${ oss_domain }${form.image}_148x148`"
+          :infinite="true"
+          :preview-teleported="true"
+          :preview-src-list="[`${ oss_domain }${form.image}`]"
+          style="width: 148px;height: 148px;"
+      ></el-image>
+    </el-form-item>
     <el-form-item label="货架名称" prop="name">
-      <el-input v-model="form.name" clearable/>
+      <el-input v-model.trim="form.name" clearable/>
     </el-form-item>
     <el-form-item label="货架编号" prop="code">
-      <el-input v-model="form.code" clearable/>
+      <el-input v-model.trim="form.code" clearable/>
     </el-form-item>
     <el-form-item label="货架容量" prop="capacity">
       <el-input v-model.number="form.capacity" clearable/>
     </el-form-item>
     <el-form-item label="货架容量单位" prop="capacity_unit">
-      <el-input v-model="form.capacity_unit" clearable/>
+      <el-input v-model.trim="form.capacity_unit" clearable/>
     </el-form-item>
     <el-form-item label="负责人" prop="manager">
-      <el-input v-model="form.manager" clearable/>
+      <el-input v-model.trim="form.manager" clearable/>
     </el-form-item>
     <el-form-item label="联系方式" prop="contact">
-      <el-input v-model="form.contact" clearable/>
+      <el-input v-model.trim="form.contact" clearable/>
     </el-form-item>
     <el-form-item label="备注" prop="remark">
-      <el-input v-model="form.remark" clearable/>
+      <el-input v-model.trim="form.remark" clearable/>
     </el-form-item>
     <el-form-item>
       <el-button plain @click="cancel">取消</el-button>

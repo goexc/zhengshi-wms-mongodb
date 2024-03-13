@@ -2,7 +2,6 @@ package receipt
 
 import (
 	"api/model"
-	"api/pkg/code"
 	"context"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
@@ -41,7 +40,8 @@ func (l *PageLogic) Page(req *types.InboundReceiptsRequest) (resp *types.Inbound
 	}
 
 	if strings.TrimSpace(req.Status) != "" {
-		filter["status"] = code.InboundReceiptStatusCode(req.Status)
+		//filter["status"] = code.InboundReceiptStatusCode(req.Status)
+		filter["status"] = req.Status
 	}
 
 	if strings.TrimSpace(req.Type) != "" {
@@ -56,7 +56,7 @@ func (l *PageLogic) Page(req *types.InboundReceiptsRequest) (resp *types.Inbound
 		filter["customer_id"] = strings.TrimSpace(req.CustomerId)
 	}
 
-	var opt = options.Find().SetSort(bson.M{"created_at": 1}).SetSkip((req.Page - 1) * req.Size).SetLimit(req.Size)
+	var opt = options.Find().SetSort(bson.M{"created_at": -1}).SetSkip((req.Page - 1) * req.Size).SetLimit(req.Size)
 
 	cur, err := l.svcCtx.InboundReceiptModel.Find(l.ctx, filter, opt)
 	if err != nil {
@@ -65,6 +65,7 @@ func (l *PageLogic) Page(req *types.InboundReceiptsRequest) (resp *types.Inbound
 		resp.Msg = "服务器内部错误"
 		return resp, nil
 	}
+	defer cur.Close(l.ctx)
 
 	var receipts = make([]model.InboundReceipt, 0)
 	if err = cur.All(l.ctx, &receipts); err != nil {
@@ -79,7 +80,7 @@ func (l *PageLogic) Page(req *types.InboundReceiptsRequest) (resp *types.Inbound
 		var receipt = types.InboundReceipt{
 			Id:            one.Id.Hex(),
 			Code:          one.Code,
-			Status:        code.InboundReceiptStatusText(one.Status),
+			Status:        one.Status,
 			Type:          one.Type,
 			SupplierId:    one.SupplierId,
 			SupplierName:  one.SupplierName,
@@ -92,7 +93,7 @@ func (l *PageLogic) Page(req *types.InboundReceiptsRequest) (resp *types.Inbound
 		}
 
 		for _, material := range one.Materials {
-			receipt.Materials = append(receipt.Materials, types.InboundMaterial{
+			receipt.Materials = append(receipt.Materials, types.InboundMaterialItem{
 				Index:             material.Index,
 				Id:                material.Id,
 				Name:              material.Name,
@@ -102,14 +103,14 @@ func (l *PageLogic) Page(req *types.InboundReceiptsRequest) (resp *types.Inbound
 				Price:             material.Price,
 				EstimatedQuantity: material.EstimatedQuantity,
 				ActualQuantity:    material.ActualQuantity,
-				WarehouseId:       material.WarehouseId,
-				WarehouseZoneId:   material.WarehouseZoneId,
-				WarehouseRackId:   material.WarehouseRackId,
-				WarehouseBinId:    material.WarehouseBinId,
-				WarehouseName:     material.WarehouseName,
-				WarehouseZoneName: material.WarehouseZoneName,
-				WarehouseRackName: material.WarehouseRackName,
-				WarehouseBinName:  material.WarehouseBinName,
+				//WarehouseId:       material.WarehouseId,
+				//WarehouseZoneId:   material.WarehouseZoneId,
+				//WarehouseRackId:   material.WarehouseRackId,
+				//WarehouseBinId:    material.WarehouseBinId,
+				//WarehouseName:     material.WarehouseName,
+				//WarehouseZoneName: material.WarehouseZoneName,
+				//WarehouseRackName: material.WarehouseRackName,
+				//WarehouseBinName:  material.WarehouseBinName,
 			})
 		}
 

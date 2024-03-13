@@ -127,7 +127,6 @@ func (l *MenuLogic) Menu() (resp *types.AccountPermsResponse, err error) {
 
 	//option := options.Find().SetSort(bson.M{"sort_id": 1})
 	//cur, err = l.svcCtx.MenuModel.Find(l.ctx, filter, option)
-	fmt.Println("过滤条件：", filter)
 	cur, err = l.svcCtx.MenuModel.Find(l.ctx, filter)
 	if err != nil {
 		fmt.Println("[Error]查询菜单列表：", err.Error())

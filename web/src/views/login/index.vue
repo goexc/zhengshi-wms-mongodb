@@ -10,7 +10,7 @@ import {HOME_URL} from "@/config";
 let loading = ref<boolean>(false)
 
 //表单数据
-let loginForm = reactive({name: 'lisi', password: '111111'})
+let loginForm = reactive({name: '', password: ''})
 
 //引入用户相关的小仓库
 let userStore = useUserStore()
@@ -123,10 +123,10 @@ onMounted(()=>{
           <h1>你好</h1>
           <h2>欢迎来到 正时WMS</h2>
           <el-form-item prop="name">
-            <el-input prefix-icon="User" v-model="loginForm.name" placeholder="请填写用户名"></el-input>
+            <el-input prefix-icon="User" v-model.trim="loginForm.name" placeholder="请填写用户名"></el-input>
           </el-form-item>
           <el-form-item prop="password">
-            <el-input prefix-icon="Lock" :show-password="true" v-model="loginForm.password" placeholder="请填写密码"></el-input>
+            <el-input prefix-icon="Lock" :show-password="true" v-model.trim="loginForm.password" placeholder="请填写密码"></el-input>
           </el-form-item>
           <el-form-item>
             <el-button :loading="loading" class="login_btn" type="primary" size="default" @click="login">登录

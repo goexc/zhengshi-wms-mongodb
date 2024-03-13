@@ -2,10 +2,10 @@
 
 import {onMounted, ref} from "vue";
 import {Material, MaterialIdRequest, MaterialsRequest} from "@/api/material/types.ts";
-import {ElMessage} from "element-plus";
-import {reqMaterials, reqRemoveMaterial} from "@/api/material";
+import {ElMessage, ElMessageBox} from "element-plus";
+import {reqMaterials, reqRemoveMaterial, reqRemoveMaterialPrice} from "@/api/material";
 import {Sizes, Types} from "@/utils/enum.ts";
-import {TimeFormat} from "@/utils/time.ts";
+import {DateFormat, TimeFormat} from "@/utils/time.ts";
 import Item from "./components/Item.vue";
 
 //图片域名
@@ -67,15 +67,17 @@ const initMaterial = () => {
     category_id: '', //物料分类id
     category_name: '', //物料分类名称
     image: '',
+    model: '',//型号：用于唯一标识和区分不同种类的钢材。
     material: '',//材质：碳钢、不锈钢、合金钢等。
     specification: '',//规格：包括长度、宽度、厚度等尺寸信息。
-    model: '',//型号：用于唯一标识和区分不同种类的钢材。
     surface_treatment: '',//表面处理。钢材经过的表面处理方式，如热镀锌、喷涂等。
     strength_grade: '',//强度等级：钢材的强度等级，常见的钢材强度等级：Q235、Q345
     quantity: 0,//安全库存
     unit: '',//计量单位，如个、箱、千克等
     remark: '',//
-    create_by: '',
+    prices: [],//
+    creator: '',
+    creator_name: '',
     created_at: 0,
     updated_at: 0,
   }
@@ -111,6 +113,34 @@ const remove = async (id: string) => {
   }
 }
 
+//删除物料价格
+let removeMaterialPrice= async (item:Material, customer_id:string, price:number) =>{
+  let result = await ElMessageBox.confirm(
+      `确认删除 [${item.model}] 单价：${price}？`,
+      '提示',
+      {
+        confirmButtonText: '确认',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+  ).catch((reason) => {
+    return reason
+  })
+
+  if (result !== 'confirm') {
+    ElMessage.info('取消操作')
+    return
+  }
+
+  let res = await reqRemoveMaterialPrice(item.id,customer_id, price)
+  if (res.code === 200){
+    ElMessage.success(res.msg)
+    item.prices = item.prices.filter(item=>item.price!==price)
+  }else{
+    ElMessage.error(res.msg)
+  }
+}
+
 //表单提交成功
 const handleSuccess = () => {
   getMaterials()
@@ -139,25 +169,25 @@ onMounted(async () => {
           :form="form"
           />
         <el-form-item label="名称" prop="name">
-          <el-input v-model="form.name" clearable placeholder="请填写名称"/>
+          <el-input v-model.trim="form.name" clearable placeholder="请填写名称"/>
         </el-form-item>
         <el-form-item label="型号" prop="model">
-          <el-input v-model="form.model" clearable placeholder="请填写型号"/>
+          <el-input v-model.trim="form.model" clearable placeholder="请填写型号"/>
         </el-form-item>
         <el-form-item label="材质" prop="material">
-          <el-input v-model="form.material" clearable placeholder="请填写材质"/>
+          <el-input v-model.trim="form.material" clearable placeholder="请填写材质"/>
         </el-form-item>
         <el-form-item label="规格" prop="specification">
-          <el-input v-model="form.specification" clearable placeholder="请填写规格"/>
+          <el-input v-model.trim="form.specification" clearable placeholder="请填写规格"/>
         </el-form-item>
         <el-form-item label="表面处理" prop="surface_treatment">
-          <el-input v-model="form.surface_treatment" clearable placeholder="请选择表面处理"/>
+          <el-input v-model.trim="form.surface_treatment" clearable placeholder="请选择表面处理"/>
         </el-form-item>
         <el-form-item label="强度等级" prop="strength_grade">
-          <el-input v-model="form.strength_grade" clearable placeholder="请选择强度等级"/>
+          <el-input v-model.trim="form.strength_grade" clearable placeholder="请选择强度等级"/>
         </el-form-item>
 <!--        <el-form-item label="物料状态" prop="status">
-          <el-select v-model="form.status" clearable placeholder="请选择物料状态">
+          <el-select v-model.trim="form.status" clearable placeholder="请选择物料状态">
             <el-option v-for="(item,idx) in ['启用', '停用']" :key="idx" :label="`${idx+1}.${item}`"
                        :value="item"></el-option>
           </el-select>
@@ -172,7 +202,22 @@ onMounted(async () => {
     <el-card
         class="data"
     >
-      <el-button type="primary" plain icon="Plus" @click="add">添加物料</el-button>
+      <el-button type="primary" plain icon="CirclePlus" @click="add">添加物料</el-button>
+      <!--   分页   -->
+      <el-pagination
+          class="m-t-2"
+          v-model:current-page="form.page"
+          v-model:page-size="form.size"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+          :page-sizes="[10, 20, 30, 40]"
+          background
+          layout="total, sizes, prev, pager, next, ->,jumper"
+          :pager-count="9"
+          :disabled="loading"
+          :hide-on-single-page="false"
+          :total="total"
+      ></el-pagination>
       <el-table
           class="table"
           border
@@ -214,8 +259,20 @@ onMounted(async () => {
         <el-table-column label="强度等级" prop="strength_grade" min-width="100px"></el-table-column>
         <el-table-column label="安全库存" prop="quantity" min-width="100px"></el-table-column>
         <el-table-column label="计量单位" prop="unit" min-width="100px"></el-table-column>
+        <el-table-column label="单价" prop="price" width="320px">
+          <template #default="{row}">
+            <el-popover placement="left" width="220" v-for="(one, idx) in row.prices" :key="idx">
+              <template #reference>
+                <el-tag type="danger" closable
+                        @close="removeMaterialPrice(row, one.customer_id, one.price)"
+                >￥{{ one.price }} ({{one.customer_name}}) {{DateFormat(one.since)}}</el-tag>
+              </template>
+              定价时间：{{DateFormat(one.since)}}
+            </el-popover>
+          </template>
+        </el-table-column>
         <el-table-column label="备注" prop="remark" min-width="100px"></el-table-column>
-        <el-table-column label="创建人" prop="create_by" width="100px">
+        <el-table-column label="创建人" prop="creator_name" width="100px">
           <template #default="{row}">
             {{ row.creator_name }}
           </template>
@@ -277,7 +334,7 @@ onMounted(async () => {
       ></el-pagination>
     </el-card>
     <el-dialog
-        v-model="visible"
+        v-model.trim="visible"
         :title="title"
         draggable
         width="800"

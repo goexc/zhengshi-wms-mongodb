@@ -46,9 +46,12 @@ export interface WarehouseBin {
   warehouse_rack_name: string; //货架名称
   name: string; //货位名称
   code: string; //货位编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
+  image: string; //图片
   capacity: number; //货位容量
   capacity_unit: string; //货位容量单位：面积、体积或其他度量单位
   status: string; //货位状态:激活 禁用 盘点中 关闭
+  manager: string; //联系人
+  contact: string; //联系方式
   remark: string; //备注
   create_by: string; //新增货位没有create_by，创建人
   created_at: number; //

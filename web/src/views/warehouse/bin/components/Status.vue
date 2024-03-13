@@ -14,7 +14,11 @@ const props = defineProps(['bin'])
 const emit = defineEmits(['success', 'cancel'])
 
 const formRef = ref<FormInstance>()
-const form = ref<WarehouseBinStatusRequest>({id: props.bin.id, name: props.bin.name, status: props.bin.status})
+const form = ref<WarehouseBinStatusRequest>({
+  id: props.bin.id,
+  // name: props.bin.name,
+  status: props.bin.status
+})
 const rules = reactive<FormRules>({
   status: [
     {
@@ -72,7 +76,7 @@ const cancel = () => {
 >
 
   <el-form-item label="货位状态" prop="status">
-    <el-select v-model="form.status" clearable placeholder="请选择货位状态">
+    <el-select v-model.trim="form.status" clearable placeholder="请选择货位状态">
       <el-option v-for="(item,idx) in BinStatus" :key="idx" :label="`${idx+1}.${item}`" :value="item"></el-option>
     </el-select>
   </el-form-item>

@@ -15,6 +15,7 @@ import RackPageItem from "@/components/WarehouseRack/RackPageItem.vue";
 import MaterialCategoryListItem from "@/components/MaterialCategory/MaterialCategoryListItem.vue";
 import SupplierPageItem from "@/components/Supplier/SupplierPageItem.vue";
 import SupplierListItem from "@/components/Supplier/SupplierListItem.vue";
+import CarrierPageItem from "@/components/Carrier/CarrierPageItem.vue";
 
 const allGlobalComponent: any = {
   SvgIcon,
@@ -31,6 +32,7 @@ const allGlobalComponent: any = {
   MaterialCategoryListItem,
   SupplierPageItem,
   SupplierListItem,
+  CarrierPageItem,
 };
 export default {
   //install方法

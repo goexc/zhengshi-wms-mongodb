@@ -4,7 +4,6 @@ import (
 	"api/internal/svc"
 	"api/internal/types"
 	"api/model"
-	"api/pkg/code"
 	"context"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
@@ -51,9 +50,11 @@ func (l *RemoveLogic) Remove(req *types.InboundReceiptIdRequest) (resp *types.Ba
 			return resp, nil
 		}
 
-		if _, ok := canDeleteStatus[code.InboundReceiptStatusText(receipt.Status)]; !ok {
+		//if _, ok := canDeleteStatus[code.InboundReceiptStatusText(receipt.Status)]; !ok {
+		if _, ok := canDeleteStatus[receipt.Status]; !ok {
 			resp.Code = http.StatusBadRequest
-			resp.Msg = fmt.Sprintf("无法删除[%s]状态的入库单", code.InboundReceiptStatusText(receipt.Status))
+			//resp.Msg = fmt.Sprintf("无法删除[%s]状态的入库单", code.InboundReceiptStatusText(receipt.Status))
+			resp.Msg = fmt.Sprintf("无法删除[%s]状态的入库单", receipt.Status)
 			return resp, nil
 		}
 

@@ -2,7 +2,7 @@
 /*物料分类*/
 import {MaterialCategory} from "@/api/material/types.ts";
 import {onMounted, ref} from "vue";
-import {CascaderValue, ElMessage, FormInstance} from "element-plus";
+import { ElMessage, FormInstance} from "element-plus";
 import {reqMaterialCategoryList} from "@/api/material";
 
 //不带分页的物料分类下拉菜单
@@ -10,7 +10,7 @@ defineOptions({
   name: 'MaterialCategoryListItem'
 })
 
-let props = defineProps(['form'])
+defineProps(['form'])
 let formRef = ref<FormInstance>()
 
 let categorys = ref<MaterialCategory[]>([])
@@ -35,7 +35,7 @@ onMounted(()=>{
   <el-form-item label="物料分类" prop="category_id">
     <el-tree-select
         ref="formRef"
-        v-model="form.category_id"
+        v-model.trim="form.category_id"
         :default-checked-keys="[form.category_id]"
         default-expand-all
         :data="categorys"

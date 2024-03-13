@@ -4,7 +4,6 @@ import {
   ZoneRequest, ZonesRequest, ZonesResponse, ZoneStatusRequest,
 } from "@/api/warehouse_zone/types.ts";
 import {baseResponse} from "@/api/types.ts";
-import {WarehousesResponse} from "@/api/warehouse/types.ts";
 
 //库区管理模块接口地址
 enum API {

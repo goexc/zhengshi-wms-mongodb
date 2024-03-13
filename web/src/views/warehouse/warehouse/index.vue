@@ -10,7 +10,6 @@ import {WarehouseStatus, WarehouseTypes} from "@/enums/warehouse.ts";
 import Item from "./components/Item.vue";
 import {Sizes, Types} from "@/utils/enum.ts";
 import Status from "@/views/warehouse/warehouse/components/Status.vue";
-import {Zone} from "@/api/warehouse_zone/types.ts";
 
 const loading = ref<boolean>(false)
 const visible = ref<boolean>(false)
@@ -159,19 +158,19 @@ onMounted(async () => {
           :model="warehousesForm"
       >
         <el-form-item label="仓库名称" prop="name">
-          <el-input v-model="warehousesForm.name" clearable placeholder="请填写仓库名称"/>
+          <el-input v-model.trim="warehousesForm.name" clearable placeholder="请填写仓库名称"/>
         </el-form-item>
         <el-form-item label="仓库类型" prop="type">
-          <el-select v-model="warehousesForm.type" clearable placeholder="请选择仓库类型">
+          <el-select v-model.trim="warehousesForm.type" clearable placeholder="请选择仓库类型">
             <el-option v-for="(item,idx) in WarehouseTypes" :key="idx" :label="`${idx+1}.${item}`"
                        :value="item"></el-option>
           </el-select>
         </el-form-item>
         <el-form-item label="仓库编号" prop="code">
-          <el-input v-model="warehousesForm.code" clearable placeholder="请填写仓库编号"/>
+          <el-input v-model.trim="warehousesForm.code" clearable placeholder="请填写仓库编号"/>
         </el-form-item>
         <el-form-item label="仓库状态" prop="status">
-          <el-select v-model="warehousesForm.status" clearable placeholder="请选择仓库状态">
+          <el-select v-model.trim="warehousesForm.status" clearable placeholder="请选择仓库状态">
             <el-option v-for="(item,idx) in WarehouseStatus" :key="idx" :label="`${idx+1}.${item}`"
                        :value="item"></el-option>
           </el-select>
@@ -186,7 +185,7 @@ onMounted(async () => {
     <el-card
         class="data"
     >
-      <el-button type="primary" plain icon="Plus" @click="add">添加仓库</el-button>
+      <el-button type="primary" plain icon="CirclePlus" @click="add">添加仓库</el-button>
       <el-table
           class="table"
           border
@@ -304,7 +303,7 @@ onMounted(async () => {
       ></el-pagination>
     </el-card>
     <el-dialog
-        v-model="visible"
+        v-model.trim="visible"
         :title="title"
         draggable
         width="800"

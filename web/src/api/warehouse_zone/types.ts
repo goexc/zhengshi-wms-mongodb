@@ -25,6 +25,7 @@ export interface Zone {
   warehouse_name: string; //仓库名称
   name: string; //库区名称
   code: string; //库区编号：分配给客户的唯一标识符或编号，用于快速识别和检索客户信息
+  image: string; //图片
   capacity: number; //库区容量
   capacity_unit: string; //库区容量单位：面积、体积或其他度量单位
   status: string; //库区状态

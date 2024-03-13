@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {nextTick, ref, reactive, onMounted} from "vue";
+import {nextTick, ref, reactive} from "vue";
 import {ElMessage, FormInstance, FormRules} from "element-plus";
 import {reqAddOrUpdateCarrier} from "@/api/carrier";
 import {Carrier, CarrierRequest} from "@/api/carrier/types.ts";
@@ -15,6 +15,10 @@ const props = defineProps(['carrier'])
 const form = ref<Carrier>(JSON.parse(JSON.stringify(props.carrier)))
 const formRef = ref<FormInstance>()
 const emit = defineEmits(['success', 'cancel'])
+
+
+//图片域名
+const oss_domain = ref<string>(import.meta.env.VITE_OSS_DOMAIN)
 
 //更换承运商图片
 const handleSelect = (image: string) => {
@@ -178,9 +182,27 @@ const submit = async () => {
           :url="form.image"
       />
     </el-form-item>
+    <el-form-item label="">
+      <el-image
+          v-if="form.image&&form.image.endsWith('.svg')"
+          :src="`${ oss_domain }${form.image}`"
+          :infinite="true"
+          :preview-teleported="true"
+          :preview-src-list="[`${ oss_domain }${form.image}`]"
+          style="width: 148px;height: 148px;"
+      ></el-image>
+      <el-image
+          v-if="form.image&&!form.image.endsWith('.svg')"
+          :src="`${ oss_domain }${form.image}_148x148`"
+          :infinite="true"
+          :preview-teleported="true"
+          :preview-src-list="[`${ oss_domain }${form.image}`]"
+          style="width: 148px;height: 148px;"
+      ></el-image>
+    </el-form-item>
     <el-form-item label="承运商类型" prop="name">
       <el-select
-          v-model="form.type"
+          v-model.trim="form.type"
           placeholder="请选择承运商类型"
           clearable
       >
@@ -188,31 +210,31 @@ const submit = async () => {
       </el-select>
     </el-form-item>
     <el-form-item label="承运商名称" prop="name">
-      <el-input v-model="form.name" clearable/>
+      <el-input v-model.trim="form.name" clearable/>
     </el-form-item>
     <el-form-item label="承运商编号" prop="code">
-      <el-input v-model="form.code" clearable/>
+      <el-input v-model.trim="form.code" clearable/>
     </el-form-item>
     <el-form-item label="法定代表人" prop="legal_representative">
       <el-input v-model.number="form.legal_representative" clearable/>
     </el-form-item>
     <el-form-item label="统一社会信用代码" prop="unified_social_credit_identifier">
-      <el-input v-model="form.unified_social_credit_identifier" clearable/>
+      <el-input v-model.trim="form.unified_social_credit_identifier" clearable/>
     </el-form-item>
     <el-form-item label="负责人" prop="manager">
-      <el-input v-model="form.manager" clearable/>
+      <el-input v-model.trim="form.manager" clearable/>
     </el-form-item>
     <el-form-item label="联系方式" prop="contact">
-      <el-input v-model="form.contact" clearable/>
+      <el-input v-model.trim="form.contact" clearable/>
     </el-form-item>
     <el-form-item label="Email" prop="email">
-      <el-input v-model="form.email" clearable/>
+      <el-input v-model.trim="form.email" clearable/>
     </el-form-item>
     <el-form-item label="地址" prop="address">
-      <el-input v-model="form.address" clearable/>
+      <el-input v-model.trim="form.address" clearable/>
     </el-form-item>
     <el-form-item label="备注" prop="remark">
-      <el-input v-model="form.remark" clearable/>
+      <el-input v-model.trim="form.remark" clearable/>
     </el-form-item>
     <el-form-item>
       <el-button plain @click="cancel">取消</el-button>

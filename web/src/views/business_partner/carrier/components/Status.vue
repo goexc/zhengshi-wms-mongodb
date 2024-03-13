@@ -14,7 +14,7 @@ const props = defineProps(['carrier'])
 const emit = defineEmits(['success', 'cancel'])
 
 const formRef = ref<FormInstance>()
-const form = ref<CarrierStatusRequest>({id: props.carrier.id, name: props.carrier.name, status: props.carrier.status})
+const form = ref<CarrierStatusRequest>({id: props.carrier.id, status: props.carrier.status})
 const rules = reactive<FormRules>({
   status: [
     {
@@ -72,7 +72,7 @@ const cancel = () => {
 >
 
   <el-form-item label="承运商状态" prop="status">
-    <el-select v-model="form.status" clearable placeholder="请选择承运商状态">
+    <el-select v-model.trim="form.status" clearable placeholder="请选择承运商状态">
       <el-option v-for="(item,idx) in CarrierStatus" :key="idx" :label="`${idx+1}.${item}`" :value="item"></el-option>
     </el-select>
   </el-form-item>

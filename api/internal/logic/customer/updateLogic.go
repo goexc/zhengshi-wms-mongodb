@@ -54,7 +54,7 @@ func (l *UpdateLogic) Update(req *types.CustomerRequest) (resp *types.BaseRespon
 	//排除已删除的客户
 	filter := bson.M{
 		"_id":    id,
-		"status": bson.M{"$ne": 100},
+		"status": bson.M{"$ne": "删除"},
 	}
 	count, err := l.svcCtx.CustomerModel.CountDocuments(l.ctx, filter)
 	if err != nil {
@@ -72,7 +72,7 @@ func (l *UpdateLogic) Update(req *types.CustomerRequest) (resp *types.BaseRespon
 	//2.客户名称是否重复
 	filter = bson.M{
 		"_id":    bson.M{"$ne": id},
-		"status": bson.M{"$ne": 100},
+		"status": bson.M{"$ne": "删除"},
 		"$or": []bson.M{
 			{"name": strings.TrimSpace(req.Name)},
 			{"code": strings.TrimSpace(req.Code)},
@@ -84,7 +84,7 @@ func (l *UpdateLogic) Update(req *types.CustomerRequest) (resp *types.BaseRespon
 	case nil:
 		var one model.Customer
 		if err = singleRes.Decode(&one); err != nil {
-			fmt.Printf("[Error]解析重复客户:%s\n", err.Error())
+			fmt.Printf("[Error]解析客户信息:%s\n", err.Error())
 			resp.Code = http.StatusInternalServerError
 			resp.Msg = "服务器内部错误"
 			return resp, nil
@@ -124,6 +124,7 @@ func (l *UpdateLogic) Update(req *types.CustomerRequest) (resp *types.BaseRespon
 			"manager":                          req.Manager,
 			"email":                            req.Email,
 			"remark":                           req.Remark,
+			"receivable_balance":               req.ReceivableBalance,
 			"updated_at":                       time.Now().Unix(),
 		},
 	}

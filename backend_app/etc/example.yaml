@@ -1,0 +1,55 @@
+Name: main
+Host: 0.0.0.0
+Port: 8080
+
+#
+Auth:
+  AccessSecret: ''
+  AccessExpire: 3600
+  
+Salt: ''
+
+# 头像
+Avatar: ''
+
+CacheRedis:
+  - Host: 127.0.0.1:6379
+    Pass: ''
+    Type: node
+
+MongoDB:
+  URI: ''
+  UserName: admin
+  Password: '12345'
+  Database: mall
+
+
+#旧系统数据库
+MySQL: user:password@tcp(127.0.0.1:3306)/example_db?charset=utf8mb4&parseTime=true&loc=Asia%2FShanghai
+#旧系统缓存
+RedisCache:
+  - Host: 127.0.0.1:6379
+    Pass: ''
+    Type: node
+
+Ids:
+  SystemInit: ''
+  Company: ''
+  Department: ''
+  Role: ''
+  User: ''
+
+Collections:
+  SystemInit: ''
+  Company: ''
+  User: ''
+  Api: ''
+  Menu: ''
+  Department: ''
+  Role: ''
+  RoleMenu: ''
+  Supplier: ''
+
+#图片目录
+Images:
+  Path: ''

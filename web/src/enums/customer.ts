@@ -1,6 +1,6 @@
 //客户状态
 
-export const CustomerStatus = [
+export const CustomerStatus:string[] = [
   '潜在',
   '活动',
   '停用',
@@ -9,8 +9,15 @@ export const CustomerStatus = [
   '合同到期',
 ]
 
-export const CustomerTypes = [
+export const CustomerTypes:string[]   = [
   '个人',
   '企业',
   '组织',
+]
+
+//客户交易类型
+export const CustomerTransactionTypes:string[] = [
+    '应收账款',
+    '回款',
+    '退货',
 ]

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {nextTick, ref, reactive} from "vue";
 import {ElMessage, FormInstance, FormRules} from "element-plus";
-import {Material, MaterialRequest} from "@/api/material/types.ts";
+import { MaterialRequest} from "@/api/material/types.ts";
 import {reqAddOrUpdateMaterial} from "@/api/material";
 import MaterialCategoryListItem from "@/components/MaterialCategory/MaterialCategoryListItem.vue";
 
@@ -12,9 +12,26 @@ defineOptions({
 //获取父组件传递过来的全部路由数组
 const props = defineProps(['material'])
 
-const form = ref<Material>(JSON.parse(JSON.stringify(props.material)))
+const form = ref<MaterialRequest>({
+  id: props.material.id,
+  category_id: props.material.category_id,
+  name: props.material.name,
+  image: props.material.image,
+  material: props.material.material,
+  specification: props.material.specification,
+  model: props.material.model,
+  surface_treatment: props.material.surface_treatment,
+  strength_grade: props.material.strength_grade,
+  quantity: props.material.quantity,
+  unit: props.material.unit,
+  remark: props.material.remark,
+  price: props.material.price,
+})
 const formRef = ref<FormInstance>()
 const emit = defineEmits(['success', 'cancel'])
+
+//图片域名
+const oss_domain = ref<string>(import.meta.env.VITE_OSS_DOMAIN)
 
 //更换物料图片
 const handleSelect = (image: string) => {
@@ -24,7 +41,6 @@ const handleSelect = (image: string) => {
 const handleRemove = (image: string) => {
   console.log('handleRemove:', image)
 }
-
 
 const rules = reactive<FormRules>({
   category_id: [
@@ -108,6 +124,14 @@ const rules = reactive<FormRules>({
       type: 'string',
       trigger: ['blue', 'change'],
     }
+  ],
+  price: [
+    {
+      min: 0,
+      message: '单价必须≥0',
+      type: 'number',
+      trigger: ['blue', 'change'],
+    }
   ]
 
 })
@@ -148,6 +172,7 @@ const submit = async () => {
     quantity: form.value.quantity,
     unit: form.value.unit,
     remark: form.value.remark,
+    price: form.value.price,
   })
 
   if (res.code === 200) {
@@ -180,11 +205,29 @@ const submit = async () => {
           :url="form.image"
       />
     </el-form-item>
+    <el-form-item label="">
+      <el-image
+          v-if="form.image&&form.image.endsWith('.svg')"
+          :src="`${ oss_domain }${form.image}`"
+          :infinite="true"
+          :preview-teleported="true"
+          :preview-src-list="[`${ oss_domain }${form.image}`]"
+          style="width: 148px;height: 148px;"
+      ></el-image>
+      <el-image
+          v-if="form.image&&!form.image.endsWith('.svg')"
+          :src="`${ oss_domain }${form.image}_148x148`"
+          :infinite="true"
+          :preview-teleported="true"
+          :preview-src-list="[`${ oss_domain }${form.image}`]"
+          style="width: 148px;height: 148px;"
+      ></el-image>
+    </el-form-item>
     <MaterialCategoryListItem
       :form="form"
       />
     <el-form-item label="物料名称" prop="name">
-      <el-input v-model="form.name" clearable/>
+      <el-input v-model.trim="form.name" clearable/>
     </el-form-item>
     <el-form-item label="" prop="model">
       <template #label>
@@ -197,7 +240,7 @@ const submit = async () => {
           用于唯一标识和区分不同种类的钢材，如：RGV4102030035
         </el-popover>
       </template>
-      <el-input v-model="form.model" clearable placeholder="用于唯一标识和区分不同种类的钢材，如：RGV4102030035"/>
+      <el-input v-model.trim="form.model" clearable placeholder="用于唯一标识和区分不同种类的钢材，如：RGV4102030035"/>
     </el-form-item>
     <el-form-item label="" prop="specification">
       <template #label>
@@ -210,7 +253,7 @@ const submit = async () => {
           物料规格：包括长度、宽度、厚度等尺寸信息
         </el-popover>
       </template>
-      <el-input v-model="form.specification" clearable/>
+      <el-input v-model.trim="form.specification" clearable/>
     </el-form-item>
     <el-form-item label="" prop="material">
       <template #label>
@@ -223,7 +266,7 @@ const submit = async () => {
           物料材质，如：碳钢、不锈钢、合金钢等
         </el-popover>
       </template>
-      <el-input v-model.number="form.material" clearable/>
+      <el-input v-model.trim="form.material" clearable/>
     </el-form-item>
     <el-form-item label="" prop="surface_treatment">
       <template #label>
@@ -236,7 +279,7 @@ const submit = async () => {
           表面处理方式，如：热镀锌、喷涂等。
         </el-popover>
       </template>
-      <el-input v-model="form.surface_treatment" clearable/>
+      <el-input v-model.trim="form.surface_treatment" clearable/>
     </el-form-item>
     <el-form-item label="" prop="strength_grade">
       <template #label>
@@ -249,11 +292,11 @@ const submit = async () => {
           物料强度等级，如：Q235、Q345
         </el-popover>
       </template>
-      <el-input v-model="form.strength_grade" clearable/>
+      <el-input v-model.trim="form.strength_grade" clearable/>
     </el-form-item>
     <el-form-item label="安全库存" prop="quantity">
       <el-input-number
-          v-model="form.quantity"
+          v-model.trim="form.quantity"
           :controls="false"
           :precision="3"
           :value-on-clear="1"
@@ -270,10 +313,17 @@ const submit = async () => {
           物料计量单位，如：个、箱、千克等
         </el-popover>
       </template>
-      <el-input v-model="form.unit" clearable/>
+      <el-input v-model.trim="form.unit" clearable/>
     </el-form-item>
     <el-form-item label="备注" prop="remark">
-      <el-input v-model="form.remark" clearable/>
+      <el-input v-model.trim="form.remark" clearable/>
+    </el-form-item>
+    <el-form-item label="单价" prop="price">
+      <el-input-number
+          v-model="form.price"
+          :controls="false"
+          :min="0"
+          clearable/>
     </el-form-item>
     <el-form-item>
       <el-button plain @click="cancel">取消</el-button>

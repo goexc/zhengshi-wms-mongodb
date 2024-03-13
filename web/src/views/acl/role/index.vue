@@ -11,7 +11,7 @@ import {reqChangeRoleStatus, reqRoleMenus} from "@/api/acl/role";
 import {Menu, MenuListResponse} from "@/api/acl/menu/types.ts";
 import {reqMenuList} from "@/api/acl/menu";
 import {
-  Role, RoleApisResponse,
+  Role, RoleApisRequest, RoleApisResponse,
   RoleMenusRequest,
   RoleMenusResponse,
   RoleRequest,
@@ -71,7 +71,7 @@ const getRoleMenus = async (id: string) => {
   menusId.value = []
   if (res.code === 200) {
     //计算叶子节点
-    let allNodes  = menuTreeRef.value.store._getAllNodes()
+    let allNodes  = menuTreeRef.value!.store._getAllNodes()
     let allLeaf = allNodes.filter((item:any)=>item.isLeaf).map((item:any)=>item.data.id)
     //只筛选叶子节点
     menusId.value = res.data.filter(menuId=>allLeaf.includes(menuId))
@@ -190,7 +190,8 @@ const rolesForm = ref(initRoles())
 const menus = ref<Menu[]>([])//菜单列表
 const menusId = ref<string[]>([])
 const menusVisible = ref<boolean>(false)
-const menuTreeRef = ref<FormInstance>()
+// const menuTreeRef = ref<FormInstance>()
+const menuTreeRef = ref()
 
 //给角色分配菜单
 const setMenus = async (row: Role) => {
@@ -210,7 +211,7 @@ const menusClose = () => {
   // 使用此方法必须设置 node-key 属性	(keys, leafOnly) 接收两个参数:
   // 1. 一个需要被选中的多节点 key 的数组
   // 2. 布尔类型的值 如果设置为 true，将只设置选中的叶子节点状态。 默认值是 false.
-  menuTreeRef.value.setCheckedKeys([], false)
+  menuTreeRef.value!.setCheckedKeys([], false)
   menusVisible.value = false
 }
 
@@ -219,8 +220,8 @@ const menusConfirm = async () => {
   //(leafOnly) 接收一个布尔类型参数，默认为 false.
   // 如果参数是 true, 它只返回当前选择的子节点数组。
   //  menusId.value =  menuTreeRef.value.getCheckedKeys(true)
-  let leafKeys = menuTreeRef.value.getCheckedKeys() as string[]
-  let halfKeys = menuTreeRef.value.getHalfCheckedKeys() as string[]
+  let leafKeys = menuTreeRef.value!.getCheckedKeys() as string[]
+  let halfKeys = menuTreeRef.value!.getHalfCheckedKeys() as string[]
   let msId = []
   msId.push(...leafKeys)
   msId.push(...halfKeys)
@@ -305,7 +306,8 @@ const batchRemoveRole = async () => {
 const apis = ref<Api[]>([])//菜单列表
 const apisId = ref<string[]>([])
 const apisVisible = ref<boolean>(false)
-const apiTreeRef = ref<FormInstance>()
+// const apiTreeRef = ref<FormInstance>()
+const apiTreeRef = ref()
 
 
 
@@ -326,7 +328,7 @@ const getRoleApis = async (id: string) => {
   apisId.value = []
   if (res.code === 200) {
     //计算叶子节点
-    let allNodes  = apiTreeRef.value.store._getAllNodes()
+    let allNodes  = apiTreeRef.value!.store._getAllNodes()
     let allLeaf = allNodes.filter((item:any)=>item.isLeaf).map((item:any)=>item.data.id)
     //只筛选叶子节点
     apisId.value = res.data.filter(apiId=>allLeaf.includes(apiId))
@@ -357,7 +359,7 @@ const apisClose = () => {
   // 使用此方法必须设置 node-key 属性	(keys, leafOnly) 接收两个参数:
   // 1. 一个需要被选中的多节点 key 的数组
   // 2. 布尔类型的值 如果设置为 true，将只设置选中的叶子节点状态。 默认值是 false.
-  apiTreeRef.value.setCheckedKeys([], false)
+  apiTreeRef.value!.setCheckedKeys([], false)
   apisVisible.value = false
 }
 
@@ -367,8 +369,8 @@ const apisConfirm = async () => {
   //(leafOnly) 接收一个布尔类型参数，默认为 false.
   // 如果参数是 true, 它只返回当前选择的子节点数组。
   //  apisId.value =  apiTreeRef.value.getCheckedKeys(true)
-  let leafKeys = apiTreeRef.value.getCheckedKeys() as string[]
-  let halfKeys = apiTreeRef.value.getHalfCheckedKeys() as string[]
+  let leafKeys = apiTreeRef.value!.getCheckedKeys() as string[]
+  let halfKeys = apiTreeRef.value!.getHalfCheckedKeys() as string[]
   let asId = []
   asId.push(...leafKeys)
   asId.push(...halfKeys)
@@ -383,7 +385,11 @@ const apisConfirm = async () => {
     })
     return
   }
-  let req = <RoleMenusRequest>({id: rolesForm.value.id, apis_id: asId})
+  // let req = <RoleMenusRequest>({
+  let req = <RoleApisRequest>({
+    id: rolesForm.value.id,
+    apis_id: asId
+  })
   let res: baseResponse = await reqChangeRoleApis(req)
   if (res.code === 200) {
     apisClose()
@@ -512,7 +518,7 @@ const apisConfirm = async () => {
     <!--  添加、修改角色信息  -->
     <el-drawer
         direction="rtl"
-        v-model="visible"
+        v-model.trim="visible"
         :title="title"
         :before-close="close"
     >
@@ -528,20 +534,20 @@ const apisConfirm = async () => {
               prop="name"
           >
             <el-input
-                v-model="roleForm.name"
+                v-model.trim="roleForm.name"
                 minlength="2"
                 maxlength="21"
                 :show-word-limit="true"
                 placeholder="请填写角色名称，例如：运营、财务、运维"/>
           </el-form-item>
           <el-form-item label="状态" prop="status">
-            <el-select v-model="roleForm.status" clearable placeholder="请选择状态">
+            <el-select v-model.trim="roleForm.status" clearable placeholder="请选择状态">
               <el-option label="启用" value="启用"></el-option>
               <el-option label="禁用" value="禁用"></el-option>
             </el-select>
           </el-form-item>
-          <el-form-item v-model="roleForm.remark" label="备注" prop="remark">
-            <el-input v-model="roleForm.remark" type="textarea" rows="3" maxlength="125" :show-word-limit="true"
+          <el-form-item v-model.trim="roleForm.remark" label="备注" prop="remark">
+            <el-input v-model.trim="roleForm.remark" type="textarea" rows="3" maxlength="125" :show-word-limit="true"
                       placeholder="请填写备注"/>
           </el-form-item>
         </el-form>
@@ -557,7 +563,7 @@ const apisConfirm = async () => {
     <!--  分配菜单  -->
     <el-drawer
         direction="rtl"
-        v-model="menusVisible"
+        v-model.trim="menusVisible"
         title="分配菜单"
         :before-close="menusClose"
     >
@@ -593,7 +599,7 @@ const apisConfirm = async () => {
     <!--  分配API  -->
     <el-drawer
         direction="rtl"
-        v-model="apisVisible"
+        v-model.trim="apisVisible"
         title="分配API"
         :before-close="apisClose"
     >

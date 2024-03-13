@@ -3,13 +3,18 @@
 import {InboundReceiptStatus, InboundReceiptTypes} from "@/enums/inbound.ts";
 import SupplierPageItem from "@/components/Supplier/SupplierPageItem.vue";
 import {onMounted, ref} from "vue";
-import {InboundReceipt, InboundReceiptsRequest} from "@/api/inbound/types.ts";
+import {
+  InboundReceipt,
+  InboundReceiptsRequest,
+} from "@/api/inbound/types.ts";
 import {reqInboundReceipts, reqRemoveInboundReceipt} from "@/api/inbound";
 import {ElMessage} from "element-plus";
 import {Sizes, Types} from "@/utils/enum.ts";
-import Item from "@/views/inbound/receipt/components/Item.vue";
+import Order from "@/views/inbound/receipt/components/Order.vue";
 import Status from "./components/Status.vue";
 import Inbound from "./components/Inbound.vue";
+import NP from "number-precision";
+import Record from "@/views/inbound/receipt/components/Record.vue";
 
 const initInboundReceiptsRequest = () => {
   return <InboundReceiptsRequest>{
@@ -94,13 +99,19 @@ let check = async (item: InboundReceipt) => {
 
 //入库
 let inbound = async (item: InboundReceipt) => {
-  console.log('发货入库界面：', item)
-  title.value = `入库`
+  title.value = `批次入库`
   visible.value = true
   action.value = 'inbound'
   receipt.value = item
 }
 
+//入库记录
+let record = async (item: InboundReceipt)=>{
+  title.value = `入库记录`
+  visible.value = true
+  action.value = 'record'
+  receipt.value = item
+}
 
 //表单提交成功
 const handleSuccess = async () => {
@@ -116,6 +127,40 @@ let remove = async (item: InboundReceipt) => {
     await getReceipts()
   } else {
     ElMessage.error(res.msg)
+  }
+}
+
+//入库类型样式
+let typeType = (t:string)=>{
+  switch (t) {
+    case '采购入库':
+      return 'primary'
+    case '外协入库':
+      return 'success'
+    case '生产入库':
+      return 'info'
+    case '退货入库':
+      return 'danger'
+    default:
+      return 'info'
+  }
+}
+
+//入库状态样式
+let statusType = (status:string)=>{
+  switch (status) {
+    case '未发货':
+      return 'info'
+    case '在途':
+      return 'warning'
+    case '部分入库':
+      return ''
+    case '作废':
+      return 'danger'
+    case '入库完成':
+      return 'success'
+    default:
+      return ''
   }
 }
 
@@ -135,7 +180,7 @@ onMounted(async () => {
         <el-form-item
             label="入库状态"
         >
-          <el-radio-group v-model="form.status">
+          <el-radio-group v-model.trim="form.status">
             <el-radio-button plain lable="">全部</el-radio-button>
             <el-radio-button v-for="(item, idx) in InboundReceiptStatus" :key="idx" plain :label="item.label"/>
           </el-radio-group>
@@ -143,7 +188,7 @@ onMounted(async () => {
         <el-form-item
             label="入库类型"
         >
-          <el-radio-group v-model="form.type">
+          <el-radio-group v-model.trim="form.type">
             <el-radio-button plain label="">全部</el-radio-button>
             <el-radio-button v-for="(item, idx) in InboundReceiptTypes" :key="idx" plain :label="item"/>
           </el-radio-group>
@@ -152,7 +197,7 @@ onMounted(async () => {
             label="入库单号"
         >
           <el-input
-              v-model="form.code"
+              v-model.trim="form.code"
               clearable
               placeholder="请填写入库单号"/>
         </el-form-item>
@@ -184,7 +229,7 @@ onMounted(async () => {
     <perms-button
         class="m-t-2"
         perms="inbound:receipt:add"
-        :type="Types.success"
+        :type="Types.primary"
         :size="Sizes.default"
         :plain="true"
         @click="add"
@@ -211,29 +256,34 @@ onMounted(async () => {
               <el-table-column label="物料名称" prop="name"/>
               <el-table-column label="物料规格" prop="model"/>
               <el-table-column label="计划数量" prop="estimated_quantity" align="center"/>
-              <el-table-column label="实际数量" prop="actual_quantity" align="center"/>
-              <el-table-column label="金额" prop="price" align="center"/>
-              <el-table-column label="仓库/库区/货架/货位" width="500px" align="center">
+              <el-table-column label="已入库数量" prop="actual_quantity" align="center"/>
+              <el-table-column label="单价" prop="price" align="center"/>
+              <el-table-column label="实际金额" align="center">
                 <template #default="{row}">
-                  <span v-if="row.warehouse_id">{{ row.warehouse_name }}</span>
-                  <span v-if="row.warehouse_zone_id">/{{ row.warehouse_zone_name }}</span>
-                  <span v-if="row.warehouse_rack_id">/{{ row.warehouse_rack_name }}</span>
-                  <span v-if="row.warehouse_bin_id">/{{ row.warehouse_bin_name }}</span>
+                {{NP.times(row.price * row.actual_quantity).toFixed(3)}}
                 </template>
               </el-table-column>
               <el-table-column label="入库状态" prop="status" align="center">
                 <template #default="{row}">
-                  {{ InboundReceiptStatus.find(item => item.value === row.status)?.label }}
+<!--                  {{ InboundReceiptStatus.find(item => item.value === row.status)?.label }}-->
+                  {{row.status}}
                 </template>
               </el-table-column>
-
             </el-table>
           </div>
         </template>
       </el-table-column>
       <el-table-column prop="code" label="入库单编号"/>
-      <el-table-column prop="type" label="入库类型" width="110px" align="center"/>
-      <el-table-column prop="status" label="入库状态" width="110px" align="center"/>
+      <el-table-column prop="type" label="入库类型" width="110px" align="center">
+        <template #default="{row}">
+          <el-text size="default" :type="typeType(row.type)">{{row.type}}</el-text>
+        </template>
+      </el-table-column>
+      <el-table-column prop="status" label="入库状态" width="120px" align="center">
+        <template #default="{row}">
+          <el-tag size="default" :type="statusType(row.status)">{{row.status}}</el-tag>
+        </template>
+      </el-table-column>
       <el-table-column prop="supplier_name" label="供应商">
         <template #default="{row}">
           <span v-if="row.supplier_name">{{ row.supplier_name }}</span>
@@ -246,7 +296,12 @@ onMounted(async () => {
           <span v-else>-</span>
         </template>
       </el-table-column>
-      <el-table-column prop="total_amount" label="总金额" width="120px"/>
+      <el-table-column prop="total_amount" label="物料金额" width="120px">
+        <template #default="{row}">
+        <el-text v-if="row.total_amount>=0" type="primary" size="small">￥{{NP.plus(row.total_amount,0)}}</el-text>
+        <el-text v-else type="danger" size="small">￥{{row.total_amount}}</el-text>
+        </template>
+      </el-table-column>
       <el-table-column prop="remark" label="备注"/>
       <el-table-column label="操作" width="360px">
         <template #default="{row}">
@@ -288,11 +343,19 @@ onMounted(async () => {
           </el-popconfirm>
           <perms-button
               v-if="!['待审核', '审核不通过', '入库完成'].includes(row.status)"
-              perms="inbound:receipt:material"
+              perms="inbound:receipt:receive"
               :type="Types.success"
               :size="Sizes.small"
               :plain="true"
               @click="inbound(row)"
+          />
+          <perms-button
+              v-if="['部分入库', '入库完成'].includes(row.status)"
+              perms="inbound:receipt:record"
+              :type="Types.primary"
+              :size="Sizes.small"
+              :plain="true"
+              @click="record(row)"
           />
         </template>
       </el-table-column>
@@ -312,15 +375,15 @@ onMounted(async () => {
         :total="total"
     ></el-pagination>
     <el-dialog
-        v-model="visible"
+        v-model.trim="visible"
         :title="title"
         draggable
-        :fullscreen="['add', 'edit', 'inbound'].includes(action)"
+        :fullscreen="['add', 'edit', 'inbound', 'record'].includes(action)"
         :close-on-click-modal="false"
         align-center
         width="600px"
     >
-      <Item
+      <Order
           v-if="visible&&['add', 'edit'].includes(action)"
           :form="receipt"
           :action="action"
@@ -339,6 +402,10 @@ onMounted(async () => {
           @cancel="visible=false"
           @success="handleSuccess"
       />
+      <Record
+          v-if="visible&&action === 'record'"
+          :form="receipt"
+        />
     </el-dialog>
   </div>
 </template>

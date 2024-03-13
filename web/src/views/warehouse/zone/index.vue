@@ -2,8 +2,6 @@
 import {onMounted, ref} from "vue";
 import {Zone, ZonesRequest, ZoneStatusRequest} from "@/api/warehouse_zone/types.ts";
 import {ZoneStatus} from "@/enums/zone.ts";
-import {reqWarehouses} from "@/api/warehouse";
-import {Warehouse, WarehousesRequest} from "@/api/warehouse/types.ts";
 import {ElMessage} from "element-plus";
 import {reqChangeZoneStatus, reqZones} from "@/api/warehouse_zone";
 import {Sizes, Types} from "@/utils/enum.ts";
@@ -72,6 +70,7 @@ const initZone = () => {
     name: '',
     type: '',
     code: '',
+    image: '',
     capacity: 0,
     capacity_unit: '',
     status: '',
@@ -161,19 +160,19 @@ onMounted(async () => {
           :form="form"
           />
         <el-form-item label="库区名称" prop="name">
-          <el-input v-model="form.name" clearable placeholder="请填写库区名称"/>
+          <el-input v-model.trim="form.name" clearable placeholder="请填写库区名称"/>
         </el-form-item>
 <!--        <el-form-item label="库区类型" prop="type">
-          <el-select v-model="form.type" clearable placeholder="请选择库区类型">
+          <el-select v-model.trim="form.type" clearable placeholder="请选择库区类型">
             <el-option v-for="(item,idx) in ZoneTypes" :key="idx" :label="`${idx+1}.${item}`"
                        :value="item"></el-option>
           </el-select>
         </el-form-item>-->
         <el-form-item label="库区编号" prop="code">
-          <el-input v-model="form.code" clearable placeholder="请填写库区编号"/>
+          <el-input v-model.trim="form.code" clearable placeholder="请填写库区编号"/>
         </el-form-item>
         <el-form-item label="库区状态" prop="status">
-          <el-select v-model="form.status" clearable placeholder="请选择库区状态">
+          <el-select v-model.trim="form.status" clearable placeholder="请选择库区状态">
             <el-option v-for="(item,idx) in ZoneStatus" :key="idx" :label="`${idx+1}.${item}`"
                        :value="item"></el-option>
           </el-select>
@@ -188,7 +187,7 @@ onMounted(async () => {
     <el-card
         class="data"
     >
-      <el-button type="primary" plain icon="Plus" @click="add">添加库区</el-button>
+      <el-button type="primary" plain icon="CirclePlus" @click="add">添加库区</el-button>
       <el-table
           class="table"
           border
@@ -312,7 +311,7 @@ onMounted(async () => {
       ></el-pagination>
     </el-card>
     <el-dialog
-        v-model="visible"
+        v-model.trim="visible"
         :title="title"
         draggable
         width="800"

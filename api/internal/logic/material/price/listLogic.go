@@ -9,6 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"net/http"
+	"strings"
 
 	"api/internal/svc"
 	"api/internal/types"
@@ -30,10 +31,10 @@ func NewListLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ListLogic {
 	}
 }
 
-func (l *ListLogic) List(req *types.MaterialIdRequest) (resp *types.MaterialPricesResponse, err error) {
+func (l *ListLogic) List(req *types.MaterialPricesRequest) (resp *types.MaterialPricesResponse, err error) {
 	resp = new(types.MaterialPricesResponse)
 
-	id, _ := primitive.ObjectIDFromHex(req.Id)
+	id, _ := primitive.ObjectIDFromHex(req.MaterialId)
 
 	//1.物料是否存在
 	filter := bson.M{"_id": id}
@@ -60,10 +61,15 @@ func (l *ListLogic) List(req *types.MaterialIdRequest) (resp *types.MaterialPric
 	}
 
 	//2.查询物料价格
-	opts := options.Find().SetSort(bson.M{"since": -1})
-	cur, err := l.svcCtx.MaterialPriceModel.Find(l.ctx, bson.M{"material": req.Id}, opts)
+	opts := options.Find().SetSort(bson.M{"created_at": -1})
+	filter = bson.M{"material": strings.TrimSpace(req.MaterialId)}
+	if req.CustomerId != "" {
+		filter["customer_id"] = strings.TrimSpace(req.CustomerId)
+	}
+
+	cur, err := l.svcCtx.MaterialPriceModel.Find(l.ctx, filter, opts)
 	if err != nil {
-		fmt.Printf("[Error]查询物料[%s]价格:%s\n", req.Id, err.Error())
+		fmt.Printf("[Error]查询物料[%s]价格:%s\n", req.MaterialId, err.Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务器内部错误"
 		return resp, nil
@@ -72,7 +78,7 @@ func (l *ListLogic) List(req *types.MaterialIdRequest) (resp *types.MaterialPric
 
 	var prices []model.MaterialPrice
 	if err = cur.All(l.ctx, &prices); err != nil {
-		fmt.Printf("[Error]解析物料[%s]价格列表：%s\n", req.Id, err.Error())
+		fmt.Printf("[Error]解析物料[%s]价格列表：%s\n", req.MaterialId, err.Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务器内部错误"
 		return resp, nil
@@ -80,8 +86,9 @@ func (l *ListLogic) List(req *types.MaterialIdRequest) (resp *types.MaterialPric
 
 	for _, one := range prices {
 		resp.Data = append(resp.Data, types.MaterialPrice{
-			Price: one.Price,
-			Since: one.CreatedAt,
+			Price:        one.Price,
+			Since:        one.CreatedAt,
+			CustomerName: one.CustomerName,
 		})
 	}
 

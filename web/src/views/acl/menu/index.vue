@@ -8,7 +8,6 @@ import {Sizes, Types} from "@/utils/enum.ts";
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import {reqAddOrUpdateMenu, reqRemoveMenu} from "@/api/acl/menu";
 import {ElMessage, FormInstance} from "element-plus";
-import {MenuStatusRequest} from "@/api/acl/menu/types.ts";
 import {rules} from "./rules";
 
 
@@ -389,7 +388,7 @@ const screenType = (t: boolean) => {
         </el-table-column>
       </el-table>
       <el-dialog
-          v-model="visible"
+          v-model.trim="visible"
           :title="title"
           draggable
           width="800"
@@ -406,7 +405,7 @@ const screenType = (t: boolean) => {
                 </el-radio-group>
               </el-form-item>
               <el-form-item label="菜单名称" prop="name">
-                <el-input v-model="menuForm.name" style="width: 360px" placeholder="例如：权限管理"/>
+                <el-input v-model.trim="menuForm.name" style="width: 360px" placeholder="例如：权限管理"/>
               </el-form-item>
               <el-form-item label="菜单排序" prop="sort_id">
                 <el-input v-model.number="menuForm.sort_id" style="width: 360px"/>
@@ -447,30 +446,30 @@ const screenType = (t: boolean) => {
                 </el-popover>
               </el-form-item>
               <el-form-item label="菜单路径" prop="path">
-                <el-input v-model="menuForm.path" :disabled="menuForm.type!==1" style="width: 360px"/>
+                <el-input v-model.trim="menuForm.path" :disabled="menuForm.type!==1" style="width: 360px"/>
               </el-form-item>
               <el-form-item label="组件路径" prop="component">
-                <el-input v-model="menuForm.component" :disabled="menuForm.type!==1" style="width: 360px"/>
+                <el-input v-model.trim="menuForm.component" :disabled="menuForm.type!==1" style="width: 360px"/>
               </el-form-item>
               <el-form-item label="权限标识" prop="meta.perms">
-                <el-input v-model="menuForm.meta.perms" :disabled="menuForm.type===1" style="width: 360px"/>
+                <el-input v-model.trim="menuForm.meta.perms" :disabled="menuForm.type===1" style="width: 360px"/>
               </el-form-item>
             </el-col>
             <el-col :xs="24" :sm="24" :md="12" :lg="12" :xl="12">
               <el-form-item label="是否固定" prop="meta.fixed">
-                <el-radio-group v-model="menuForm.meta.fixed" :disabled="menuForm.type!==1">
+                <el-radio-group v-model.trim="menuForm.meta.fixed" :disabled="menuForm.type!==1">
                   <el-radio :label="false">不固定</el-radio>
                   <el-radio :label="true">固定</el-radio>
                 </el-radio-group>
               </el-form-item>
               <el-form-item label="是否隐藏" prop="meta.hidden">
-                <el-radio-group v-model="menuForm.meta.hidden">
+                <el-radio-group v-model.trim="menuForm.meta.hidden">
                   <el-radio :label="false">显示</el-radio>
                   <el-radio :label="true">隐藏</el-radio>
                 </el-radio-group>
               </el-form-item>
               <el-form-item label="是否全屏" prop="meta.is_full">
-                <el-radio-group v-model="menuForm.meta.is_full">
+                <el-radio-group v-model.trim="menuForm.meta.is_full">
                   <el-radio :label="true">是</el-radio>
                   <el-radio :label="false">否</el-radio>
                 </el-radio-group>

@@ -52,7 +52,7 @@ func (l *AddLogic) Add(req *types.CarrierRequest) (resp *types.BaseResponse, err
 			{"code": strings.TrimSpace(req.Code)},
 			{"unified_social_credit_identifier": strings.TrimSpace(req.UnifiedSocialCreditIdentifier)},
 		},
-		"status": bson.M{"$ne": 100},
+		"status": bson.M{"$ne": "删除"},
 	}
 	singleRes := l.svcCtx.CarrierModel.FindOne(l.ctx, filter)
 	switch singleRes.Err() {

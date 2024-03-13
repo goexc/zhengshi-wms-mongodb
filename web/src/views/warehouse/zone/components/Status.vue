@@ -14,7 +14,11 @@ const props = defineProps(['zone'])
 const emit = defineEmits(['success', 'cancel'])
 
 const formRef = ref<FormInstance>()
-const form = ref<ZoneStatusRequest>({id: props.zone.id, name: props.zone.name, status: props.zone.status})
+const form = ref<ZoneStatusRequest>({
+  id: props.zone.id,
+  // name: props.zone.name,
+  status: props.zone.status
+})
 const rules = reactive<FormRules>({
   status: [
     {
@@ -72,7 +76,7 @@ const cancel = () => {
 >
 
   <el-form-item label="库区状态" prop="status">
-    <el-select v-model="form.status" clearable placeholder="请选择库区状态">
+    <el-select v-model.trim="form.status" clearable placeholder="请选择库区状态">
       <el-option v-for="(item,idx) in ZoneStatus" :key="idx" :label="`${idx+1}.${item}`" :value="item"></el-option>
     </el-select>
   </el-form-item>

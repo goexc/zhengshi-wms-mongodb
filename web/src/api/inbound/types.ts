@@ -1,6 +1,6 @@
 export interface InboundReceiptsRequest {
-  page:number;
-  size:number;
+  page: number;
+  size: number;
   status: string; //入库单状态
   type: string; //入库单类型
   code: string; //入库单号
@@ -51,14 +51,18 @@ export interface InboundReceipt {
 export interface InboundMaterial {
   index: number;//物料顺序
   id: string;//物料
+  name:string;//物料名称
+  model:string;//物料规格
   price: number;//单价
+  unit: string;//计量单位
   estimated_quantity: number;//预计入库数量
   actual_quantity: number;//实际入库数量
-  positions: string[]; //仓储id：仓库id，库区id，货架id，货位id
-  warehouse_id: string;//仓库
-  warehouse_zone_id: string;//库区
-  warehouse_rack_id: string;//货架
-  warehouse_bin_id: string;//货位
+  status: string; //入库状态
+  position: string[]; //仓储id：仓库id，库区id，货架id，货位id
+  // warehouse_id: string;//仓库
+  // warehouse_zone_id: string;//库区
+  // warehouse_rack_id: string;//货架
+  // warehouse_bin_id: string;//货位
 }
 
 //添加、修改入库单
@@ -96,6 +100,7 @@ export interface InboundReceiptStatusRequest {
 //审核入库单
 export interface InboundReceiptCheckRequest {
   id: string;
+  code: string;//入库单编号
   status: string; //入库单状态：审核通过，审核不通过
 }
 
@@ -111,4 +116,68 @@ export interface InboundMaterialStatus {
   id: string;
   status: string;
   actual_quantity: number;
+}
+
+//添加批次入库
+export interface InboundReceiptReceiveRequest {
+  id: string, //入库单
+  code: string; //批次入库编号
+  receiving_date: number | string, //批次入库日期
+  carrier_id: string, //承运商
+  carrier_cost: number, //运费
+  other_cost: number, //其他费用
+  materials: InboundReceived[], //物料
+  remark: string, //备注
+}
+
+export interface InboundReceived {
+  id: string, //物料id
+  index: number, //物料顺序
+  price: number, //单价
+  actual_quantity: number, //实际入库数量
+  position: string[], //仓储位置id
+  status: string, //物料状态: 未发货，部分入库,作废,入库完成
+}
+
+//批次入库记录
+export interface InboundReceivedRecordsRequest {
+  inbound_receipt_id: string; //入库单id
+}
+
+export interface InboundReceivedRecordsResponse {
+  code: number;
+  msg: string;
+  data: InboundReceivedRecord[];
+}
+
+export interface InboundReceivedRecord {
+  id: string; //入库记录id
+  inbound_receipt_id: string; //入库单id
+  code: string; //批次入库编号
+  carrier_name: string; //承运商名称
+  carrier_cost: number; //运费
+  other_cost: number; //其他费用
+  total_amount: number; //批次入库物料总金额
+  receiving_date: number; //入库日期
+  materials: InboundReceiveMaterial[]; //批次入库物料清单
+  annex: string[]; //附件
+  remark: string; //备注
+  creator_id: string; //创建人id
+  creator_name: string; //创建人名称
+  created_at: number; //
+}
+
+export interface InboundReceiveMaterial {
+  id: string; //物料id
+  index: string; //物料顺序
+  price: string; //物料单价
+  name: string; //物料名称：包括型号、材质、规格、表面处理、强度等级等
+  model: string; //型号：用于唯一标识和区分不同种类的钢材。
+  unit: string; //计量单位
+  actual_quantity: string; //实际入库数量
+  status: string; //物料状态:未发货,部分入库,作废,入库完成
+  warehouse_name: string; //仓库名称
+  warehouse_zone_name: string; //库区名称
+  warehouse_rack_name: string; //货架名称
+  warehouse_bin_name: string; //货位名称
 }

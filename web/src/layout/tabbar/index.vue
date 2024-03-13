@@ -79,6 +79,7 @@ const predefineColors = ref<string[]>([
 
 //夜间模式
 const night = ref<boolean>(settingStore.theme === 'dark')
+
 //切换主题
 const changeTheme = () => {
   settingStore.changeTheme(night.value)
@@ -118,7 +119,7 @@ const changeColor = () => {
         <el-form>
           <el-form-item label="主题颜色">
             <el-color-picker
-                v-model="color"
+                v-model.trim="color"
                 show-alpha
                 :predefine="predefineColors"
                 @change="changeColor"
@@ -126,7 +127,7 @@ const changeColor = () => {
           </el-form-item>
           <el-form-item label="夜间模式">
             <el-switch
-                v-model="night"
+                v-model.trim="night"
                 active-icon="MoonNight"
                 inactive-icon="Sunny"
                 inline-prompt

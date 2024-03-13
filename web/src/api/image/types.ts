@@ -1,6 +1,7 @@
 export interface ImagesRequest {
   page: number;
   size: number;
+  name?: string;
 }
 
 export interface ImagesResponse {
@@ -11,7 +12,12 @@ export interface ImagesResponse {
 
 export interface ImagePaginate{
   total: number;
-  list: string[];
+  list: ImageItem[];
+}
+
+export interface ImageItem {
+  url: string;
+  alt: string;
 }
 
 export interface ImageRequest{

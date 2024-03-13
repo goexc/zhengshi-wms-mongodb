@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import {PropType, ref} from "vue";
 import {Sizes, Types} from "@/utils/enum";
-import {Menu} from "@/api/acl/menu/types";
 import {useAuthStore} from "@/store/modules/auth.ts";
 
 const authStore = useAuthStore()
@@ -16,6 +15,10 @@ defineProps({
     default: 'default',
   },
   plain: {  // 是否为朴素按钮
+    type: Boolean,
+    default: false
+  },
+  circle: {  // 是否为圆形按钮
     type: Boolean,
     default: false
   },
@@ -54,7 +57,8 @@ const hasPerms = (perms: string) => {
   if (res.length < 1) {
     return false
   } else {
-    let btn = res.pop() as Menu
+    // let btn = res.pop() as Menu
+    let btn = res.pop()!
     btnIcon.value = btn.icon
     label.value = btn.name
     return true
@@ -70,10 +74,14 @@ const hasPerms = (perms: string) => {
       :size="size"
       :type="type"
       :plain="plain"
+      :circle="circle"
       :loading="loading"
+      :disabled="disabled"
       :icon="icon.length>0?icon:btnIcon"
       @click="handleClick">
-    {{ text.length > 0 ? text : label }}
+    <template #default v-if="!circle">
+      {{  text.length > 0 ? text : label }}
+    </template>
   </el-button>
 </template>
 

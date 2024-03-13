@@ -1,0 +1,87 @@
+syntax = "v1"
+
+info(
+    title: "库存数据结构"
+    desc: "库存数据结构"
+    author: "董咚懂咚"
+    email: "1024071953@qq.com"
+    version: "1.0.1"
+)
+
+//入库单列表
+type InventoryListRequest{
+    //物料Id
+    MaterialId string `form:"material_id,optional" validate:"required,mongodb" comment:"物料id"`
+}
+
+
+type InventoryListResponse{
+    Code int `json:"code"`
+    Msg string `json:"msg"`
+    Data []InventoryItem `json:"data"` //入库单列表
+}
+
+
+//入库单分页
+type InventorysRequest {
+    Page int64 `form:"page,optional" validate:"required,gte=1" comment:"页数""`
+    Size int64 `form:"size,optional" validate:"required,gte=5,lte=100" comment:"条数"`
+    //入库单类型
+     //采购入库
+     //外协入库
+     //生产入库
+     //退货入库
+    Type string `form:"type,optional" validate:"omitempty,oneof=采购入库 外协入库 生产入库 退货入库" comment:"入库单类型"`                                                                                        //入库单类型
+    //物料名称
+    MaterialName string `form:"material_name,optional" validate:"omitempty" comment:"物料名称"`
+    //物料型号
+    MaterialModel string `form:"material_model,optional" validate:"omitempty" comment:"物料型号"`
+    //仓库id
+    WarehouseId string `form:"warehouse_id,optional" validate:"omitempty,mongodb" comment:"仓库"`                         //仓库Id
+    //库区id
+    WarehouseZoneId string `form:"warehouse_zone_id,optional" validate:"omitempty,mongodb" comment:"库区"`                //库区Id
+    //货架id
+    WarehouseRackId string `form:"warehouse_rack_id,optional" validate:"omitempty,mongodb" comment:"货架"`                 //货架Id
+    //货位id
+    WarehouseBinId string `form:"warehouse_bin_id,optional" validate:"omitempty,mongodb" comment:"货位"`                 //货架Id
+}
+
+type InventorysResponse {
+    Code int `json:"code"`
+    Msg string `json:"msg"`
+    Data InventoryPaginate `json:"data"`
+}
+
+type InventoryPaginate {
+    Total int64 `json:"total"` //入库记录数
+    Quantity float64 `json:"quantity"` //库存总数量
+    List []InventoryItem `json:"list"` //入库单列表
+}
+
+type InventoryItem {
+    Id string `json:"id"`
+    Type string `json:"type"`
+    EntryTime int64 `json:"entry_time"` //入库时间
+    WarehouseId       string  `json:"warehouse_id"`         //仓库id
+    WarehouseName     string  `json:"warehouse_name"`       //仓库名称
+    WarehouseZoneId   string  `json:"warehouse_zone_id"`    //库区id
+    WarehouseZoneName string  `json:"warehouse_zone_name"`  //库区名称
+    WarehouseRackId   string  `json:"warehouse_rack_id"`    //货架id
+    WarehouseRackName string  `json:"warehouse_rack_name"`  //货架名称
+    WarehouseBinId    string  `json:"warehouse_bin_id"`     //货位id
+    WarehouseBinName  string  `json:"warehouse_bin_name"`   //货位名称
+    ReceiptCode       string  `json:"receipt_code"`         //入库单编号
+    ReceiveCode       string  `json:"receive_code"`         //批次入库编号
+    MaterialId        string  `json:"material_id"`          //物料id
+    Name              string  `json:"name"`                 //物料名称：包括型号、材质、规格、表面处理、强度等级等
+    Price             float64 `json:"price"`                //物料单价
+    Model             string  `json:"model"`                //型号：用于唯一标识和区分不同种类的钢材。
+    Unit              string  `json:"unit"`                 //计量单位
+    Quantity          float64 `json:"quantity"`             //库存数量
+    AvailableQuantity float64 `json:"available_quantity"`   //可用库存数量
+    LockedQuantity    float64 `json:"locked_quantity"`      //锁定库存数量
+    FrozenQuantity    float64 `json:"frozen_quantity"`      //冻结库存数量
+    CreatorId         string  `json:"creator_id"`           //创建人id
+    CreatorName       string  `json:"creator_name"`         //创建人名称
+    CreatedAt         int64   `json:"created_at"`
+}
