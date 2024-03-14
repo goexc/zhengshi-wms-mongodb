@@ -40,6 +40,8 @@ const initOutboundOrdersRequest = () => {
     customer_id: '',
     is_pack: -1,
     is_weigh: -1,
+    start_time: 0,
+    end_time: 0,
   }
 }
 
@@ -366,17 +368,19 @@ let orderStatus = (status:string) => {
         <el-form-item label="起始日期">
           <el-date-picker
               type="date"
-              placeholder="请选择起始日期"
+              placeholder="请选择签收起始日期"
               size="default"
               value-format="X"
+              v-model.number="form.start_time"
           />
         </el-form-item>
         <el-form-item label="截止日期">
           <el-date-picker
               type="date"
-              placeholder="请选择截止日期"
+              placeholder="请选择签收截止日期"
               size="default"
               value-format="X"
+              v-model.number="form.end_time"
           />
         </el-form-item>
         <el-form-item label=" ">
@@ -450,7 +454,6 @@ let orderStatus = (status:string) => {
               @click="confirm(item)"
           />
           <el-popconfirm
-              v-if="globalStatus===''"
               :title="`确定删除发货单[${item.code}]吗?`"
               icon="InfoFilled"
               icon-color="#F56C6C"
@@ -463,7 +466,6 @@ let orderStatus = (status:string) => {
           >
             <template #reference>
               <perms-button
-                  :disabled="['已签收'].includes(item.status)"
                   perms="outbound:order:delete"
                   :type="Types.danger"
                   :size="Sizes.small"

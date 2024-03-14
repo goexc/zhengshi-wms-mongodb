@@ -915,6 +915,8 @@ type OutboundOrdersRequest struct {
 	Type       string `form:"type,optional" validate:"omitempty,oneof=销售出库 样品出库 报废出库 赠品出库 生产用料出库 退货出库 损耗出库" comment:"出库单类型"`        //出库单类型
 	SupplierId string `form:"supplier_id,optional" validate:"omitempty,mongodb" comment:"供应商"`                                      //供应商
 	CustomerId string `form:"customer_id,optional" validate:"omitempty,mongodb" comment:"客户"`                                       //客户
+	StartTime  int64  `form:"start_time,optional" validate:"omitempty,gte=0" comment:"签收起始时间"`
+	EndTime    int64  `form:"end_time,optional" validate:"omitempty,gte=0" comment:"签收截止时间"`
 }
 
 type OutboundOrdersResponse struct {

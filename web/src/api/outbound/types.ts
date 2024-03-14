@@ -8,6 +8,8 @@ export interface OutboundOrdersRequest {
   code: string; //出库单号
   supplier_id: string; //供应商
   customer_id: string; //客户
+  start_time: number; //签收起始日期
+  end_time: number; //签收截止日期
 }
 
 export interface OutboundOrdersResponse {
