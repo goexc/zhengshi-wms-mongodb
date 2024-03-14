@@ -34,6 +34,7 @@
 						v-for="(price, idx) in one.prices?.sort((a,b)=>b.since-a.since)" :key="idx">
 						<!-- <u-text :text="price.price" bold size="20" type="error" mode="price"></u-text> -->
 						<u-text :text="`￥${price.price}`" bold size="20" type="error"></u-text>
+						<u-text :text="nameEncrypt(price.customer_name)" size="13" type="primary"></u-text>
 						<u-text :text="price.since" mode="date" size="12" type="info"></u-text>
 						<!-- <u-text :text="price.company_name" size="12" type="info" mode="name" format="encrypt"></u-text> -->
 					</view>
@@ -57,6 +58,7 @@
 		material_image
 	} from '@/config/index.js'
 
+	import { nameEncrypt } from "@/utils/name_encrypt";
 
 
 	//分页参数
