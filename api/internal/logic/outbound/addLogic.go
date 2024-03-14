@@ -220,7 +220,7 @@ func (l *AddLogic) Add(req *types.OutboundOrderAddRequest) (resp *types.BaseResp
 
 			//记录物料单价
 			opts := options.Update().SetUpsert(true) //更新时，不存在就插入
-			_, err = l.svcCtx.MaterialPriceModel.UpdateMany(l.ctx, bson.M{"material": one.MaterialId, "customer_id": customer.Id, "price": one.Price}, update, opts)
+			_, err = l.svcCtx.MaterialPriceModel.UpdateOne(l.ctx, bson.M{"material": one.MaterialId, "customer_id": customer.Id.Hex(), "price": one.Price}, update, opts)
 			if err != nil {
 				fmt.Printf("[Error]记录物料价格:%s\n", err.Error())
 				resp.Code = http.StatusInternalServerError
