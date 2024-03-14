@@ -133,7 +133,6 @@ func (l *ReceiptLogic) Receipt(req *types.OutboundOrderReceiptRequest) (resp *ty
 		return resp, nil
 	}
 
-	//TODO: 事务START
 	//4.修改发货单状态：已出库->已签收
 	var set = bson.M{
 		"$set": bson.M{
@@ -203,14 +202,11 @@ func (l *ReceiptLogic) Receipt(req *types.OutboundOrderReceiptRequest) (resp *ty
 	err = session.CommitTransaction(dbCtx)
 	if err != nil {
 		fmt.Printf("[Error]出库单[%s]签收事务提交失败: %s\n", code, err.Error())
-		// 回滚事务
-		session.AbortTransaction(dbCtx)
 
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务器内部错误"
 		return resp, nil
 	}
-	//TODO: 事务END
 
 	/*
 		//5.生成流水记录
