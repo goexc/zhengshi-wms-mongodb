@@ -33,6 +33,13 @@ func NewPage2Logic(ctx context.Context, svcCtx *svc.ServiceContext) *Page2Logic 
 func (l *Page2Logic) Page2(req *types.OutboundOrdersRequest) (resp *types.OutboundOrdersResponse, err error) {
 	resp = new(types.OutboundOrdersResponse)
 
+	//0.参数校验
+	if req.StartTime > 0 && req.EndTime > 0 && req.StartTime > req.EndTime {
+		resp.Code = http.StatusBadRequest
+		resp.Msg = "签收起始时间不能晚于截止时间"
+		return resp, nil
+	}
+
 	//1.筛选
 	var filter = bson.M{}
 	if strings.TrimSpace(req.Code) != "" {
@@ -61,6 +68,16 @@ func (l *Page2Logic) Page2(req *types.OutboundOrdersRequest) (resp *types.Outbou
 
 	if strings.TrimSpace(req.CustomerId) != "" {
 		filter["customer_id"] = strings.TrimSpace(req.CustomerId)
+	}
+
+	switch true {
+	case req.StartTime > 0 && req.EndTime > 0:
+		filter["receipt_time"] = bson.M{"$gte": req.StartTime, "$lte": req.EndTime}
+	case req.StartTime == 0 && req.EndTime > 0:
+		filter["receipt_time"] = bson.M{"$lte": req.EndTime}
+	case req.StartTime > 0 && req.EndTime == 0:
+		filter["receipt_time"] = bson.M{"$gte": req.StartTime}
+	default: //忽略
 	}
 
 	var opt = options.Find().SetSort(bson.M{"receipt_time": -1}).SetSkip((req.Page - 1) * req.Size).SetLimit(req.Size)
