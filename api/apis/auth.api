@@ -12,7 +12,7 @@ type RegisterRequest {
     Company string `json:"company,optional" validate:"required" comment:"企业名称"`              //公司名称，顶级部门名称
     Name string `json:"name,optional" validate:"required" comment:"账号名称"`              //账号名称
     Password string `json:"password,optional" validate:"required,gte=6" comment:"密码"`          //账号密码
-    Mobile string `json:"mobile,optional" validate:"required,e164" comment:"手机号码"`           //手机号码
+    Mobile string `json:"mobile,optional" validate:"required,mobile" comment:"手机号码"`           //手机号码
     Email string `json:"email,optional" validate:"omitempty,email" comment:"Email"`              //Email
 }
 
@@ -22,8 +22,8 @@ type RegisterResponse {
 }
 
 type LoginRequest {
-    Name string `json:"name"`         //账号名称
-    Password string `json:"password"`       //账号密码
+    Mobile string `json:"mobile,optional" validate:"required,mobile" comment:"手机号码"`         //手机号码
+    Password string `json:"password,optional" validate:"required,gte=6" comment:"密码"`       //账号密码
 }
 
 type LoginResponse {
@@ -42,3 +42,5 @@ type LoginData {
     Token string `json:"token"`//
     Exp int64 `json:"exp"`     //过期时间戳
 }
+
+
