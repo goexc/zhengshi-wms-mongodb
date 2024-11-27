@@ -1,0 +1,77 @@
+syntax = "v1"
+
+info(
+    title: "计划数据结构"
+    desc: "计划数据结构"
+    author: "董咚懂咚"
+    email: "1024071953@qq.com"
+    version: "1.0.1"
+)
+
+
+//添加计划
+type PlanAddRequest {
+    Id string `json:"id,optional" validate:"omitempty,mongodb" comment:"计划"`
+    Type string `json:"type,optional" validate:"required,oneof=采购计划 生产计划" comment:"类型"`//类型
+    CustomerId string `json:"customer_id,optional" validate:"omitempty,mongodb" comment:"客户"`//客户id
+    SupplierId string `json:"supplier_id,optional" validate:"omitempty,mongodb" comment:"供应商"`//供应商id
+    MaterialId string `json:"material_id,optional" validate:"required,mongodb" comment:"物料"`//物料id
+    MaterialQuantity float64 `json:"material_quantity,optional" validate:"number,gt=0" comment:"数量"` //数量
+    Deadline int64 `json:"deadline,optional" validate:"required,gte=0" comment:"截止时间"`//截止时间
+}
+
+//修改计划
+type PlanUpdateRequest {
+    Id string `json:"id,optional" validate:"omitempty,mongodb" comment:"计划"`
+    MaterialQuantity float64 `json:"material_quantity,optional" validate:"number,gt=0" comment:"数量"` //数量
+    Deadline int64 `json:"deadline,optional" validate:"required,gte=0" comment:"截止时间"`//截止时间
+}
+
+//删除计划
+type PlanIdRequest {
+    Id string `json:"id,optional" validate:"required,mongodb" comment:"计划"`
+}
+
+//更改计划状态
+type PlanStatusRequest {
+    Id string `json:"id,optional" validate:"required,mongodb" comment:"计划"`
+    Status string `json:"status,optional" validate:"required,oneof=执行中 已完成" comment:"状态"`//状态
+}
+
+//计划分页
+type PlansRequest {
+    Page int64 `form:"page,optional" validate:"required,gte=1" comment:"页数""`
+    Size int64 `form:"size,optional" validate:"required,gte=5,lte=50" comment:"条数"`
+    Status string `form:"status,optional" validate:"omitempty,oneof=执行中 已完成" comment:"状态"`//状态
+}
+
+
+
+type PlansResponse {
+    Code int `json:"code"`
+    Msg string `json:"msg"`
+    Data PlanPaginate `json:"data"`
+}
+
+
+type PlanPaginate {
+    Total int64 `json:"total,optional"` //用于返回全部计划时，不可用
+    List []Plan `json:"list"`           //计划分页
+}
+
+type Plan {
+    Id string `json:"id"`
+    Type string `json:"type"`//类型
+    Status string `json:"status"`//状态
+    CustomerId string `json:"customer_id"`                //客户id
+    CustomerName string `json:"customer_name"`                //客户名称
+    SupplierId string `json:"supplier_id"`                //供应商id
+    SupplierName string `json:"supplier_name"`                //供应商名称
+    MaterialId string `json:"material_id"`                //物料id
+    MaterialName string `json:"material_name"`            //物料名称
+    MaterialModel string `json:"material_model"`          //物料型号
+    MaterialImage string `json:"material_image"`          //物料图片
+    MaterialUnit string `json:"material_unit"`            //物料单位
+    MaterialQuantity float64 `json:"material_quantity"` //数量
+    Deadline int64 `json:"deadline,optional"`//截止时间
+}

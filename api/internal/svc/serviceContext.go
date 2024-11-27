@@ -56,6 +56,7 @@ type ServiceContext struct {
 	CarrierTransactionModel    *mongo.Collection //承运商流水
 	InventoryModel             *mongo.Collection //库存
 	OutboundMaterialModel      *mongo.Collection //出库单批次出库记录
+	PlanModel                  *mongo.Collection //计划
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -98,6 +99,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		CarrierTransactionModel:    db.Collection("carrier_transaction"),     //承运商流水
 		InventoryModel:             db.Collection("inventory"),               //库存
 		OutboundMaterialModel:      db.Collection("outbound_material"),       //出库单物料
+		PlanModel:                  db.Collection("plan"),                    //计划
 	}
 
 	//2.角色表添加索引

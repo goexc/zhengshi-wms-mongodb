@@ -39,7 +39,7 @@ func (l *LoginLogic) Login(req *types.LoginRequest) (resp *types.LoginResponse, 
 
 	//2.查询账号
 	filter := bson.M{
-		"name": req.Name,
+		"mobile": req.Mobile,
 		//"password": req.Password,
 		"status": bson.M{"$ne": "删除"},
 	}

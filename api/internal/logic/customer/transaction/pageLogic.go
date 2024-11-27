@@ -91,6 +91,8 @@ func (l *PageLogic) Page(req *types.CustomerTransactionPageRequest) (resp *types
 			Type:   one.Type,
 			Time:   one.Time,
 			Amount: one.Amount,
+			Remark: one.Remark,
+			Annex:  one.Annex,
 		})
 	}
 

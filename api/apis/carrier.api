@@ -32,7 +32,7 @@ type CarriersRequest {
     Name string `form:"name,optional" validate:"omitempty" comment:"承运商名称"`              //承运商名称
     Code string `form:"code,optional" validate:"omitempty" comment:"承运商编号"`              //承运商编号：分配给承运商的唯一标识符或编号，用于快速识别和检索客户信息
     Manager string `form:"manager,optional" validate:"omitempty" comment:"承运商编号"`        //负责人
-    Contact string `form:"contact,optional" validate:"omitempty,e164" comment:"承运商编号"`   //联系方式
+    Contact string `form:"contact,optional" validate:"omitempty,mobile" comment:"承运商编号"`   //联系方式
     Email string `form:"email,optional" validate:"omitempty,email" comment:"承运商编号"`      //Email
 }
 
@@ -77,7 +77,7 @@ type CarrierRequest {
     LegalRepresentative string `json:"legal_representative,optional" validate:"required" comment:"法定代表人"`                                                 //法定代表人
     UnifiedSocialCreditIdentifier string `json:"unified_social_credit_identifier,optional" validate:"required,lte=18" comment:"统一社会信用代码"`              //统一社会信用代码
     Address string `json:"address,optional" validate:"omitempty" comment:"承运商地址"`                                                                         //承运商地址
-    Contact string `json:"contact,optional" validate:"required,e164" comment:"联系方式"`                                                                       //联系方式
+    Contact string `json:"contact,optional" validate:"required,mobile" comment:"联系方式"`                                                                       //联系方式
     Manager string `json:"manager,optional" validate:"required" comment:"负责人"`                                                                              //负责人
     Email string `json:"email,optional" validate:"omitempty,email" comment:"Email"`                                                                            //Email
     Remark string `json:"remark,optional"`

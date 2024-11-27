@@ -12,7 +12,7 @@ info(
 type CompanyRequest {
     Name string `json:"name" validate:"required" comment:"企业名称"`                                                                         //企业名称
     Address string `json:"address" validate:"required" comment:"企业地址"`                                                                   //企业地址
-    Contact string `json:"contact" validate:"required,e164" comment:"联系方式"`                                                              //联系方式
+    Contact string `json:"contact" validate:"required,mobile" comment:"联系方式"`                                                              //联系方式
     LegalRepresentative string `json:"legal_representative" validate:"required" comment:"法定代表人"`                                        //法定代表人
     UnifiedSocialCreditIdentifier string `json:"unified_social_credit_identifier" validate:"required" comment:"统一社会信用代码"`            //统一社会信用代码
     Email string `json:"email" validate:"omitempty,email" comment:"Email"`                                                                   //Email

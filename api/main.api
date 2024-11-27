@@ -30,6 +30,7 @@ import (
 	"apis/inbound.api"
 	"apis/outbound.api"
 	"apis/inventory.api"
+	"apis/plan.api"
 	"apis/images.api"
 )
 
@@ -493,6 +494,10 @@ service main {
 	@handler update
 	put / (MaterialRequest) returns (BaseResponse)
 
+	@doc "物料信息"
+	@handler info
+	get /info (MaterialIdRequest) returns (MaterialResponse)
+
 	@doc "删除物料"
 	@handler remove
 	delete / (MaterialIdRequest) returns (BaseResponse)
@@ -648,6 +653,34 @@ service main {
 	@doc "添加客户交易记录"
 	@handler add
 	post / (CustomerTransactionAddRequest) returns (BaseResponse)
+}
+
+//计划管理
+@server (
+	jwt:    Auth
+	group:  plan
+	prefix: plan
+)
+service main {
+	@doc "添加计划"
+	@handler add
+	post / (PlanAddRequest) returns (BaseResponse)
+
+	@doc "修改计划"
+	@handler update
+	put / (PlanUpdateRequest) returns (BaseResponse)
+
+	@doc "修改计划状态"
+	@handler status
+	patch /status (PlanStatusRequest) returns (BaseResponse)
+
+	@doc "计划分页"
+	@handler page
+	get / (PlansRequest) returns (PlansResponse)
+
+	@doc "删除计划"
+	@handler remove
+	delete / (PlanIdRequest) returns (BaseResponse)
 }
 
 //图片管理

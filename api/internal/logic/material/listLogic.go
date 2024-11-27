@@ -55,8 +55,12 @@ func (l *ListLogic) List(req *types.MaterialsRequest) (resp *types.MaterialsResp
 		filter["material"] = strings.TrimSpace(req.Material)
 	}
 
-	if strings.TrimSpace(req.Specification) != "" {
-		filter["specification"] = strings.TrimSpace(req.Specification)
+	if strings.TrimSpace(req.Specification) != "" { //TODO:修改为模糊搜索
+		//filter["specification"] = strings.TrimSpace(req.Specification)
+
+		//i 表示不区分大小写
+		regex := bson.M{"$regex": primitive.Regex{Pattern: ".*" + strings.TrimSpace(req.Specification) + ".*", Options: "i"}}
+		filter["specification"] = regex
 	}
 
 	if strings.TrimSpace(req.Model) != "" {
@@ -122,7 +126,6 @@ func (l *ListLogic) List(req *types.MaterialsRequest) (resp *types.MaterialsResp
 		resp.Msg = "服务内部错误"
 		return resp, nil
 	}
-
 
 	var pricesMap = make(map[string][]types.MaterialPrice)
 	for _, one := range prices {

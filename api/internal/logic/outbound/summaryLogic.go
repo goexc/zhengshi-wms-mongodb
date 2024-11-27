@@ -32,6 +32,7 @@ func NewSummaryLogic(ctx context.Context, svcCtx *svc.ServiceContext) *SummaryLo
 }
 
 func (l *SummaryLogic) Summary(req *types.OutboundSummaryRequest) (resp *types.OutboundSummaryResponse, err error) {
+	fmt.Println("请求出库单汇总信息")
 	resp = new(types.OutboundSummaryResponse)
 
 	//1.确定起止时间

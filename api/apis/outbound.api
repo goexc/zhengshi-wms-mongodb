@@ -112,7 +112,7 @@ type OutboundOrderMaterialsResponse {
 }
 
 type OutboundOrderMaterial {
-    Id string `json:"id"`
+    Id string `json:"id"`   //id
     OrderCode string `json:"order_code"`       //物料编号
     MaterialId string `json:"material_id"`     //物料id
     Index int `json:"index"`                   //物料顺序
@@ -240,7 +240,8 @@ type OutboundOrderDepartureRequest {
 type OutboundOrderReceiptRequest {
     Code string `json:"code,optional" validate:"required" comment:"出库单号"`//出库单号
     ReceiptTime int64 `json:"receipt_time,optional" validate:"required,gt=0" comment:"签收时间"` //签收时间
-    Annex []string `json:"annex,optional" validate:"required,gt=0" comment:"附件"`//附件
+    Annex []string `json:"annex,optional" validate:"required,gte=0" comment:"附件"`//附件
+//    Annex []string `json:"annex,optional" validate:"required,gt=0" comment:"附件"`//附件
 //    Materials []OutboundReturnMaterial `json:"materials,optional" validate:"gte=0,dive" comment:"退货物料及数量"`//退货物料及数量
 }
 
@@ -284,8 +285,8 @@ type OutboundPickingMaterialInventory {
 //出库单汇总
 type OutboundSummaryRequest{
     CustomerId string `form:"customer_id,optional" validate:"required,mongodb" comment:"客户"` //客户id
-    StartDate int64 `form:"start_date" validate:"required,gt=0" comment:"起始日期"` //起始日期
-    EndDate int64 `form:"end_date" validate:"required,gt=0" comment:"截止日期"` //截止日期
+    StartDate int64 `form:"start_date,optional" validate:"required,number,gt=0" comment:"起始日期"` //起始日期
+    EndDate int64 `form:"end_date,optional" validate:"required,number,gt=0" comment:"截止日期"` //截止日期
 }
 
 type OutboundSummaryResponse{

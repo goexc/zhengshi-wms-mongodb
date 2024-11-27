@@ -24,6 +24,7 @@ type ImageUrl {
 type ImagesRequest {
     Page int64 `form:"page,optional" validate:"required,gte=1" comment:"页数""`
     Size int64 `form:"size,optional" validate:"required,gte=5,lte=100" comment:"条数"`
+    Name string `form:"name,optional" validate:"omitempty,lte=20" comment:"图片名称"`
 }
 
 type ImagesResponse {

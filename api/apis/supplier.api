@@ -27,7 +27,7 @@ type SupplierListRequest {
     Name string `form:"name,optional" validate:"omitempty" comment:"供应商名称"`              //供应商名称
     Code string `form:"code,optional" validate:"omitempty" comment:"供应商编号"`              //供应商编号：分配给供应商的唯一标识符或编号，用于快速识别和检索客户信息
     Manager string `form:"manager,optional" validate:"omitempty" comment:"负责人"`        //负责人
-    Contact string `form:"contact,optional" validate:"omitempty,e164" comment:"联系方式"`   //联系方式
+    Contact string `form:"contact,optional" validate:"omitempty,mobile" comment:"联系方式"`   //联系方式
     Email string `form:"email,optional" validate:"omitempty,email" comment:"Email"`      //Email
     Level int `form:"level,optional" validate:"omitempty,gte=1,lte=10" comment:"供应商等级"`  //供应商等级
 }
@@ -39,7 +39,7 @@ type SuppliersRequest {
     Name string `form:"name,optional" validate:"omitempty" comment:"供应商名称"`              //供应商名称
     Code string `form:"code,optional" validate:"omitempty" comment:"供应商编号"`              //供应商编号：分配给供应商的唯一标识符或编号，用于快速识别和检索客户信息
     Manager string `form:"manager,optional" validate:"omitempty" comment:"负责人"`        //负责人
-    Contact string `form:"contact,optional" validate:"omitempty,e164" comment:"联系方式"`   //联系方式
+    Contact string `form:"contact,optional" validate:"omitempty,mobile" comment:"联系方式"`   //联系方式
     Email string `form:"email,optional" validate:"omitempty,email" comment:"Email"`      //Email
     Level int `form:"level,optional" validate:"omitempty,gte=1,lte=10" comment:"供应商等级"`  //供应商等级
 }
@@ -86,7 +86,7 @@ type SupplierRequest {
     Name string `json:"name,optional" validate:"required" comment:"供应商名称"`                                                                                //供应商名称
     LegalRepresentative string `json:"legal_representative,optional" validate:"required" comment:"法定代表人"`                                                 //法定代表人
     UnifiedSocialCreditIdentifier string `json:"unified_social_credit_identifier,optional" validate:"required,lte=18" comment:"统一社会信用代码"`              //统一社会信用代码
-    Contact string `json:"contact,optional" validate:"required,e164" comment:"联系方式"`                                                                       //联系方式
+    Contact string `json:"contact,optional" validate:"required,mobile" comment:"联系方式"`                                                                       //联系方式
     Manager string `json:"manager,optional" validate:"required" comment:"负责人"`                                                                              //负责人
     Email string `json:"email,optional" validate:"omitempty,email" comment:"Email"`                                                                            //Email
     Address string `json:"address,optional" validate:"omitempty" comment:"供应商地址"`                                                                         //供应商地址

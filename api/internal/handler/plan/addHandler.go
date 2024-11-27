@@ -1,24 +1,22 @@
-package outbound
+package plan
 
 import (
 	"api/pkg/validatorx"
-	"fmt"
 	"github.com/go-playground/validator/v10"
-	"net/http"
 	"strings"
 
-	"api/internal/logic/outbound"
+	"net/http"
+
+	"api/internal/logic/plan"
 	"api/internal/svc"
 	"api/internal/types"
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-func SummaryHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
+func AddHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("接收请求：", r)
-		var req types.OutboundSummaryRequest
+		var req types.PlanAddRequest
 		if err := httpx.Parse(r, &req); err != nil {
-			fmt.Println("请求参数解析失败：", err.Error())
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
 		}
@@ -35,18 +33,15 @@ func SummaryHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 				Msg:  strings.Join(es, ", "),
 			}
 
-			fmt.Printf("参数错误：%#v\n", resp)
 			httpx.OkJsonCtx(r.Context(), w, resp)
 			return
 		}
 
-		l := outbound.NewSummaryLogic(r.Context(), svcCtx)
-		resp, err := l.Summary(&req)
+		l := plan.NewAddLogic(r.Context(), svcCtx)
+		resp, err := l.Add(&req)
 		if err != nil {
-			fmt.Println("错误响应：", err)
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {
-			fmt.Println("响应：", resp)
 			httpx.OkJsonCtx(r.Context(), w, resp)
 		}
 	}

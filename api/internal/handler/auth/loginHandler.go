@@ -2,6 +2,7 @@ package auth
 
 import (
 	"api/pkg/validatorx"
+	"errors"
 	"github.com/go-playground/validator/v10"
 	"net/http"
 	"strings"
@@ -22,7 +23,8 @@ func LoginHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 		//参数校验
 		if err := validatorx.Validator.StructCtx(r.Context(), req); err != nil {
-			errs := err.(validator.ValidationErrors)
+			var errs validator.ValidationErrors
+			errors.As(err, &errs)
 			var es []string
 			for _, e := range errs {
 				es = append(es, e.Translate(validatorx.Trans))

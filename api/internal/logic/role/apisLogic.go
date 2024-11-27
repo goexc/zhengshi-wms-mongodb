@@ -30,7 +30,7 @@ func (l *ApisLogic) Apis(req *types.RoleIdRequest) (resp *types.RoleApisResponse
 	resp = new(types.RoleApisResponse)
 	role := fmt.Sprintf("role_%s", req.Id)
 
-	perms := l.svcCtx.Enforcer.GetPermissionsForUser(role)
+	perms, _ := l.svcCtx.Enforcer.GetPermissionsForUser(role)
 	fmt.Println("权限列表：", perms)
 	fmt.Println("权限列表数量：", len(perms))
 

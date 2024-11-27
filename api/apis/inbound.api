@@ -41,7 +41,7 @@ type InboundReceiptUpdateRequest {
     Type string `json:"type,optional" validate:"required,oneof=采购入库 外协入库 生产入库 退货入库" comment:"入库单类型"`                                                                               //入库单类型
     SupplierId string `json:"supplier_id,optional" validate:"excluded_if=type 退货入库,omitempty,mongodb" comment:"供应商"`                                                                                               //供应商
     CustomerId string `json:"customer_id,optional" validate:"required_if=type 退货入库,omitempty,mongodb" comment:"客户"`                                                                                               //供应商
-    TotalAmount float64 `json:"total_amount,optional" validate:"required,gte=0" comment:"总金额"`                         //总金额
+    TotalAmount float64 `json:"total_amount,optional" validate:"omitempty,gte=0" comment:"总金额"`                         //总金额
     ReceivingDate int64 `json:"receiving_date,optional" validate:"omitempty,gte=0" comment:"预计入库日期"`                    //预计入库日期
     Materials []InboundMaterial `json:"materials,optional" validate:"required,gt=0,dive" comment:"物料"`                  //物料
     Annex []string `json:"annex,optional" validate:"omitempty,dive,gt=3" comment:"附件"`                                  //附件

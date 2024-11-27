@@ -87,7 +87,7 @@ type Material {
     Quantity float64 `json:"quantity"`                   //安全库存
     Unit string `json:"unit"`                            //计量单位，如个、箱、千克等
     Remark string `json:"remark"`                        //备注
-    Prices []MaterialPrice `json:"prices"` //单价列表
+    Prices []MaterialPrice `json:"prices"`               //单价列表
     Creator string `json:"creator"`                      //
     CreatorName string `json:"creator_name"`             //
     CreatedAt int64 `json:"created_at"`
@@ -108,12 +108,19 @@ type MaterialRequest {
     Quantity float64 `json:"quantity" validate:"gte=0" comment:"安全库存"`                         //安全库存
     Unit string `json:"unit,optional" validate:"omitempty" commment:"计量单位"`                    //计量单位
     Remark string `json:"remark,optional" validate:"omitempty" comment:"备注"`                     //备注
-    Price float64 `json:"price,optional" validate:"omitempty,gte=0" comment:"单价"`//单价
+    Price float64 `json:"price,optional" validate:"omitempty,gte=0" comment:"单价"`                //单价
+}
+
+//物料信息
+type MaterialResponse {
+    Code int `json:"code"`
+    Msg string `json:"msg"`
+    Data Material `json:"data"`
 }
 
 //物料价格
 type MaterialPricesRequest {
-    MaterialId string `form:"material_id" validate:"required,mongodb" comment:"物料"` //物料id
+    MaterialId string `form:"material_id" validate:"required,mongodb" comment:"物料"`           //物料id
     CustomerId string `form:"customer_id,optional" validate:"omitempty,mongodb" comment:"客户"` //客户id
 }
 
@@ -124,15 +131,15 @@ type MaterialPricesResponse {
 }
 
 type MaterialPrice {
-    Price float64 `json:"price"` //价格
-    Since int64 `json:"since"`   //价格应用时间
-    CustomerId string `json:"customer_id"` //客户id
+    Price float64 `json:"price"`               //价格
+    Since int64 `json:"since"`                 //价格应用时间
+    CustomerId string `json:"customer_id"`     //客户id
     CustomerName string `json:"customer_name"` //客户
 }
 
 //删除物料价格
 type MaterialPriceRequest {
-    Id string `form:"id,optional" validate:"required,mongodb" comment:"物料"`//物料id
+    Id string `form:"id,optional" validate:"required,mongodb" comment:"物料"`                  //物料id
     CustomerId string `form:"customer_id,optional" validate:"required,mongodb" comment:"客户"` //客户id
     Price float64 `form:"price,optional" validate:"number" comment:"单价"`
 }

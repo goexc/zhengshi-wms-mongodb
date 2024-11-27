@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"net/http"
 	"strings"
@@ -32,11 +33,18 @@ func NewPageLogic(ctx context.Context, svcCtx *svc.ServiceContext) *PageLogic {
 
 func (l *PageLogic) Page(req *types.OutboundOrdersRequest) (resp *types.OutboundOrdersResponse, err error) {
 	resp = new(types.OutboundOrdersResponse)
+	fmt.Printf("请求参数:%#v\n", req)
+	defer func() {
+		fmt.Printf("出库单列表：:%#v\n", resp.Data.List)
+		fmt.Printf("出库单分页数量：:%d\n", len(resp.Data.List))
+	}()
 
 	//1.筛选
 	var filter = bson.M{}
 	if strings.TrimSpace(req.Code) != "" {
-		filter["code"] = strings.TrimSpace(req.Code)
+		//i 表示不区分大小写
+		regex := bson.M{"$regex": primitive.Regex{Pattern: ".*" + strings.TrimSpace(req.Code) + ".*", Options: "i"}}
+		filter["code"] = regex
 	}
 
 	if !(code.OutboundStatusRange(req.Status) == nil) {

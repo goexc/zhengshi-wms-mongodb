@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"net/http"
 	"strings"
@@ -43,7 +44,9 @@ func (l *Page2Logic) Page2(req *types.OutboundOrdersRequest) (resp *types.Outbou
 	//1.筛选
 	var filter = bson.M{}
 	if strings.TrimSpace(req.Code) != "" {
-		filter["code"] = strings.TrimSpace(req.Code)
+		//i 表示不区分大小写
+		regex := bson.M{"$regex": primitive.Regex{Pattern: ".*" + strings.TrimSpace(req.Code) + ".*", Options: "i"}}
+		filter["code"] = regex
 	}
 
 	if !(code.OutboundStatusRange(req.Status) == nil) {

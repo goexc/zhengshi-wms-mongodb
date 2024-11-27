@@ -191,14 +191,15 @@ func (l *AddLogic) Add(req *types.OutboundOrderAddRequest) (resp *types.BaseResp
 	for _, one := range req.Materials {
 		//收集物料列表
 		im := model.OutboundOrderMaterial{
-			OrderCode:  req.Code,
-			MaterialId: one.MaterialId,
-			Index:      one.Index,
-			Price:      one.Price,
-			Name:       materialsMap[one.MaterialId].Name,
-			Model:      materialsMap[one.MaterialId].Model,
-			Quantity:   one.Quantity,
-			Unit:       materialsMap[one.MaterialId].Unit,
+			OrderCode:     req.Code,
+			MaterialId:    one.MaterialId,
+			Index:         one.Index,
+			Price:         one.Price,
+			Name:          materialsMap[one.MaterialId].Name,
+			Model:         materialsMap[one.MaterialId].Model,
+			Specification: materialsMap[one.MaterialId].Specification,
+			Quantity:      one.Quantity,
+			Unit:          materialsMap[one.MaterialId].Unit,
 		}
 
 		//校验仓库、库区、货架、货位

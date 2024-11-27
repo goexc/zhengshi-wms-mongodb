@@ -31,7 +31,7 @@ type WarehouseRackRequest {
     Capacity float64 `json:"capacity,optional" validate:"omitempty,gte=0" comment:"货架容量"`                                // 货架容量
     CapacityUnit string `json:"capacity_unit,optional" validate:"omitempty" comment:"货架容量单位"` // 货架容量单位：面积、体积或其他度量单位
     Manager string `json:"manager,optional" validate:"omitempty" comment:"负责人"`                                //负责人
-    Contact string `json:"contact,optional" validate:"omitempty,e164" comment:"联系方式"`
+    Contact string `json:"contact,optional" validate:"omitempty,mobile" comment:"联系方式"`
     Remark string `json:"remark,optional" validate:"omitempty" comment:"备注"`                                               //备注
 }
 
