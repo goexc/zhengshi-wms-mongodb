@@ -1,0 +1,13 @@
+//api前缀
+export const baseURL = "https://wmsx.api.goexc.cn:1443/"
+// export const baseURL = "http://192.168.10.242:50000/"
+
+//用户协议
+export const fileURL = "https://wms.file.goexc.cn/images/"
+
+//隐私政策
+export const privacyURL = "http://sqapi2.dishawang.com/privacy"
+
+
+//默认物料图片
+export const material_default_image = '/static/icon/material-default.png'

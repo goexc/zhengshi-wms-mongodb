@@ -1,0 +1,146 @@
+<template>
+
+   <view class="login-page">
+      <text class="login-title">登录</text>
+      <!-- 输入框 -->
+      <x-input :autoFocus="true" fontSize="24px" v-model="mobile" type="tel" placeholder="输入手机号" :maxlength="11"
+         confirmType="next"></x-input>
+      <x-input :autoFocus="false" fontSize="24px" v-model="password" type="password" placeholder="输入密码" :maxlength="21"
+         confirmType="done"></x-input>
+   </view>
+
+   <!-- 底部 -->
+   <view class="login-bottom">
+      <btn :disabled="disabled" borderRadius="0" width="750rpx" height="98rpx" fontSize="18px" @click="handleLogin">登录/注册</btn>
+   </view>
+</template>
+
+<script>
+   import { Result } from '@/types/base'
+import { isValidMobile } from '@/utils/mobile'
+import {LoginResponse} from '@/types/auth.uts'
+import {login} from '@/store/auth.uts'
+import { getURL } from '@/utils/request'
+   export default {
+      data() {
+         return {
+            mobile: "18810509066",
+            password: ""
+         }
+      },
+      computed: {
+         disabled() : boolean {
+            console.log('规则校验：', isValidMobile(this.mobile.trim()) || this.password.length < 5)
+            return !isValidMobile(this.mobile.trim()) || this.password.length < 5
+         }
+      },
+      methods: {
+         back() {
+            uni.navigateBack({ delta: 1 })
+         },
+          handleLogin(){
+            console.log('登录表单：', this.mobile, this.password)
+            uni.request<Result<LoginResponse>>({
+               url: getURL('auth/login'),
+               method: 'POST',
+               data: {
+                  mobile: this.mobile, 
+                  password: this.password
+               },
+               success: res => {
+                  console.log('登录响应：')
+                  console.log(res)
+                  let r = res.data 
+                  if (r == null) return
+                  if (res.statusCode != 200) {
+                     uni.showToast({
+                        title: '请求失败',
+                        icon: 'none'
+                     })
+                     return
+                  }
+                  
+                  //判断请求结果
+                  if(r.code != 200){
+                     console.log('登录失败')
+                     uni.showToast({
+                        title: r.msg,
+                        icon: 'error'
+                     })
+                     return
+                  }
+                  
+                  //处理登录
+                  login(r.data as LoginResponse)
+                  
+                  // //返回
+                  uni.navigateBack({delta: 1})
+                  setTimeout(function(){
+                     uni.showToast({
+                        title: '登录成功',
+                        icon: 'success'
+                     })
+                  }, 200)
+               },
+               fail: (err) => {
+                  uni.showToast({
+                     title: err.errMsg,
+                     icon: 'none'
+                  })
+               },
+               complete: () => {
+                  uni.hideLoading()
+               }
+            });
+            // let res =  postR('/auth/login', {name: this.mobile, password: this.password})
+            // console.log(JSON.stringify(res))
+            // console.log('登录响应：', res)
+         }
+      }
+   }
+</script>
+
+<style>
+   .main-btn {
+      align-items: center;
+      justify-content: center;
+      background-image: linear-gradient(to bottom right, #fc6672, #e47989);
+      width: 750rpx;
+      height: 98rpx;
+   }
+
+   .main-btn-hover {
+      background-image: linear-gradient(to bottom right, #fd6373, #fd6373);
+   }
+
+   .main-btn-disabled {
+      background-color: #d9d9d9;
+      background-image: linear-gradient(to bottom right, #d9d9d9, #d9d9d9);
+   }
+
+   .main-btn-text {
+      color: #fff;
+      font-weight: bold;
+      font-size: 18px;
+   }
+
+   /* 登录相关 */
+   .login-page {
+      flex: 1;
+      padding: 0 48rpx;
+   }
+
+   .login-title {
+      margin-top: 70rpx;
+      font-size: 30px;
+      font-weight: bold;
+   }
+
+   /* 底部 */
+   .login-bottom {
+      position: fixed;
+      left: 0;
+      bottom: 0;
+      right: 0;
+   }
+</style>

@@ -1,0 +1,257 @@
+<template>
+   <statusbar></statusbar>
+
+   <!-- #ifdef APP -->
+   <scroll-view style="flex:1">
+   <!-- #endif -->
+
+      <!-- 头部布局 -->
+      <template v-if="!isLogin">
+         <!-- 未登录 -->
+         <view class="my-panel">
+            <view>
+               <text class="nologin-title">欢迎来到社区</text>
+               <text class="nologin-info">马上登录跟大家一起嗨</text>
+               <view class="main-btn" @click="open('login')">
+                  <text class="main-btn-text">
+                     登录/注册
+                  </text>
+               </view>
+            </view>
+            <image src="@/static/image/nologin.png" mode="aspectFill" :fade-show="true" class="nologin-image"></image>
+         </view>
+      </template>
+      <template v-else>
+         <!-- 已登录 -->
+         <view class="my-panel">
+            <avatar :src="avatar" width="148rpx" height="148rpx" style="margin-right: 25rpx;"></avatar>
+
+            <view class="my-panel-box">
+               <text class="my-nickname">{{ name }}</text>
+               <view class="my-info">
+                  <view class="flex">
+                     <text class="my-info-label">关注</text>
+                     <text class="my-info-value">0</text>
+                  </view>
+                  <view class="flex">
+                     <text class="my-info-label">粉丝</text>
+                     <text class="my-info-value">0</text>
+                  </view>
+                  <view class="flex">
+                     <text class="my-info-label">帖子</text>
+                     <text class="my-info-value">0</text>
+                  </view>
+               </view>
+            </view>
+
+            <text class="my-panel-btn wms" @click="handleLogout">{{'\ue656'}}退出登录</text>
+         </view>
+
+         <view class="my-card-section">
+            <view class="my-card">
+               <text class="my-card-title">帖子</text>
+               <text class="my-card-info">我发布的</text>
+               <image src="@/static/view-list.png" mode="aspectFill" class="my-card-img"></image>
+            </view>
+            <view class="my-card">
+               <text class="my-card-title">评论</text>
+               <text class="my-card-info">我发布的</text>
+               <image src="@/static/message.png" mode="aspectFill" class="my-card-img"></image>
+            </view>
+            <view class="my-card">
+               <text class="my-card-title">收藏</text>
+               <text class="my-card-info">我收藏的</text>
+               <image src="@/static/star.png" mode="aspectFill" class="my-card-img"></image>
+            </view>
+         </view>
+      </template>
+
+
+      <!-- 分割线 -->
+      <view class="divider"></view>
+      <!-- 功能 -->
+
+   <!-- #ifdef APP -->
+   </scroll-view>
+   <!-- #endif -->
+</template>
+
+<script>
+   import { loginState, authState, logout } from '@/store/auth'
+   export default {
+      data() {
+         return {
+
+         }
+      },
+      computed: {
+         isLogin() : boolean {
+            return loginState.value
+         },
+         name() : string {
+            return authState.name
+         },
+         avatar() : string {
+            return authState.avatar
+         },
+         name() : string {
+            return authState.name
+         }
+      },
+      methods: {
+         open(p : string) {
+            let url = `/pages/${p}/${p}`
+            uni.navigateTo({
+               url: url
+            })
+         },
+          handleLogout() {
+             logout()
+            uni.navigateTo({
+               url: '/pages/login/login'
+            })
+         }
+
+      }
+   }
+</script>
+
+<style>
+   .my-panel {
+      flex-direction: row;
+      margin-top: 65rpx;
+      padding: 0 30rpx;
+      align-items: center;
+   }
+
+   .my-panel-btn {
+      background-color: #f7f6fb;
+      color: #333237;
+      font-size: 13px;
+      border-top-left-radius: 20px;
+      border-bottom-left-radius: 20px;
+      padding: 15rpx 20rpx;
+      margin-right: -30rpx;
+   }
+
+   .nologin-title {
+      font-weight: bold;
+      font-size: 20px;
+      color: #171717;
+      margin-bottom: 20rpx;
+   }
+
+   .nologin-info {
+      color: #818181;
+      font-size: 13px;
+      margin-bottom: 35rpx;
+
+   }
+
+
+   .nologin-image {
+      width: 290rpx;
+      height: 240rpx;
+      margin-left: auto;
+   }
+
+   .my-swiper-image {
+      width: 690rpx;
+      height: 135rpx;
+      border-radius: 5px;
+   }
+
+   .more {
+      flex-direction: row;
+      flex-wrap: wrap;
+      padding-bottom: 50rpx;
+
+   }
+
+   .my-nickname {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 20rpx;
+      color: #333333;
+   }
+
+   .my-info {
+      flex-direction: row;
+      align-items: center;
+   }
+
+   .my-info-label {
+      font-size: 14px;
+   }
+
+   .my-info-value {
+      font-size: 14px;
+      font-weight: bold;
+      margin-left: 12rpx;
+      margin-right: 20rpx;
+   }
+
+   .my-card-section {
+      flex-direction: row;
+      padding: 38rpx 30rpx;
+   }
+
+   .my-card {
+      height: 115rpx;
+      flex: 1;
+      border-radius: 5rpx;
+      padding: 0 20rpx;
+      margin-left: 10rpx;
+      margin-right: 10rpx;
+      box-shadow: 0px 0px 6px rgba(0, 0, 0, 0.1);
+      background-color: #ffffff;
+      position: relative;
+      justify-content: center;
+   }
+
+   .my-card-title {
+      font-size: 18px;
+      font-weight: bold;
+      color: #333333;
+      margin-bottom: 10rpx;
+   }
+
+   .my-card-info {
+      font-size: 13px;
+      color: #686868;
+   }
+
+   .my-card-img {
+      position: absolute;
+      width: 70rpx;
+      height: 70rpx;
+      bottom: -15rpx;
+      right: -15rpx;
+      opacity: 0.2;
+   }
+
+
+   .main-btn {
+      border-radius: 5px;
+      align-items: center;
+      justify-content: center;
+      background-image: linear-gradient(to bottom right, #fc6672, #e47989);
+      width: 280rpx;
+      height: 80rpx;
+   }
+
+   .main-btn-hover {
+      background-image: linear-gradient(to bottom right, #fd6373, #fd6373);
+   }
+
+   .main-btn-text {
+      color: #fff;
+      font-weight: bold;
+      font-size: 15px;
+   }
+
+   .main-btn-disabled {
+      background-color: #d9d9d9;
+      background-image: linear-gradient(to bottom right, #d9d9d9, #d9d9d9);
+   }
+</style>

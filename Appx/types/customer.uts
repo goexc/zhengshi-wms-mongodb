@@ -1,0 +1,36 @@
+export type CustomerPageRequest = {
+	page: number,
+	size: number,
+	// status: globalStatus.value,//当前Tab页状态
+	name: string,
+	code: string,
+	manager: string,
+	contact: string,
+	email: string,
+}
+
+export type Customer = {
+   id : string
+   type : string
+   code : string
+   name : string
+   image : string
+   legal_representative : string
+   unified_social_credit_identifier : string
+   address : string
+   contact : string
+   manager : string
+   email : string
+   remark : string
+   status : string
+   receivable_balance : number
+   create_by : string
+   created_at : number
+   updated_at : number
+   value: string | null //对应下拉菜单的值
+}
+
+export type CustomerPage = {
+   total : number
+   list : Customer[]
+}

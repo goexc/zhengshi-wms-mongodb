@@ -1,0 +1,113 @@
+{
+   // 下载安装时easycom配置（注意组件放置位置）
+   "easycom": {
+      "autoscan": true,
+      "custom": {
+         "fui-(.*)": "@/components/firstui/fui-$1/fui-$1.uvue"
+      }
+   },
+   "pages": [ //pages数组中第一项表示应用启动页，参考：https://uniapp.dcloud.io/collocation/pages
+      {
+         "path": "pages/index/index",
+         "style": {
+            "navigationBarTitleText": "首页"
+         }
+      },
+      {
+         "path": "pages/profile/profile",
+         "style": {
+            "navigationBarTitleText": "我的",
+            "enablePullDownRefresh": false,
+            "navigationStyle": "custom"
+         }
+      },
+      {
+         "path": "pages/login/login",
+         "style": {
+            "navigationBarTitleText": "登录"
+         }
+      },
+      {
+         "path": "pages/material/list",
+         "style": {
+            "navigationBarTitleText": "物料列表"
+         }
+      },
+      {
+         "path": "pages/outbound/index",
+         "style": {
+            "navigationBarTitleText": "出库"
+         }
+      },
+      {
+         "path": "pages/outbound/order",
+         "style": {
+            "navigationBarTitleText": "出库单"
+         }
+      },
+      {
+         "path": "pages/business/supplier",
+         "style": {
+            "navigationBarTitleText": "供应商"
+         }
+      },
+      {
+         "path": "pages/business/customer",
+         "style": {
+            "navigationBarTitleText": "客户"
+         }
+      },
+      {
+      	"path" : "pages/material/test",
+      	"style" : 
+      	{
+      		"navigationBarTitleText" : "下拉缩放顶部封面图"
+      	}
+      }
+   ],
+   "globalStyle": {
+      "navigationBarTextStyle": "white",
+      "navigationBarTitleText": "正时 WMS",
+      "navigationBarBackgroundColor": "#83b091",
+      "backgroundColor": "#ffffff"
+   },
+   "uniIdRouter": {
+      // "loginPage": "pages/login/login",
+      // "needLogin": [
+      //    "pages/material/list",
+      //    "pages/outbound/order",
+      //    "pages/profile/profile",
+      //    "pages/business/supplier"
+      // ],
+      // "resToLogin": true
+   },
+   "tabBar": {
+      "color": "#cdcdcd",
+      "selectedColor": "#3376E5",
+      "fontSize": "14px",
+      "borderStyle": "black",
+      "backgroundColor": "white",
+      "list": [{
+            "pagePath": "pages/index/index",
+            "iconPath": "static/icon/home-0.png",
+            "selectedIconPath": "static/icon/home.png",
+            "text": "首页",
+            "visible": true
+         },
+         {
+            "pagePath": "pages/outbound/index",
+            "iconPath": "static/icon/outbound_0.png",
+            "selectedIconPath": "static/icon/outbound.png",
+            "text": "出库",
+            "visible": true
+         },
+         {
+            "pagePath": "pages/profile/profile",
+            "iconPath": "static/icon/user-0.png",
+            "selectedIconPath": "static/icon/user.png",
+            "text": "我的",
+            "visible": true
+         }
+      ]
+   }
+}

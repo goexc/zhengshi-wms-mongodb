@@ -1,0 +1,16 @@
+
+export type LoginRequest = {
+   name: string
+   password: string
+}
+
+export type LoginResponse = {
+   name: string
+   avatar: string
+   mobile: string
+   email: string
+   department_id: string
+   department_name: string
+   token: string
+   exp: number
+}

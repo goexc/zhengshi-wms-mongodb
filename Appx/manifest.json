@@ -1,0 +1,57 @@
+{
+    "name" : "wms",
+    "appid" : "__UNI__2B8E41C",
+    "description" : "",
+    "versionName" : "1.1.0",
+    "versionCode" : 110,
+    "uni-app-x" : {},
+    /* 快应用特有相关 */
+    "quickapp" : {},
+    /* 小程序特有相关 */
+    "mp-weixin" : {
+        "appid" : "",
+        "setting" : {
+            "urlCheck" : false
+        },
+        "usingComponents" : true
+    },
+    "mp-alipay" : {
+        "usingComponents" : true
+    },
+    "mp-baidu" : {
+        "usingComponents" : true
+    },
+    "mp-toutiao" : {
+        "usingComponents" : true
+    },
+    "uniStatistics" : {
+        "enable" : false
+    },
+    "vueVersion" : "3",
+    "app" : {
+        "distribute" : {
+            "icons" : {
+                "android" : {
+                    "hdpi" : "static/logo.png",
+                    "xhdpi" : "static/logo.png",
+                    "xxhdpi" : "static/logo.png",
+                    "xxxhdpi" : "static/logo.png"
+                }
+            },
+            "splashScreens" : {
+                "android" : {
+                    "xhdpi" : "static/splash_screen.png",
+                    "xxhdpi" : "static/splash_screen.png",
+                    "xxxhdpi" : "static/splash_screen.png"
+                },
+                "android12" : {
+                    "icon" : {
+                        "xhdpi" : "static/splash_screen.png",
+                        "xxhdpi" : "static/splash_screen.png",
+                        "xxxhdpi" : "static/splash_screen.png"
+                    }
+                }
+            }
+        }
+    }
+}

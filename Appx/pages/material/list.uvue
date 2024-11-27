@@ -1,0 +1,345 @@
+<template>
+	<!-- #ifdef APP -->
+	<scroll-view style="flex:1;background-color: #bce0f2;">
+	<!-- #endif -->
+		<view class="search">
+			<input :auto-focus="false" :adjust-position="false" inputmode="text" type="text" confirm-type="search"
+				@input="handleChange" placeholder="请填写物料型号" placeholder-class="placeholder"
+				class="search-input"></input>
+		</view>
+
+		<list-view :scroll-y="true">
+			<list-item v-for="(item, idx) in list" :key="idx">
+				<view class="flex-1 card">
+					<!-- 上 -->
+					<view class="material-top">
+						<!-- 左侧图片 -->
+						<view class="flex-1" style="justify-content: center;align-items: center;">
+							<image class="material-image" v-if="item.image!=''" :src="`${fileURL}${item.image}_148x148`"
+								mode="widthFix" :previewList="[`${fileURL}${item.image}`]" @tap="handleTap(item)"
+								@longpress="handleImageMenu(`${fileURL}${item.image}`)"></image>
+
+							<image class="material-image" v-else :src="material_default_image"></image>
+						</view>
+						<!-- 型号、尺寸 -->
+						<view class="flex-3">
+							<view class="flex justify-content-end">
+								<button type="primary" icon="morevert" size="mini" :plain="true"
+									@click="handleEdit(item.id)">编辑</button>
+							</view>
+							<text class="mb-2 font-20" :selectable="true" :bold="true">型号：{{ item.model }}</text>
+							<text class="mb-2 font-20" :selectable="true">名称：{{item.name}}</text>
+							<text class="mb-2 font-18" :selectable="true">尺寸：{{item.specification}}</text>
+							<text class="mb-2 font-18" :selectable="true">材质：{{item.material}}</text>
+							<text class="font-18 underline color-warning" :selectable="true">备注：{{item.remark}}</text>
+						</view>
+					</view>
+					<!-- 下 -->
+					<view class="material-down">
+						<view class="material-price" v-for="price in item.prices">
+							<text class="material-price-item">￥{{price.price}}</text>
+							<text class="material-price-since">{{dateFormat(price.since)}}</text>
+							<text class="material-price-customer">{{nameEncrypt(price.customer_name)}}</text>
+						</view>
+					</view>
+				</view>
+
+			</list-item>
+		</list-view>
+		<view class="bottom">
+		</view>
+
+		<!-- <modal v-if="preview" :model="material_model" :name="material_name">
+			<image class="preview-image" :src="materialImage"></image>
+			<template v-slot:foot>
+				<view style="flex: 1;">
+					<button @click="closePreview">关闭</button>
+				</view>
+				<view style="flex:1;">
+					<button type="primary" plain>保存图纸</button>
+				</view>
+			</template>
+		</modal> -->
+	<!-- #ifdef APP -->
+	</scroll-view>
+	<!-- #endif -->
+</template>
+
+<script>
+	import { getToken } from '@/store/auth'
+	import { Result } from '@/types/base'
+	import { getURL } from '@/utils/request.uts'
+	import { Material, MaterialPageRequest, MaterialPage } from '@/types/material'
+	import { fileURL, material_default_image } from '@/config/index.uts'
+	import { dateFormat } from '@/utils/time.uts'
+	import { nameEncrypt } from '@/utils/name_encrypt.uts'
+
+	export default {
+		data() {
+			return {
+				fileURL: fileURL,
+				material_default_image: material_default_image,
+				//分页参数
+				form: {
+					page: 1,
+					size: 15,
+					name: '',
+					category_id: '',
+					material: '', //材质
+					specification: '', //规格
+					model: '', //型号
+					surface_treatment: '', //表面处理
+					strength_grade: '', //强度等级
+				} as MaterialPageRequest,
+
+				list: [] as Material[],
+				isEnd: false,
+				// 定义 setTimeout 返回值
+				timerID: 0,
+				materialImage: '', //图纸链接
+				menus: ['下载图纸']
+			}
+		},
+		methods: {
+			dateFormat(timestamp : number) : string {
+				return dateFormat(timestamp)
+			},
+			nameEncrypt(name : string) : string {
+				return nameEncrypt(name)
+			},
+			//请求物料分页
+			materialsR() {
+				console.log('请求物料分页')
+				// uni.showToast({
+				// 	title: '列表加载中……',
+				// 	icon: 'loading'
+				// })
+				uni.request<Result<MaterialPage>>({
+					url: getURL('material'),
+					method: 'GET',
+					header: {
+						Authorization: getToken()
+					},
+					data: {
+						page: form.page,
+						size: form.size,
+						model: form.model,
+						name: form.name,
+						category_id: form.category_id,
+						material: form.material,
+						specification: form.specification,
+						surface_treatment: form.surface_treatment,
+						strength_grade: form.strength_grade,
+					},
+					success: (res) => {
+						let r = res.data
+						if (r == null) return
+						if (res.statusCode != 200) {
+							uni.showToast({
+								title: r.msg,
+								icon: 'error'
+							})
+							return
+						}
+
+						if (r.code != 200) {
+							uni.showToast({
+								title: r.msg,
+								icon: 'error'
+							})
+							return
+						}
+
+						if (form.page == 1) {
+							this.list = r.data?.list as Material[]
+						} else {
+							this.list.push(...(r.data?.list as Material[]))
+						}
+
+						if (r.data?.list?.length == form.size) {
+							this.form.page++
+							this.isEnd = false
+						} else {
+							this.isEnd = true
+							uni.showToast({
+								title: '到底了',
+								icon: 'none'
+							})
+						}
+					},
+					fail: (err) => {
+						uni.showToast({
+							title: err.errMsg,
+							icon: 'fail'
+						})
+					},
+					complete: () => {
+						// uni.hideLoading()
+					}
+				});
+			},
+
+			handleChange(e : UniInputEvent) {
+				timerID > 0 ? clearTimeout(timerID) : timerID = 0
+
+				// 启动 setTimeout 并更新 timerID
+				timerID = setTimeout(() => {
+					// 执行一次
+					this.form.page = 1
+					this.form.size = 20
+					this.form.model = e.detail.value
+					this.list = []
+					materialsR()
+					console.log('setTimeout', timerID);
+				}, 800)
+			},
+			handleTap(item : Material) {
+				this.materialImage = fileURL + item.image
+
+				uni.previewImage({
+					urls: [this.materialImage],
+					current: 0,
+					indicator: 'default',
+					loop: false, //是否循环播放
+				})
+			},
+			handleImageMenu(url : string) {
+				uni.showActionSheet({
+					title: '',
+					itemList: this.menus,
+					success: (e) => {//下载图纸
+						console.log('选择了' + e.tapIndex)
+						switch (this.menus[e.tapIndex as Number]) {
+							case '下载图纸':
+								//下载图片
+								uni.downloadFile({
+									url: url,
+									success: res => {
+										if (res.statusCode == 200) {
+											//下载完毕，保存图片到系统相册
+											uni.saveImageToPhotosAlbum({
+												filePath: res.tempFilePath,
+												success: () => {
+													uni.showToast({
+														title: '图纸保存成功'
+													})
+												},
+												fail: () => {
+													uni.showToast({
+														title: '图纸保存失败',
+														icon: 'none'
+													})
+												}
+											})
+										} else {
+											uni.showToast({
+												title: '图片下载失败(1)',
+												icon: 'none'
+											})
+										}
+									},
+									fail: () => {
+										uni.showToast({
+											title: '图片下载失败(2)',
+											icon: 'none'
+										})
+									}
+								})
+
+								break
+							default:
+								uni.showToast({
+									title: '未知选项',
+									icon: 'error'
+								})
+						}
+					},
+					fail: (e) => {
+						console.log('错误：' + e.errMsg)
+					}
+				})
+			},
+			handleEdit(material_id : string) {
+				console.log('编辑物料:' + material_id)
+				let url = `/pages/material/edit?id=${material_id}`
+				console.log('编辑物料url：'+url)
+				uni.navigateTo({
+					url: url
+				})
+			}
+		},
+
+		onLoad(option : OnLoadOptions) {
+			// this.form.model = option.has('model') ? option.get('model') as string : ''
+			this.form.model = option['model'] as string ?? ''
+			console.log('form.model:', this.form.model)
+			this.materialsR()
+		},
+
+		onReachBottom() {
+			this.materialsR()
+		}
+	}
+</script>
+
+<style>
+	.search {
+		padding: 10px;
+		background-color: white;
+	}
+
+	.search-input {
+		display: flex;
+		font-size: 24px;
+	}
+
+	.placeholder {
+		font-size: 24px;
+	}
+
+	.material-top {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-around;
+	}
+
+	.material-image {
+		height: 120px;
+		width: 80px;
+	}
+
+	.material-down {
+		margin-top: 20rpx;
+	}
+
+	.material-price {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-around;
+
+		margin-bottom: 4px;
+	}
+
+	.material-price-item {
+		margin: 0 20rpx;
+		color: red;
+		font-weight: bold;
+		font-size: 20px;
+	}
+
+	.material-price-since {
+		font-size: 20px;
+	}
+
+	.material-price-customer {
+		font-size: 20px;
+	}
+
+	.bottom {
+		height: 30rpx;
+	}
+
+	.preview-image {
+		height: 100%;
+	}
+</style>

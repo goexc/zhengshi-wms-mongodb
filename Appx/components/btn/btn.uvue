@@ -1,0 +1,70 @@
+<template>
+	<view class="btn" :class="{ 'btn-disabled':disabled }" :style="{ width:width,height:height,borderRadius:borderRadius }" :hover-class=" disabled ? '' : 'btn-hover' " @click="handleClick">
+      <text class="btn-text" :style="{ fontSize:fontSize }">
+         <slot></slot>
+      </text>
+   </view>
+</template>
+
+<script>
+   export default {
+      name:"btn",
+      emits: ['click'],
+		props: {
+			disabled: {
+				type: Boolean,
+				default: false
+			},
+			width:{
+				type: String,
+				default: "280rpx"
+			},
+			height:{
+				type: String,
+				default: "80rpx"
+			},
+			fontSize:{
+				type: String,
+				default: "15px"
+			},
+			borderRadius:{
+				type: String,
+				default: "5px"
+			},
+		},
+      methods: {
+         handleClick(){
+				if(this.disabled){
+					return
+				}
+				this.$emit("click")
+         }
+      }
+   }
+</script>
+
+<style>
+.btn{
+   border-radius: 5px;
+   align-items: center;
+   justify-content: center;
+   background-image: linear-gradient(to bottom right, #fc6672, #e47989);
+   width: 280rpx;
+   height: 80rpx;
+}
+
+.btn-hover{
+   background-image: linear-gradient(to bottom right, #fd6373, #fd6373);
+}
+
+.btn-text{
+   color: #fff;
+   font-weight: bold;
+   font-size: 15px;
+}
+.btn-disabled {
+	background-color: #d9d9d9;
+	background-image: linear-gradient(to bottom right,#d9d9d9,#d9d9d9);
+}
+
+</style>

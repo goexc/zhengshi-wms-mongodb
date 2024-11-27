@@ -1,0 +1,105 @@
+import { LoginResponse } from "@/types/auth"
+
+//用户状态管理
+export const authState = reactive<LoginResponse>({
+   'name': '',
+   'avatar': '',
+   'mobile': '',
+   'email': '',
+   'department_id': '',
+   'department_name': '',
+   'token': '',
+   'exp': 0
+} as LoginResponse)
+
+//是否已经登录
+export const loginState = ref(false)
+
+//初始化当前登录用户
+export async function initCurrentUser() {
+   //获取缓存中的用户信息
+   await getUserInfo()
+}
+
+//登录操作
+export function login(data : LoginResponse) {
+   //更新用户状态
+   updateAuthState(data)
+
+   //设置登录信息
+   uni.setStorageSync('auth', data)
+
+   //设置token
+   uni.setStorageSync('auth_token', data.token)
+}
+
+//更新用户状态
+function updateAuthState(data : LoginResponse) {
+   authState.name = data.name
+   authState.avatar = data.avatar
+   authState.mobile = data.mobile
+   authState.email = data.email
+   authState.department_id = data.department_id
+   authState.department_name = data.department_name
+   authState.token = data.token
+   authState.exp = data.exp
+   
+   console.log('token赋值：', data.token)
+
+   loginState.value = isLogin()
+}
+
+//判断登录状态
+export function isLogin() : boolean {
+   if (authState.token == '') {
+      console.log('token为空')
+      return false
+   }
+
+   if (authState.exp <= new Date().getTime() / 1000) {
+      console.log('token过期')
+      return false
+   }
+
+   return true
+}
+
+//获取当前用户token
+export function getToken() : string | null {
+   return uni.getStorageSync('auth_token') as string | null
+}
+
+//获取用户信息
+export async function getUserInfo() {
+   //从本地缓存中获取
+    uni.getStorage({
+      key: "auth",
+      success: (res) => {
+         if (typeof res.data !== "object") return
+         let u = JSON.parse<LoginResponse>(JSON.stringify(res.data))
+
+         if (u == null) {
+            //清除登录状态
+            logout()
+            //跳转到登录页
+            setTimeout(function () {
+               uni.navigateTo({
+                  url: '/pages/login/login'
+               })
+            }, 300)
+         } else {
+            updateAuthState(u)
+         }
+      }
+   })
+
+   return
+}
+
+//退出登录状态
+export async function logout() {
+    uni.removeStorageSync('auth')
+    uni.removeStorageSync('auth_token')
+
+   loginState.value = false
+}

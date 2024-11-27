@@ -1,0 +1,97 @@
+<template>
+	<view>
+		<view class="mask"></view>
+		<view class="modal">
+			<view class="modal-head" v-if="model!=''">
+				<view class="modal-title">
+					<text class="modal-title_text">{{model}}</text>
+				</view>
+			</view>
+			<view class="modal-head" v-if="name!=''">
+				<view class="modal-title">
+					<text class="modal-title_text">{{name}}</text>
+				</view>
+			</view>
+			<view class="modal-body" :style="{height: bodyHeight+'px'}">
+				<slot></slot>
+			</view>
+			<view class="modal-foot">
+				<slot name="foot">
+				</slot>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script>
+	export default {
+		name: "modal",
+		props: {
+			model: String,
+			name: String,
+		},
+		data() {
+			return {
+				bodyHeight: 0,
+			};
+		},
+		onLoad() {
+			console.log('screenHeight：', uni.getSystemInfoSync().screenHeight)
+			console.log('windowHeight：', uni.getSystemInfoSync().windowHeight)
+			console.log('statusBarHeight：', uni.getSystemInfoSync().statusBarHeight)
+
+			this.bodyHeight = uni.getSystemInfoSync().windowHeight - 120
+		}
+	}
+</script>
+
+<style>
+	.modal {
+		position: fixed;
+		top: 0;
+		right: 0;
+		bottom: 0;
+		left: 0;
+		z-index: 999;
+		box-sizing: border-box;
+	}
+
+	.mask {
+		position: fixed;
+		z-index: 999;
+		top: 0;
+		right: 0;
+		left: 0;
+		bottom: 0;
+		background: rgba(0, 0, 0, .5);
+	}
+
+	.modal-head {
+		height: 34px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.modal-title_text {
+		width: 100%;
+		height: 100%;
+		font-size: 24px;
+		color: white;
+	}
+
+	.modal-body {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+
+		background-color: red;
+	}
+
+	.modal-foot {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-around;
+		background-color: white;
+	}
+</style>

@@ -1,0 +1,33 @@
+export type SupplierPageRequest = {
+	page: number,
+	size: number,
+	// status: globalStatus.value,//当前Tab页状态
+	name: string,
+	code: string,
+	manager: string,
+	contact: string,
+	email: string,
+	level: number,
+}
+
+export type Supplier = {
+   id : string
+   type : string
+   name : string
+   code : string
+   image : string
+   legal_representative : string
+   unified_social_credit_identifier : string
+   address : string
+   contact : string
+   manager : string
+   level : number
+   email : string
+   remark : string
+   status : string
+}
+
+export type SupplierPage = {
+      total : number
+      list : Supplier[]
+}

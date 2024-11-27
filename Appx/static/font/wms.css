@@ -1,0 +1,12 @@
+@font-face {
+  font-family: "wms"; /* Project id 4276015 */
+  /* Color fonts */
+  src: 
+       url('/static/font/wms.ttf');
+}
+
+.wms {
+  font-family: "wms" !important;
+  font-size: 16px;
+  font-style: normal;
+}

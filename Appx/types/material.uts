@@ -1,0 +1,44 @@
+export type MaterialPageRequest = {
+   page : number
+   size : number
+   name : string
+   category_id : string
+   material : string
+   specification : string
+   model : string
+   surface_treatment : string
+   strength_grade : string
+}
+
+export type MaterialPage = {
+   total : number
+   list : Material[]
+}
+
+export type Material = {
+   id : string
+   image : string
+   category_id : string
+   category_name : string
+   name : string
+   material : string
+   specification : string
+   model : string
+   surface_treatment : string
+   strength_grade : string
+   quantity : number
+   unit : string
+   remark : string
+   prices : MaterialPrice[]|null
+   creator : string
+   creator_name : string
+   created_at : number
+   updated_at : number
+}
+
+export type MaterialPrice = {
+   price : number
+   since : number
+   customer_id : string
+   customer_name : string
+}

@@ -1,0 +1,207 @@
+<template>
+	<!-- <uv-list @scrolltolower="handleSuppliers"> -->
+	<scroll-view scroll-y="true" style="flex:1;background-color: #bce0f2;">
+		<list-view>
+			<list-item class="card" v-for="(supplier, index) in suppliers" :key="index">
+				<view class="flex-1">
+					<view class="flex justify-start my-2">
+						<text class="font-20 bold" :selectable="true">{{ index+1}}.{{supplier.name}}</text>
+					</view>
+					<view class="flex justify-end my-2">
+						<text class="border-1" :class="[statusType(supplier.status)]">{{supplier.status}}</text>
+					</view>
+					<view class="flex justify-content-start mb-1">
+						<text class="font-15">编号：</text>
+						<text  class="font-18 bold" :selectable="true">{{supplier.code}}</text>
+					</view>
+					<view class="flex justify-content-start mb-1">
+						<text class="font-15">统一社会信用代码：</text>
+						<text  class="font-18 bold" :selectable="true">{{supplier.unified_social_credit_identifier}}</text>
+					</view>
+					<view class="flex justify-content-start mb-1">
+						<text class="font-15">法定代表人：</text>
+						<text  class="font-18 bold" :selectable="true">{{supplier.legal_representative}}</text>
+					</view>
+					<view v-if="supplier.contact!=''" class="flex justify-content-start mb-1">
+						<text  class="font-15">负责人：</text>
+						<text class="font-18 bold" :selectable="true">{{supplier.manager}}({{supplier.contact}})</text>
+					</view>
+					<view v-else class="flex justify-content-start mb-1">
+						<text  class="font-15">负责人：</text>
+						<text  class="font-18 bold" :selectable="true">{{supplier.manager}}</text>
+					</view>
+					<view class="flex justify-content-start mb-1">
+						<text class="font-15" :selectable="true">地址：{{supplier.address}}</text>
+					</view>
+					<view class="flex justify-content-start mb-1">
+						<text  class="font-15">应收账款：￥</text>
+						<text class="font-18 bold color-error" :selectable="true">999.000</text>
+						<!-- TODO -->
+						<!-- <text class="danger underline" :text="`￥${supplier.receivable_balance.toFixed(3)}`" class="font-18"></text> -->
+					</view>
+					<view class="flex justify-content-end">
+						<button type="primary" :plain="true" @click="go(supplier)" class="font-18">查看流水</button>
+					</view>
+				</view>
+			</list-item>
+		</list-view>
+		<!-- <textoverlay :show="loading"/> -->
+		<view v-if="loading" class="flex justify-content-start">
+			<text></text>
+		</view>
+	</scroll-view>
+</template>
+
+<script>
+	import { getToken } from '@/store/auth';
+	import { Supplier, SupplierPage, SupplierPageRequest } from '@/types/supplier';
+	import { getURL } from '@/utils/request';
+	import { Result } from '@/types/base.uts';
+
+	export default {
+		data() {
+			return {
+				//表单
+				form: {
+					page: 1,
+					size: 10,
+					name: '',
+					code: '',
+					manager: '',
+					contact: '',
+					email: '',
+					level: 0,
+				} as SupplierPageRequest,
+				isEnd: false,
+				//供应商列表
+				suppliers: [] as Supplier[],
+				total: 0,
+				loading: false,
+			}
+		},
+		methods: {
+			//供应商列表
+			handleSuppliers() {
+				if (this.loading) {//有其他请求未结束
+					return
+				}
+
+				this.loading = true
+
+				this.loading = false
+				uni.request<Result<SupplierPage>>({
+					url: getURL('supplier'),
+					method: 'GET',
+					header: {
+						Authorization: getToken()
+					},
+					// data: this.form.value,
+					data: {
+						page: this.form.page,
+						size: this.form.size,
+					},
+					success: (res) => {
+						let r = res.data
+						if (r == null) return
+						if (res.statusCode != 200) {
+							uni.showToast({
+								title: r.msg,
+								icon: 'error'
+							})
+							return
+						}
+
+						if (r.code != 200) {
+							uni.showToast({
+								title: r.msg,
+								icon: 'error'
+							})
+							return
+						}
+
+						if (this.form.page == 1) {
+							this.suppliers = r.data?.list as Supplier[]
+						} else {
+							this.suppliers.push(...(r.data?.list as Supplier[]))
+						}
+
+						this.total = r.data?.total as number
+
+						if (r.data?.list?.length == this.form.size) {
+							this.form.page++
+							this.isEnd = false
+						} else {
+							this.isEnd = true
+							uni.showToast({
+								title: '到底了',
+								icon: 'none'
+							})
+						}
+					},
+					fail: (err) => {
+						console.log('fail:', err)
+						uni.showToast({
+							title: err.errMsg,
+							icon: 'fail'
+						})
+					},
+					complete: () => {
+						console.log('complete:')
+						uni.hideLoading()
+					}
+				});
+
+			},
+			//跳转
+			go(supplier : Supplier) {
+				console.log('跳转到供应商: ', supplier)
+				// console.log(new URLSearchParams(supplier).toString())
+				// let params = new URLSearchParams(supplier).toString()
+				// uni.navigateTo({
+				// 	url: '/pages/business_partner/supplier/transaction?'+Object.keys(supplier).map(key => `${key}=${supplier[key]}`).join('&')
+				// })
+			},
+			//供应商状态对应的样式
+			statusType(status : string) : string {
+				let res = ''
+				switch (status) {
+					case '审核中':
+						res = 'color-primary'
+						break
+					case '审核不通过':
+						res = 'color-warning'
+
+						break
+					case '活动':
+						res = 'color-success'
+
+						break
+					case '停用':
+						res = 'color-info'
+
+						break
+					case '黑名单':
+						res = 'color-error'
+
+						break
+					case '合同到期':
+						res = 'color-error'
+						break
+					default:
+
+				}
+				return res
+			}
+		},
+		mounted() {
+			this.handleSuppliers()
+		},
+		onReachBottom() {
+			this.handleSuppliers()
+		}
+	}
+</script>
+
+<style>
+
+</style>

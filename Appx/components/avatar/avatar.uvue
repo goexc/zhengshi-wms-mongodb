@@ -1,0 +1,66 @@
+<template>
+   <view class="avatar-box">
+      <image :src="url" mode="aspectFill" :fade-show="true" :style="{height: height,width: width}" @error="handleError"
+         @load="handleLoad">
+      </image>
+   </view>
+</template>
+
+<script>
+   export default {
+      name: "avatar",
+      props: {
+         src: {
+            type: String,
+            default: '',
+            required: true
+         },
+         width: {
+            type: String,
+            default: '75rpx',
+            required: true
+         },
+         height: {
+            type: String,
+            default: '75rpx',
+            required: true
+         },
+
+      },
+      data() {
+         return {
+         };
+      },
+      methods: {
+         //图片加载失败
+         handleError(e : UniImageErrorEvent) {
+            e.target?.setAttribute('src', '/static/default-avatar.png')
+         },
+         //加载完成之后
+         handleLoad() {
+			 console.log('加载完成后续操作……')
+         }
+      },
+      computed: {
+         url() : string {
+            return this.src == "" ? '/static/default-avatar.png' : this.src
+         }
+      }
+   }
+</script>
+
+<style>
+   .avatar-tip {
+      font-size: 7px;
+      position: absolute;
+      color: #a6a6a6;
+   }
+
+   .avatar-box {
+      border-radius: 50px;
+      background-color: #f2f2f2;
+      position: relative;
+      align-items: center;
+      justify-content: center;
+   }
+</style>

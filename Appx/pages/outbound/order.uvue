@@ -1,0 +1,528 @@
+<template>
+	<!-- #ifdef APP -->
+	<scroll-view style="flex:1;background-color: #bce0f2;">
+	<!-- #endif -->
+		<view class="search">
+			<fui-list-cell :highlight="false">
+				<view class="list-cell f-flex-center">
+					<text class="fui-text">客户：</text>
+					<view class="f-select f-flex-between" @tap="assetsTap">
+						<input placeholder="请选择" :value="assets" class="fui-input" :disabled="true" />
+						<view class="f-filter__icon" :class="{'fui-icon__ani':assetsShow}">
+							<fui-icon name="turningdown" :size="32"></fui-icon>
+						</view>
+					</view>
+				</view>
+			</fui-list-cell>
+			<fui-dropdown-list :menus="customers" ref="ddlAssets" @onclick="assetsItemClick" @close="assetsClose"
+				:height="materialListHeight">
+			</fui-dropdown-list>
+			<!-- <input :auto-focus="false" placeholder="请填写出库单号" :adjust-position="false"  background="white"
+				shape="square" confirm-type="search" type="text" :fixed="true" prefix="search" :icon-size="26"
+				@input="handleChange" :clearable="true"></input> -->
+			<fui-input :auto-focus="false" placeholder="请填写出库单号" :adjust-position="false" background="white"
+				shape="square" confirm-type="search" type="text" :fixed="true" prefix="search" :icon-size="26"
+				@input="handleChange" :clearable="true"></fui-input>
+		</view>
+		<view class="placeholder"></view>
+		<list-view :scroll-y="true">
+			<list-item v-for="(order,idx) in orders" :key="idx" class="card">
+				<view class="order">
+					<view class="mb-2">[{{idx+1}}]</view>
+					<view class="order-title">
+						<text class="order-company font-22 bold" v-if="order.customer_name!=''"
+							:bold="true">{{nameEncrypt(order.customer_name)}}</text>
+						<text class="order-company font-22" v-if="order.supplier_name!=''"
+							:bold="true">{{nameEncrypt(order.supplier_name)}}</text>
+						<text class="font-15 border-1" :class="[fontColor(order.status)]" style="border: 1px solid #ccc;">{{order.status}}</text>
+					</view>
+					<view class="flex-row justify-content-between mb-2">
+						<text class="font-18 bold" :bold="true">{{order.code}}</text>
+						<text class="font-18">{{dateFormat(order.receipt_time)}}</text>
+					</view>
+					<view class="order-info">
+						<text class="font-20 color-error bold">￥{{ order.total_amount }}</text>
+					</view>
+					<view class="order-material">
+						<button type="primary" icon="morevert" size="default" :plain="true"
+							@click="handleViewMaterials(order.code)">查看出库单物料</button>
+					</view>
+				</view>
+			</list-item>
+		</list-view>
+		<!-- 删除v-model会导致无法关闭drawer -->
+		<fui-drawer v-model:visible="show" direction="left" :radius="24" :maskClosable="false">
+			<scroll-view :scroll-y="true" :style="{ 'height':materialListHeight+'px' }">
+				<fui-text class="m-2" :text="`单号：${title}`" :size="36" type="primary" fontWeight="bold"></fui-text>
+				<fui-list-cell v-for="(material,index) in list" :key="index">
+					<view class="flex flex-column">
+						<view class="mb-1" @click="handleViewMaterial(material.model)">
+							<fui-text class="mb-1" :size="36" fontWeight="bold"
+								:text="`[${index+1}] ${material.model}`"></fui-text>
+							<fui-text class="mb-1" :size="36" type="info" fontWeight="bold"
+								:text="`${material.name}`"></fui-text>
+							<fui-text :size="36" fontWeight="bold" decoration="underline"
+								:text="`${material.specification}`"></fui-text>
+						</view>
+						<view class="flex justify-end">
+							<!-- <view class=""> -->
+							<fui-text :size="38" :text="`${material.quantity}${material.unit}`"
+								type="danger"></fui-text>
+							<fui-text :size="38" text="×" type="danger"></fui-text>
+							<fui-text :size="38" :text="`￥${material.price}`" type="danger"></fui-text>
+							<fui-text :size="38" text=" = " type="danger"></fui-text>
+							<fui-text :size="38" :text="`￥${(material.quantity * material.price).toFixed(3)}`"
+								type="danger"></fui-text>
+						</view>
+					</view>
+
+				</fui-list-cell>
+			</scroll-view>
+			<view class="align-center justify-center flex-1">
+				<fui-button type="warning" btn-size="medium" text="关闭物料列表" :bold="true"
+					@click="show=false"></fui-button>
+			</view>
+		</fui-drawer>
+
+	<!-- #ifdef APP -->
+	</scroll-view>
+	<!-- #endif -->
+</template>
+
+<script>
+	import { nameEncrypt } from "@/utils/name_encrypt";
+	import { dateFormat } from "@/utils/time";
+	import { getToken } from '@/store/auth';
+	import { OutboundOrder, OutboundOrderMaterial, OutboundOrderPage, OutboundOrderPageRequest } from '@/types/outbound';
+	import { getURL } from '@/utils/request';
+	import { Result } from '@/types/base';
+	import { CustomerPage, Customer } from "@/types/customer";
+
+	import { FuiDropdownMenuOptionParam } from "@/uni_modules/firstui-uvue/components/fui-types";
+
+	export default {
+		data() {
+			return {
+				//表单
+				form: initForm() as OutboundOrderPageRequest,
+				//出库单列表
+				orders: [] as OutboundOrder[],
+				total: 0,
+				isEnd: false,
+				show: false,
+				title: '',
+				current_code: '',//当前出库单编号
+				list: [] as OutboundOrderMaterial[],
+				// 定义 setTimeout 返回值
+				timerID: 0,
+				materialListHeight: 0,
+
+				//客户下拉菜单 START
+				customers: [] as FuiDropdownMenuOptionParam[],
+				assets: '',
+				assetsShow: false,
+				//客户下拉菜单 END
+			}
+		},
+		methods: {
+			initForm() : OutboundOrderPageRequest {
+				return {
+					page: 1,
+					size: 20,
+					type: '',
+					code: '',
+					supplier_id: '',
+					customer_id: '',
+					is_pack: -1,
+					is_weigh: -1,
+				} as OutboundOrderPageRequest
+			},
+			dateFormat(timestamp : number) : string {
+				return dateFormat(timestamp)
+			},
+			nameEncrypt(name : string) : string {
+				return nameEncrypt(name)
+			},
+			//客户列表
+			handleCustomers() {
+				uni.showToast({
+					title: '加载中……',
+					icon: 'loading',
+				})
+				uni.request<Result<CustomerPage>>({
+					url: getURL('customer/list'),
+					method: 'GET',
+					header: {
+						Authorization: getToken()
+					},
+					// data: form,
+					data: {
+
+					},
+					success: (res) => {
+						let r = res.data
+						if (r == null) return
+						if (res.statusCode != 200) {
+							uni.showToast({
+								title: r.msg,
+								icon: 'error'
+							})
+							return
+						}
+
+						if (r.code != 200) {
+							uni.showToast({
+								title: r.msg,
+								icon: 'error'
+							})
+							return
+						}
+
+						// let customers = <Customer[]>[]
+						this.customers = []
+
+						r.data?.list?.forEach((item : Customer) => {
+							this.customers.push({ text: item.name, value: item.id } as FuiDropdownMenuOptionParam)
+						})
+
+						console.log('客户列表：', this.customers)
+					},
+					fail: (err) => {
+						console.log('fail:', err)
+						uni.showToast({
+							title: err.errMsg,
+							icon: 'fail'
+						})
+					},
+					complete: () => {
+						console.log('complete:客户列表')
+						uni.hideLoading()
+					}
+				});
+			},
+			//出库单列表
+			handleOrders() {
+				uni.request<Result<OutboundOrderPage>>({
+					url: getURL('outbound/page'),
+					method: 'GET',
+					header: {
+						Authorization: getToken()
+					},
+					// data: form,
+					data: {
+						page: this.form.page,
+						size: this.form.size,
+						type: this.form.type,
+						code: this.form.code,
+						supplier_id: this.form.supplier_id,
+						customer_id: this.form.customer_id,
+						is_pack: this.form.is_pack,
+						is_weigh: this.form.is_weigh,
+					},
+					success: (res) => {
+						let r = res.data
+						if (r == null) return
+						if (res.statusCode != 200) {
+							uni.showToast({
+								title: r.msg,
+								icon: 'error'
+							})
+							return
+						}
+
+						if (r.code != 200) {
+							uni.showToast({
+								title: r.msg,
+								icon: 'error'
+							})
+							return
+						}
+
+						if (this.form.page == 1) {
+							this.orders = r.data?.list as OutboundOrder[]
+						} else {
+							this.orders.push(...(r.data?.list as OutboundOrder[]))
+						}
+
+						this.total = r.data?.total as number
+
+						if (r.data?.list?.length == this.form.size) {
+							this.form.page++
+							this.isEnd = false
+						} else {
+							isEnd = true
+							uni.showToast({
+								title: '到底了',
+								icon: 'none'
+							})
+						}
+					},
+					fail: (err) => {
+						console.log('fail:', err)
+						uni.showToast({
+							title: err.errMsg,
+							icon: 'fail'
+						})
+					},
+					complete: () => {
+						console.log('complete:')
+						uni.hideLoading()
+					}
+				});
+
+			},
+			//重置表单
+			reset() {
+				this.form = this.initForm()
+			},
+			handleChange(e : string) {
+				this.timerID > 0 ? clearTimeout(this.timerID) : this.timerID = 0
+
+				// 启动 setTimeout 并更新 timerID
+				this.timerID = setTimeout(() => {
+					// 执行一次
+					this.form.page = 1
+					this.form.size = 20
+					this.form.code = e
+					list = []
+					this.orders = []
+					this.handleOrders()
+					console.log('setTimeout', this.timerID);
+				}, 800)
+			},
+			//查看出库单物料
+			handleMaterials(order_code : string) {
+				uni.showToast({
+					title: '加载中……',
+					icon: 'loading',
+				})
+				uni.request<Result<OutboundOrderMaterial[]>>({
+					url: getURL('outbound/materials'),
+					method: 'GET',
+					header: {
+						Authorization: getToken()
+					},
+					// data: form,
+					data: {
+						order_code: order_code
+					},
+					success: (res) => {
+						let r = res.data
+						if (r == null) return
+						if (res.statusCode != 200) {
+							uni.showToast({
+								title: r.msg,
+								icon: 'error'
+							})
+							return
+						}
+
+						if (r.code != 200) {
+							uni.showToast({
+								title: r.msg,
+								icon: 'error'
+							})
+							return
+						}
+
+						this.list = r.data as OutboundOrderMaterial[]
+						this.title = order_code
+						this.show = true
+
+					},
+					fail: (err) => {
+						console.log('fail:', err)
+						uni.showToast({
+							title: err.errMsg,
+							icon: 'fail'
+						})
+					},
+					complete: () => {
+						console.log('complete:')
+						uni.hideLoading()
+					}
+				});
+			},
+			//查看出库单物料列表
+			handleViewMaterials(order_code : string) {
+				// console.log('出库单号：', order_code)
+				this.current_code = order_code
+				this.handleMaterials(order_code)
+			},
+			//查看物料规格
+			handleViewMaterial(model : string) {
+				if (model.length > 0) {
+					uni.navigateTo({
+						url: '/pages/material/list?model=' + `${model}`,
+					})
+				}
+			},
+			assetsTap() {
+				(this.$refs['ddlAssets'] as FuiDropdownListComponentPublicInstance).show()
+				this.assetsShow = true;
+			},
+			assetsItemClick(e : FuiDropdownMenuOptionParam) {
+				// console.log('选择客户：', e)
+				this.assets = e.text
+				this.assetsClose()
+
+				this.orders = []
+				this.form = this.initForm()
+				this.form.customer_id = e.value as string
+				this.handleOrders()
+			},
+			assetsClose() {
+				this.assetsShow = false;
+			},
+			//订单状态对应的样式
+			fontColor(status : string) : string {
+				let res = ''
+				switch (status) {
+					case '预发货':
+						res = 'color-primary'
+						break
+					case '待拣货':
+						res = 'color-primary'
+						break
+					case '已拣货':
+						res = 'color-error'
+						break
+					case '已打包':
+						res = 'color-error'
+						break
+					case '已称重':
+						res = 'color-error'
+						break
+					case '待出库':
+						res = 'color-error'
+						break
+					case '已出库':
+						res = 'color-warning'
+						break
+					case '已签收':
+						res = 'color-success'
+						break
+					default:
+
+				}
+				return res
+			}
+		},
+
+		onLoad(_ : OnLoadOptions) {
+			this.handleCustomers()
+			this.handleOrders()
+		},
+		onShow() {
+			console.log('screen高度：', uni.getSystemInfoSync().screenHeight)
+			console.log('statusBar高度：', uni.getSystemInfoSync().statusBarHeight)
+			console.log('window高度：', uni.getSystemInfoSync().windowHeight)
+			console.log('安全区高度：', uni.getSystemInfoSync().safeArea.height)
+			//screenHeight不包含手机底部导航栏高度，当手机设置隐藏导航栏时，screenHeight值会相应增加
+			this.materialListHeight = uni.getSystemInfoSync().screenHeight - uni.getSystemInfoSync().statusBarHeight - 110
+		},
+		onReachBottom() {
+			this.handleOrders()
+
+		}
+	}
+</script>
+
+<style>
+	.placeholder {
+		height: 260rpx;
+	}
+
+	.bg {
+		position: fixed;
+		top: 20%;
+		left: 20%;
+		right: 20%;
+		bottom: 20%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.search {
+		position: fixed;
+		background-color: bisque;
+		width: 100%;
+	}
+
+	.order {
+		display: flex;
+		flex-direction: column;
+		flex: 1;
+	}
+
+	.order-title {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+
+		margin-bottom: 20rpx;
+	}
+
+	.order-info {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.order-material {
+		display: flex;
+		flex-direction: row;
+		justify-content: flex-end;
+	}
+
+	/*   .f-flex-center {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+   }
+
+   .f-filter__icon {
+      flex-shrink: 0;
+      transition-property: transform;
+      transition-duration: .15s;
+      transition-timing-function: linear;
+      transform: rotate(0deg);
+   }
+
+   .fui-icon__ani {
+      transform: rotate(180deg);
+   }
+
+   .list-cell {
+      flex: 1;
+   }
+
+   .f-select {
+      flex: 1;
+      height: 80rpx;
+      padding: 32rpx;
+      position: relative;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+   }
+
+   .fui-input {
+      font-size: 32rpx;
+      flex: 1;
+      padding-right: 8rpx;
+      pointer-events: none;
+   }
+
+   .f-select {
+      border: 0.5px solid #eee;
+   }
+
+   .f-flex-between {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+   } */
+</style>

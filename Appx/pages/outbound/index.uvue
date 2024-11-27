@@ -1,0 +1,72 @@
+<template>
+   <scroll-view>
+      <view class="content">
+         <view class="feature" v-for="(item,idx) in features" :key="idx" @click="clickGrid(item)">
+            <image class="feature-image" :src="item.icon" mode="aspectFill"></image>
+            <text>{{item.title}}</text>
+         </view>
+      </view>
+   </scroll-view>
+
+</template>
+
+<script>
+   import { Feature } from '@/types/feature'
+   export default {
+      data() {
+         return {
+            //功能列表
+            features: [
+               {
+                  title: '出库单',
+                  icon: '/static/icon/outbound_order.png',
+                  page: '/pages/outbound/order'
+               },
+               {
+                  title: '出库报表',
+                  icon: '/static/icon/statistics.png',
+                  page: '/pages/outbound/report'
+               },
+            ] as Feature[]
+
+         }
+      },
+      onLoad() {
+
+      },
+      methods: {
+         clickGrid(item : Feature) {
+            uni.navigateTo({
+               url: item.page
+            })
+         }
+      },
+   }
+</script>
+
+<style>
+   .content {
+      display: flex;
+      flex-direction: row !important;
+      align-items: center;
+      justify-content: flex-start;
+      flex-wrap: wrap;
+
+      padding: 100rpx 0;
+   }
+
+   .feature {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+
+      width: 375rpx;
+      height: 250rpx;
+      padding: 20rpx 0;
+   }
+
+   .feature-image {
+      width: 200rpx;
+      height: 200rpx;
+   }
+</style>

@@ -1,0 +1,70 @@
+<template>
+	<view class="input-box">
+		<input :auto-focus="autoFocus" :style="{ 'font-size':fontSize }" :value="modelValue" :type="type" :placeholder="placeholder" placeholder-style="font-weight:bold;color:#cbcbcb;" class="x-input" :maxlength="maxlength" :confirm-type="confirmType" @input="handleInput" @confirm="handleConfirm"/>
+	</view>
+</template>
+
+<script>
+	export default {
+		name:"x-input",
+		emits:["update:modelValue","confirm","click"],
+		props: {
+			autoFocus: {
+				type: Boolean,
+				default: false
+			},
+			fontSize:{
+				type:String,
+				default:"18px"
+			},
+			type:{
+				type:String,
+				default:"text"
+			},
+			placeholder:{
+				type:String,
+				default:""
+			},
+			maxlength:{
+				type:Number,
+				default:140
+			},
+			confirmType:{
+				type:String,
+				default:"done"
+			},
+			modelValue:{
+				type:String,
+				default:""
+			},
+		},
+		data() {
+			return {
+				
+			};
+		},
+		methods: {
+			handleInput(event: UniInputEvent) {
+				this.$emit("update:modelValue",event.detail.value)
+			},
+			handleConfirm(event: UniInputConfirmEvent){
+				this.$emit("confirm",event)
+			}
+		},
+	}
+</script>
+
+<style>
+/* 输入框 */
+.input-box {
+	border-bottom: 1rpx solid #e7e7e7;
+	flex-direction: row;
+	align-items: center;
+	margin-top: 120rpx;
+	height: 112rpx;
+}
+.x-input {
+	height: 70rpx;
+	width: 508rpx;
+}
+</style>

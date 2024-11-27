@@ -1,0 +1,39 @@
+<template>
+   <statusbar></statusbar>
+   <view class="navbar">
+      <view class="navbar-icon" @click="back">
+         <text class="wms">{{'\ue655'}}</text>
+      </view>
+   </view>
+</template>
+
+<script>
+   export default {
+      name:"navbar",
+      data() {
+         return {
+            
+         };
+      },
+      methods: {
+         back() {
+            uni.navigateBack({ delta: 1 })
+         },
+         
+      }
+   }
+</script>
+
+<style>
+   .navbar {
+      height: 45px;
+   }
+
+   .navbar-icon {
+      width: 45px;
+      height: 45px;
+      justify-content: center;
+      align-items: center;
+   }
+
+</style>

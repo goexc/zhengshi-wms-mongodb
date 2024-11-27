@@ -1,0 +1,6 @@
+import { baseURL } from "@/config";
+
+//获取完整请求地址
+export function getURL(url : string) : string {
+   return baseURL + url
+}

@@ -1,0 +1,81 @@
+export type OutboundOrderPageRequest = {
+   page : number,
+   size : number,
+   type : string,
+   code : string,
+   supplier_id : string,
+   customer_id : string,
+   is_pack : number,
+   is_weigh : number,
+}
+
+
+export type OutboundOrderMaterial = {
+   id : string
+   order_code : string//物料编号
+   material_id : string//物料id
+   index : number//物料顺序
+   name : string//物料名称
+   model : string//型号
+   specification : string//规格
+   price : number//物料单价
+   quantity : number//出库数量
+   weight : number //重量
+   unit : string //计量单位
+}
+
+export type OutboundOrder = {
+   id : string
+   code : string//出库单号
+   status : string//出库单状态
+   is_pack : number//是否打包
+   is_weigh : number//是否称重
+   type : string//出库单类型
+   supplier_id : string//供应商
+   supplier_name : string//供应商名称
+   customer_id : string//客户
+   customer_name : string//客户名称
+   carrier_id : string//承运商
+   carrier_name : string//承运商名称
+   carrier_cost : number//运费
+   other_cost : number//其他费用
+   confirm_time : number//出库单确认时间
+   picking_time : number//拣货时间
+   packing_time : number//打包时间
+   weighing_time : number//称重时间
+   departure_time : number//出库时间
+   receipt_time : number//签收时间
+   total_amount : number//总金额
+   annex : string[]//附件
+   remark : string//收据
+   materials : OutboundOrderMaterial[]//出库单物料
+}
+
+export type OutboundOrderPage = {
+   total : number
+   list : OutboundOrder[]
+}
+
+//出库单汇总
+export type OutboundSummaryRequest = {
+   customer_id : string
+   start_date : number
+   end_date : number
+}
+
+export type OutboundOrderRecord = {
+   code : string
+   departure_date : number
+   receipt_date : number
+   id : string
+   order_code : string
+   material_id : string
+   index : number
+   name : string
+   model : string
+   specification : string
+   price : number
+   quantity : number
+   weight : number
+   unit : string
+}

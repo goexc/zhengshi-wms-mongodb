@@ -1,0 +1,45 @@
+//时间格式
+// export const timeFormat = (timestamp : number) : string => {
+//    // return dayjs.unix(timestamp).format('YYYY-MM-DD HH:mm:ss')
+//    if (timestamp <= 0) {
+//       return '-'
+//    }
+//    return dayjs(`${timestamp}`, true).format('YYYY-MM-DD HH:mm:ss')
+// }
+
+// //日期格式
+// export const dateFormat = (timestamp : number) : string => {
+//    // return dayjs.unix(timestamp).format('YYYY-MM-DD HH:mm:ss')
+//    if (timestamp <= 0) {
+//       return '-'
+//    }
+//    return dayjs(`${timestamp}`, true).format('YYYY-MM-DD')
+// }
+
+//时间格式
+export const timeFormat = (timestamp : number) : string => {
+   const date = new Date(timestamp * 1000); // 将秒级时间戳转换为毫秒级时间戳
+   const year = date.getFullYear().toString(); // 获取年份
+   const month = (date.getMonth() + 1).toString().padStart(2, '0'); // 获取月份，并补零
+   const day = date.getDate().toString().padStart(2, '0'); // 获取日期，并补零
+   const hours = date.getHours().toString().padStart(2, '0'); // 获取小时，并补零
+   const minutes = date.getMinutes().toString().padStart(2, '0'); // 获取分钟，并补零
+   const seconds = date.getSeconds().toString().padStart(2, '0'); // 获取秒，并补零
+
+   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
+//日期格式
+export const dateFormat = (timestamp : number) : string => {
+   const date = new Date(timestamp * 1000); // 将秒级时间戳转换为毫秒级时间戳
+   const year = date.getFullYear().toString(); // 获取年份
+   const month = (date.getMonth() + 1).toString().padStart(2, '0'); // 获取月份，并补零
+   const day = date.getDate().toString().padStart(2, '0'); // 获取日期，并补零
+
+   return `${year}-${month}-${day}`;
+}
+
+//日期转时间戳
+export const dateTimestamp=(date:string):number =>{
+   return new Date(date).getTime()/1000
+}

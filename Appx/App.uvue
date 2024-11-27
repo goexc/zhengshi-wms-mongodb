@@ -1,0 +1,52 @@
+<script lang="uts">
+	
+   import { isLogin, initCurrentUser } from '@/store/auth.uts'
+   let firstBackTime = 0
+   export default {
+      onLaunch:  function () {
+         
+      },
+      onShow:   function () {
+         console.log('App Show')
+          initCurrentUser().then(()=>{
+             if (!isLogin()) {
+                console.log('登录状态丢失')
+                uni.navigateTo({
+                   url: '/pages/login/login',
+                })
+             }
+          })
+         
+      },
+      onHide: function () {
+         console.log('App Hide')
+      },
+      // #ifdef APP-ANDROID
+      onLastPageBackPress: function () {
+         console.log('App LastPageBackPress')
+         if (firstBackTime == 0) {
+            uni.showToast({
+               title: '再按一次退出应用',
+               position: 'bottom',
+            })
+            firstBackTime = Date.now()
+            setTimeout(() => {
+               firstBackTime = 0
+            }, 2000)
+         } else if (Date.now() - firstBackTime < 2000) {
+            firstBackTime = Date.now()
+            uni.exit()
+         }
+      },
+      // #endif
+      onExit: function () {
+         console.log('App Exit')
+      },
+   }
+</script>
+
+<style>
+   @import "@/static/css/free.css";
+   @import "@/static/css/common.css";
+   @import "@/static/font/wms.css";
+</style>
