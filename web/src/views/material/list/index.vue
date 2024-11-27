@@ -7,6 +7,7 @@ import {reqMaterials, reqRemoveMaterial, reqRemoveMaterialPrice} from "@/api/mat
 import {Sizes, Types} from "@/utils/enum.ts";
 import {DateFormat, TimeFormat} from "@/utils/time.ts";
 import Item from "./components/Item.vue";
+import {nameEncrypt} from "../../../utils/name_encrypt.ts";
 
 //图片域名
 const oss_domain = ref<string>(import.meta.env.VITE_OSS_DOMAIN as string)
@@ -162,8 +163,8 @@ onMounted(async () => {
           :inline="true"
           style="display: flex; flex-wrap: wrap;"
           :model="form"
-          label-width="80px"
-          size="large"
+          label-width="70px"
+          size="default"
       >
         <MaterialCategoryListItem
           :form="form"
@@ -174,11 +175,11 @@ onMounted(async () => {
         <el-form-item label="型号" prop="model">
           <el-input v-model.trim="form.model" clearable placeholder="请填写型号"/>
         </el-form-item>
-        <el-form-item label="材质" prop="material">
-          <el-input v-model.trim="form.material" clearable placeholder="请填写材质"/>
-        </el-form-item>
         <el-form-item label="规格" prop="specification">
           <el-input v-model.trim="form.specification" clearable placeholder="请填写规格"/>
+        </el-form-item>
+        <el-form-item label="材质" prop="material">
+          <el-input v-model.trim="form.material" clearable placeholder="请填写材质"/>
         </el-form-item>
         <el-form-item label="表面处理" prop="surface_treatment">
           <el-input v-model.trim="form.surface_treatment" clearable placeholder="请选择表面处理"/>
@@ -187,12 +188,12 @@ onMounted(async () => {
           <el-input v-model.trim="form.strength_grade" clearable placeholder="请选择强度等级"/>
         </el-form-item>
 <!--        <el-form-item label="物料状态" prop="status">
-          <el-select v-model.trim="form.status" clearable placeholder="请选择物料状态">
+          <el-select filterable v-model.trim="form.status" clearable placeholder="请选择物料状态">
             <el-option v-for="(item,idx) in ['启用', '停用']" :key="idx" :label="`${idx+1}.${item}`"
                        :value="item"></el-option>
           </el-select>
         </el-form-item>-->
-        <el-form-item label=" ">
+        <el-form-item label="">
           <el-button type="primary" plain @click="getMaterials" icon="Search">查询</el-button>
           <el-button plain @click="reset" icon="RefreshRight">重置</el-button>
         </el-form-item>
@@ -224,11 +225,17 @@ onMounted(async () => {
           stripe
           :data="materials"
       >
-        <el-table-column label="物料名称" prop="name" fixed min-width="180px">
+        <el-table-column label="型号" prop="model" min-width="180px">
           <template #default="{row}">
-            <el-text type="primary" size="default" tag="b" truncated>{{row.name}}</el-text>
+            <el-text size="default" tag="b" truncated>{{row.model}}</el-text>
           </template>
         </el-table-column>
+        <el-table-column label="物料名称" prop="name" min-width="180px">
+          <template #default="{row}">
+            <el-text type="primary" size="default" truncated>{{row.name}}</el-text>
+          </template>
+        </el-table-column>
+        <el-table-column label="规格" prop="specification" width="260px"></el-table-column>
         <el-table-column label="物料图片" width="150px" align="center">
           <template #default="{row}">
             <el-image
@@ -251,38 +258,36 @@ onMounted(async () => {
             />
           </template>
         </el-table-column>
-        <el-table-column label="型号" prop="model" min-width="180px"></el-table-column>
-        <el-table-column label="分类" prop="category_name" min-width="100px"></el-table-column>
-        <el-table-column label="材质" prop="material" min-width="100px"></el-table-column>
-        <el-table-column label="规格" prop="specification" min-width="100px"></el-table-column>
-        <el-table-column label="表面处理" prop="surface_treatment" min-width="100px"></el-table-column>
-        <el-table-column label="强度等级" prop="strength_grade" min-width="100px"></el-table-column>
-        <el-table-column label="安全库存" prop="quantity" min-width="100px"></el-table-column>
-        <el-table-column label="计量单位" prop="unit" min-width="100px"></el-table-column>
-        <el-table-column label="单价" prop="price" width="320px">
+        <el-table-column label="单价" prop="price" width="350px">
           <template #default="{row}">
             <el-popover placement="left" width="220" v-for="(one, idx) in row.prices" :key="idx">
               <template #reference>
                 <el-tag type="danger" closable
                         @close="removeMaterialPrice(row, one.customer_id, one.price)"
-                >￥{{ one.price }} ({{one.customer_name}}) {{DateFormat(one.since)}}</el-tag>
+                >￥{{ one.price }} ({{nameEncrypt(one.customer_name)}}) {{DateFormat(one.since)}}</el-tag>
               </template>
               定价时间：{{DateFormat(one.since)}}
             </el-popover>
           </template>
         </el-table-column>
+        <el-table-column label="分类" prop="category_name" width="100px" align="center"></el-table-column>
+        <el-table-column label="材质" prop="material" min-width="100px"></el-table-column>
+        <el-table-column label="表面处理" prop="surface_treatment" min-width="100px"></el-table-column>
+        <el-table-column label="强度等级" prop="strength_grade" min-width="100px"></el-table-column>
+        <el-table-column label="安全库存" prop="quantity" min-width="100px"></el-table-column>
+        <el-table-column label="计量单位" prop="unit" min-width="100px"></el-table-column>
         <el-table-column label="备注" prop="remark" min-width="100px"></el-table-column>
-        <el-table-column label="创建人" prop="creator_name" width="100px">
+        <el-table-column label="创建人" prop="creator_name" width="120px">
           <template #default="{row}">
             {{ row.creator_name }}
           </template>
         </el-table-column>
-        <el-table-column label="创建时间" prop="created_at" width="180px">
+        <el-table-column label="创建时间" prop="created_at" width="180px" align="center">
           <template #default="{row}">
             {{ TimeFormat(row.created_at) }}
           </template>
         </el-table-column>
-        <el-table-column label="修改时间" prop="updated_at" width="180px">
+        <el-table-column label="修改时间" prop="updated_at" width="180px" align="center">
           <template #default="{row}">
             {{ TimeFormat(row.updated_at) }}
           </template>

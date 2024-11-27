@@ -10,7 +10,7 @@ import {HOME_URL} from "@/config";
 let loading = ref<boolean>(false)
 
 //表单数据
-let loginForm = reactive({name: '', password: ''})
+let loginForm = reactive({mobile: '', password: ''})
 
 //引入用户相关的小仓库
 let userStore = useUserStore()
@@ -23,9 +23,9 @@ let route = useRoute()
 const formRef = ref<FormInstance>()
 //校验规则
 const rules = reactive<FormRules>({
-  name: [
-    { required: true, message: '请填写用户名', trigger: ['blur', 'change'] },
-    { min: 2, max: 21, message: '用户名应为 2 ~ 21 个字符', trigger: ['blur', 'change'] },
+  mobile: [
+    { required: true, message: '请填写手机号码', trigger: ['blur', 'change'] },
+    { len: 11, message: '手机号码格式错误', trigger: ['blur', 'change'] },
   ],
   password: [
     { required: true, type:"string", message: '请填写密码', trigger: ['blur', 'change'] },
@@ -122,8 +122,8 @@ onMounted(()=>{
         >
           <h1>你好</h1>
           <h2>欢迎来到 正时WMS</h2>
-          <el-form-item prop="name">
-            <el-input prefix-icon="User" v-model.trim="loginForm.name" placeholder="请填写用户名"></el-input>
+          <el-form-item prop="mobile">
+            <el-input prefix-icon="User" v-model.trim="loginForm.mobile" placeholder="请填写手机号码"></el-input>
           </el-form-item>
           <el-form-item prop="password">
             <el-input prefix-icon="Lock" :show-password="true" v-model.trim="loginForm.password" placeholder="请填写密码"></el-input>

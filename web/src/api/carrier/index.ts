@@ -41,3 +41,5 @@ export const reqAddOrUpdateCarrier = (data: CarrierRequest) => {
 //修改承运商状态[包括删除]
 export const reqChangeCarrierStatus = (data: CarrierStatusRequest) =>
   request.patch<any, baseResponse>(API.CARRIER_STATUS_URL, data);
+
+

@@ -225,7 +225,7 @@ const submit = async () => {
       ></el-image>
     </el-form-item>
     <el-form-item label="货架类型" prop="type">
-      <el-select v-model.trim="form.type" clearable placeholder="请选择货架类型">
+      <el-select filterable v-model.trim="form.type" clearable placeholder="请选择货架类型">
         <el-option v-for="(item,idx) in RackTypes" :key="idx" :label="`${idx+1}.${item}`"
                    :value="item"></el-option>
       </el-select>
@@ -237,7 +237,7 @@ const submit = async () => {
       <el-input v-model.trim="form.code" clearable/>
     </el-form-item>
 <!--    <el-form-item label="货架状态" prop="status">-->
-<!--      <el-select v-model.trim="form.status" clearable placeholder="请选择货架状态">-->
+<!--      <el-select filterable v-model.trim="form.status" clearable placeholder="请选择货架状态">-->
 <!--        <el-option v-for="(item,idx) in ZoneStatus" :key="idx" :label="`${idx+1}.${item}`" :value="item"></el-option>-->
 <!--      </el-select>-->
 <!--    </el-form-item>-->

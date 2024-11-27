@@ -81,6 +81,7 @@ const recordForm = ref<CustomerTransactionAddRequest>({
   time: 0,
   type: '回款',
   amount: 0,
+  remark: '',
   annex: [],
 })
 const recordFormRef = ref()
@@ -102,6 +103,9 @@ const rules = reactive<FormRules>({
   amount: [
     {required: true, message: '必填', trigger: ['blur', 'change']},
     {type: "number", min: 0.001, message: '请填写交易金额', trigger: ['blur', 'change']},
+  ],
+  remark: [
+    {required: true, message: '必填', trigger: ['blur', 'change']},
   ]
 })
 
@@ -130,7 +134,6 @@ const handleAdd = async () => {
   if (!valid) {
     return
   }
-  console.log('表单校验:', valid)
 
   loading.value = true
   let res = await reqAddCustomerTransaction(recordForm.value)
@@ -201,6 +204,23 @@ onMounted(() => {
         <el-text size="default" tag="b">￥{{ row.amount.toFixed(4) }}</el-text>
       </template>
     </el-table-column>
+    <el-table-column label="备注" prop="remark"/>
+    <el-table-column label="附件">
+      <template #default="{row}">
+        <el-image
+            class="m-t-1 m-x-1"
+            v-if="!!row.annex&&row.annex.length>0"
+            v-for="($annex,$idx) in row.annex.split(',')"
+            :key="$idx"
+            :src="`${ oss_domain }${$annex}_296x148`"
+            :infinite="false"
+            :hide-on-click-modal="true"
+            :preview-teleported="true"
+            :preview-src-list="row.annex.split(',').map((one:string)=>oss_domain+one+'_1024x1024')"
+            style="width: 296px;height: 148px;"
+        ></el-image>
+      </template>
+    </el-table-column>
   </el-table>
   <!--   分页   -->
   <el-pagination
@@ -265,6 +285,12 @@ onMounted(() => {
           prop="amount"
       >
         <el-input size="default" v-model.number="recordForm.amount" placeholder="请填写交易金额" clearable/>
+      </el-form-item>
+      <el-form-item
+          label="备注"
+          prop="remark"
+      >
+        <el-input size="default" v-model.number="recordForm.remark" placeholder="请填写备注" clearable/>
       </el-form-item>
       <el-form-item
           label="附件"

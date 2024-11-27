@@ -85,7 +85,7 @@ onMounted(async ()=>{
     size="default"
   >
     <el-form-item label="名称" prop="name">
-      <el-input v-model="form.name" clearable placeholder="请填写图片名称"/>
+      <el-input v-model.trim="form.name" clearable placeholder="请填写图片名称"/>
     </el-form-item>
     <el-form-item label="类型">
       <el-button-group>

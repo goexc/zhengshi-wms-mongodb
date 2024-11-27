@@ -45,7 +45,7 @@ onMounted(() => {
 
 <template>
   <el-form-item label="供应商" prop="supplier_id">
-    <el-select v-model.trim="form.supplier_id" autocomplete="off" clearable>
+    <el-select filterable v-model.trim="form.supplier_id" autocomplete="off" clearable>
       <el-option v-for="(one,idx) in suppliers"
                  :label="`${suppliersForm.size * (suppliersForm.page-1) + idx+1}. ${one.name}`"
                  :value="one.id" :key="idx"/>

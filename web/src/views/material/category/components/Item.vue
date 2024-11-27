@@ -129,7 +129,7 @@ const submit = async () => {
       <el-input v-model.number="form.sort_id" clearable/>
     </el-form-item>
     <el-form-item label="状态" prop="status">
-      <el-select
+      <el-select filterable
           v-model.trim="form.status"
           clearable
         >

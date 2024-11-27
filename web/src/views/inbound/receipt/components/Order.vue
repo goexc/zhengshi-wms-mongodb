@@ -95,11 +95,6 @@ let reset = async () => {
   await getMaterials()
 }
 
-//物料是否可选
-let selectable = (row:any, rowIndex:any) => {
-  console.log('rowIndex:',rowIndex)
-  return !inboundMaterials.value.some(item => item.id === row.id);
-}
 
 //添加物料
 let addMaterial = async () => {
@@ -108,46 +103,55 @@ let addMaterial = async () => {
   visible.value = true
 }
 
-//选择物料
-let selectedMaterials = ref<Material[]>([])
-let handleSelectionChange = (val: Material[]) => {
-  selectedMaterials.value = val
+
+//入库单物料列表重新排序
+let resortMaterialId = async () => {
+  inboundMaterials.value.forEach((item, idx) => {
+    item.index = idx + 1
+  })
 }
 
-//确认物料
-let confirmMaterials = () => {
+//向入库单添加物料
+let pushMaterial = async (row: InboundMaterial) => {
   let index: number = 0
   if (!!inboundMaterials.value && inboundMaterials.value.length > 0) {
     index = inboundMaterials.value[inboundMaterials.value.length - 1].index
   }
-  selectedMaterials.value.forEach((item) => {
-    //检测是否已存在该物料
-    if(inboundMaterials.value.find(one=>one.id===item.id)){
-      console.log('物料已存在：', item.name, item.model)
-      return
-    }
 
-    inboundMaterials.value.push({
-      index: ++index,
-      id: item.id,
-      name: item.name,
-      model: item.model,
-      price: 0,
-      estimated_quantity: 0,
-      actual_quantity: 0,
-      unit: item.unit,
-      status: '',
-      position: [],
-      // warehouse_id: '',
-      // warehouse_zone_id: '',
-      // warehouse_rack_id: '',
-      // warehouse_bin_id: '',
-    })
+  //向入库单中添加选择的物料
+  //忽略已存在的物料
+  if (inboundMaterials.value.find(one => one.id === row.id)) {
+    // console.log('物料已存在：', item.name, item.model)
+    return
+  }
+
+  inboundMaterials.value.push({
+    index: ++index,
+    id: row.id,
+    name: row.name,
+    model: row.model,
+    price: 0,
+    estimated_quantity: 0,
+    actual_quantity: 0,
+    unit: row.unit,
+    status: '',
+    position: [],
+    // warehouse_id: '',
+    // warehouse_zone_id: '',
+    // warehouse_rack_id: '',
+    // warehouse_bin_id: '',
   })
-
-  // visible.value = false
+  // })
 }
 
+//从入库单删除物料
+let popMaterial = async (row: InboundMaterial) => {
+  //从入库单中删除未选择的物料
+  inboundMaterials.value = inboundMaterials.value.filter(item => row.id !== item.id)
+
+  //物料列表重新排序
+  await resortMaterialId()
+}
 //查询物料价格列表
 let prices = ref<MaterialPrice[]>([])
 let getPrices = async (id: string) => {
@@ -171,7 +175,7 @@ let computeTotalAmount = () => {
 }
 
 //删除物料价格
-let removeMaterialPrice = async (id: string, customer_id:string, price: number) => {
+let removeMaterialPrice = async (id: string, customer_id: string, price: number) => {
   let res = await reqRemoveMaterialPrice(id, customer_id, price)
   if (res.code === 200) {
     ElMessage.success(res.msg)
@@ -187,7 +191,7 @@ const cancel = () => {
   emit('cancel')
 }
 
-let validTotalAmount = (rule:any, value:any, callback:any) => {
+let validTotalAmount = (rule: any, value: any, callback: any) => {
   console.log('rule:', rule)
   if (value >= 0) {
     callback(); //通过验证
@@ -242,7 +246,7 @@ onMounted(async () => {
   }
 
   //1.接收入库单物料列表
-  inboundMaterials.value = JSON.parse(JSON.stringify(props.form.materials.sort((a:InboundMaterial, b:InboundMaterial) => {
+  inboundMaterials.value = JSON.parse(JSON.stringify(props.form.materials.sort((a: InboundMaterial, b: InboundMaterial) => {
     // 根据需要的排序逻辑进行比较
     return a.index - b.index
   })))
@@ -340,7 +344,6 @@ onMounted(async () => {
         {{ row.unit }}
       </template>
     </el-table-column>
-
     <el-table-column label="入库价" prop="price">
       <template #default="{row}">
         <el-popover
@@ -387,7 +390,7 @@ onMounted(async () => {
     </el-table-column>
     <el-table-column label="操作">
       <template #default="{row, column, $index}">
-        <el-text :hidden="true">{{row}}{{column}}</el-text>
+        <el-text :hidden="true">{{ row }}{{ column }}</el-text>
         <el-text
             type="danger"
             size="small"
@@ -441,6 +444,7 @@ onMounted(async () => {
       width="1400"
       draggable
       :close-on-click-modal="false"
+      top="0vh"
   >
     <el-form
         inline
@@ -476,11 +480,18 @@ onMounted(async () => {
         class="table"
         border
         stripe
+        size="default"
         height="640"
         :data="materials"
-        @selection-change="handleSelectionChange"
     >
-      <el-table-column type="selection" fixed :selectable="selectable"/>
+      <el-table-column label="操作" fixed align="center">
+        <template #default="{row}">
+          <el-link v-if="!inboundMaterials.map(item=>item.id).includes(row.id)" type="primary" icon="Check"
+                   @click="pushMaterial(row)">选择
+          </el-link>
+          <el-link v-else type="danger" icon="Delete" @click="popMaterial(row)">剔除</el-link>
+        </template>
+      </el-table-column>
       <el-table-column label="物料名称" prop="name" fixed min-width="180px">
         <template #default="{row}">
           <el-text type="primary" size="default" tag="b" truncated>{{ row.name }}</el-text>
@@ -534,19 +545,19 @@ onMounted(async () => {
         :total="total"
     ></el-pagination>
     <template #footer>
-      <el-button
-          size="default"
-          plain
-          @click="visible=false"
-      >取消
-      </el-button>
-      <el-button
-          size="default"
-          type="primary"
-          plain
-          @click="confirmMaterials"
-      >确认
-      </el-button>
+      <!--      <el-button
+                size="default"
+                plain
+                @click="visible=false"
+            >取消
+            </el-button>
+            <el-button
+                size="default"
+                type="primary"
+                plain
+                @click="confirmMaterials"
+            >确认
+            </el-button>-->
     </template>
   </el-dialog>
 </template>

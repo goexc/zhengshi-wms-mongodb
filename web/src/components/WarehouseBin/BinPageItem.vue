@@ -58,7 +58,7 @@ watch(()=>props.form.warehouse_zone_id, () => {
 
 <template>
   <el-form-item label="货位列表" prop="warehouse_bin_id">
-    <el-select v-model.trim="form.warehouse_bin_id" autocomplete="off" clearable>
+    <el-select filterable v-model.trim="form.warehouse_bin_id" autocomplete="off" clearable>
       <el-pagination
           v-model:page-size="binsForm.size"
           v-model:current-page="binsForm.page"

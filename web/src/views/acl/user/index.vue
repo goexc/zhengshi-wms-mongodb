@@ -446,7 +446,7 @@ const statusType = (status: string) => {
                 placeholder="请填写账号密码"/>
           </el-form-item>
           <el-form-item label="手机号码" prop="mobile">
-            <el-input v-model.trim="userForm.mobile" placeholder="请填写手机号码，例如：+8618810509066"/>
+            <el-input v-model.trim="userForm.mobile" placeholder="请填写手机号码，例如：18810509066"/>
           </el-form-item>
           <el-form-item label="Email" prop="email">
             <el-input v-model.trim="userForm.email" placeholder="请填写Email，例如：mahuateng@qq.com"/>
@@ -477,7 +477,7 @@ const statusType = (status: string) => {
             </el-checkbox-group>
           </el-form-item>
           <el-form-item label="性别" prop="sex">
-            <el-select v-model.trim="userForm.sex" clearable placeholder="请选择性别">
+            <el-select filterable v-model.trim="userForm.sex" clearable placeholder="请选择性别">
               <el-option label="男" value="男"></el-option>
               <el-option label="女" value="女"></el-option>
             </el-select>
@@ -494,7 +494,7 @@ const statusType = (status: string) => {
             </el-cascader>
           </el-form-item>
           <el-form-item label="状态" prop="status">
-            <el-select v-model.trim="userForm.status" clearable placeholder="请选择状态">
+            <el-select filterable v-model.trim="userForm.status" clearable placeholder="请选择状态">
               <el-option label="启用" value="启用"></el-option>
               <el-option label="禁用" value="禁用"></el-option>
             </el-select>

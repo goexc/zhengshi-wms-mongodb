@@ -85,6 +85,8 @@ export interface CustomerTransaction {
   type: string;//交易类型：应收账款、回款、退货
   time: number; //交易时间
   amount: number; //交易金额
+  remark: number; //备注
+  annex: string; //附件
 }
 
 //添加客户交易记录
@@ -93,5 +95,6 @@ export interface CustomerTransactionAddRequest {
   time: number;//交易类型：应收账款、回款、退货
   type: string;//交易时间
   amount: number;//交易金额
+  remark: string;//备注
   annex: string[]; //附件
 }

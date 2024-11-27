@@ -13,6 +13,7 @@ import dayjs from "dayjs";
 import NP from "number-precision";
 import SupplierListItem from "@/components/Supplier/SupplierListItem.vue";
 import {DateFormat} from "@/utils/time.ts";
+import {nameEncrypt} from "@/utils/name_encrypt.ts";
 
 defineOptions({
   name: 'Order'
@@ -107,11 +108,6 @@ let reset = async () => {
   await getMaterials()
 }
 
-//物料是否可选
-let selectable = (row:any, rowIndex:any):boolean => {
-  console.log('rowIndex:', rowIndex)
-  return !outboundMaterials.value.some(item => item.id === row.id);
-}
 
 //添加物料
 let addMaterial = async () => {
@@ -120,49 +116,57 @@ let addMaterial = async () => {
   visible.value = true
 }
 
-//选择物料
-let selectedMaterials = ref<Material[]>([])
-let handleSelectionChange = (val: Material[]) => {
-  selectedMaterials.value = val
+//出库单物料列表重新排序
+let resortMaterialId = async () => {
+  outboundMaterials.value.forEach((item, idx) => {
+    item.index = idx + 1
+  })
 }
 
-//确认物料
-let confirmMaterials = async () => {
+//向入库单添加物料
+let pushMaterial = async (row: Material) => {
   let index: number = 0
   if (!!outboundMaterials.value && outboundMaterials.value.length > 0) {
     index = outboundMaterials.value[outboundMaterials.value.length - 1].index
   }
 
-  selectedMaterials.value.forEach((item) => {
-    //检测是否已存在该物料
-    if(outboundMaterials.value.find(one=>one.material_id===item.id)){
-      console.log('物料已存在：', item.name, item.model)
-      return
-    }
+  //向入库单中添加选择的物料
+  //忽略已存在的物料
+  if (outboundMaterials.value.find(one => one.material_id === row.id)) {
+    // console.log('物料已存在：', item.name, item.model)
+    return
+  }
 
-    outboundMaterials.value.push({
-      index: ++index,
-      id: '',
-      material_id: item.id,
-      name: item.name,
-      model: item.model,
-      specification: item.specification,
-      price: 0,
-      quantity: 1,
-      // actual_quantity: 0,
-      unit: item.unit,
-      weight: 0,
-      returned_quantity: 0,
-      // status: '',
-      // position: [],
-      // warehouse_id: '',
-      // warehouse_zone_id: '',
-      // warehouse_rack_id: '',
-      // warehouse_bin_id: '',
-    })
+  outboundMaterials.value.push({
+    index: ++index,
+    id: '',
+    material_id: row.id,
+    name: row.name,
+    model: row.model,
+    specification: row.specification,
+    price: 0,
+    quantity: 1,
+    // actual_quantity: 0,
+    unit: row.unit,
+    weight: 0,
+    returned_quantity: 0,
+    // status: '',
+    // position: [],
+    // warehouse_id: '',
+    // warehouse_zone_id: '',
+    // warehouse_rack_id: '',
+    // warehouse_bin_id: '',
   })
+  // })
+}
 
-  // visible.value = false
+//从入库单删除物料
+let popMaterial = async (row: Material) => {
+  //从入库单中删除未选择的物料
+  outboundMaterials.value = outboundMaterials.value.filter(item => item.material_id !== row.id)
+
+  //物料列表重新排序
+  await resortMaterialId()
 }
 
 //查询物料价格列表
@@ -259,7 +263,7 @@ onMounted(async () => {
   //1.初始化出库单号
   receipt.value = JSON.parse(JSON.stringify(props.form))
   if (receipt.value.code.length === 0) {
-    receipt.value.code = 'O-' + dayjs().format('YYYYMM')
+    receipt.value.code = 'O-' + dayjs().format('YYYYMM')+'-'
   }
 
   //1.接收出库单物料列表
@@ -390,7 +394,7 @@ onMounted(async () => {
               @click="()=>{row.price=one.price;computeTotalAmount()}"
               @close="removeMaterialPrice(row.material_id, receipt.customer_id, one.price)"
           >
-            {{ one.price }} ({{ one.customer_name }}) [{{DateFormat(one.since)}}]
+            {{ one.price }} ({{ nameEncrypt(one.customer_name) }}) [{{DateFormat(one.since)}}]
           </el-tag>
           <el-text
             v-else
@@ -470,6 +474,7 @@ onMounted(async () => {
       width="1800px"
       draggable
       :close-on-click-modal="false"
+      top="0vh"
   >
     <el-form
         inline
@@ -484,11 +489,11 @@ onMounted(async () => {
       <el-form-item label="型号" prop="model">
         <el-input v-model.trim="materialsForm.model" clearable placeholder="请填写型号"/>
       </el-form-item>
-      <el-form-item label="材质" prop="material">
-        <el-input v-model.trim="materialsForm.material" clearable placeholder="请填写材质"/>
-      </el-form-item>
       <el-form-item label="规格" prop="specification">
         <el-input v-model.trim="materialsForm.specification" clearable placeholder="请填写规格"/>
+      </el-form-item>
+      <el-form-item label="材质" prop="material">
+        <el-input v-model.trim="materialsForm.material" clearable placeholder="请填写材质"/>
       </el-form-item>
       <br/>
       <el-form-item label="表面处理" prop="surface_treatment">
@@ -498,7 +503,7 @@ onMounted(async () => {
         <el-input v-model.trim="materialsForm.strength_grade" clearable placeholder="请选择强度等级"/>
       </el-form-item>
       <!--        <el-form-item label="物料状态" prop="status">
-                <el-select v-model.trim="form.status" clearable placeholder="请选择物料状态">
+                <el-select filterable v-model.trim="form.status" clearable placeholder="请选择物料状态">
                   <el-option v-for="(item,idx) in ['启用', '停用']" :key="idx" :label="`${idx+1}.${item}`"
                              :value="item"></el-option>
                 </el-select>
@@ -509,15 +514,20 @@ onMounted(async () => {
       </el-form-item>
     </el-form>
     <el-table
+        ref="materialsTableRef"
         class="table"
         border
         stripe
         size="default"
         height="640"
         :data="materials"
-        @selection-change="handleSelectionChange"
     >
-      <el-table-column type="selection" fixed :selectable="selectable"/>
+      <el-table-column label="操作" fixed align="center">
+        <template #default="{row}">
+          <el-link v-if="!outboundMaterials.map(item=>item.material_id).includes(row.id)" type="primary" icon="Check" @click="pushMaterial(row)">选择</el-link>
+          <el-link v-else type="danger" icon="Delete" @click="popMaterial(row)">剔除</el-link>
+        </template>
+      </el-table-column>
       <el-table-column label="物料名称" prop="name" fixed min-width="180px">
         <template #default="{row}">
           <el-text type="primary" size="default" tag="b" truncated>{{ row.name }}</el-text>
@@ -571,19 +581,19 @@ onMounted(async () => {
         :total="total"
     ></el-pagination>
     <template #footer>
-      <el-button
-          size="default"
-          plain
-          @click="visible=false"
-      >取消
-      </el-button>
-      <el-button
-          size="default"
-          type="primary"
-          plain
-          @click="confirmMaterials"
-      >确认
-      </el-button>
+<!--      <el-button-->
+<!--          size="default"-->
+<!--          plain-->
+<!--          @click="visible=false"-->
+<!--      >取消-->
+<!--      </el-button>-->
+<!--      <el-button-->
+<!--          size="default"-->
+<!--          type="primary"-->
+<!--          plain-->
+<!--          @click="confirmMaterials"-->
+<!--      >确认-->
+<!--      </el-button>-->
     </template>
   </el-dialog>
 </template>

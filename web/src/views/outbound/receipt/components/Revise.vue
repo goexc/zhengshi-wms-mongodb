@@ -8,7 +8,8 @@ import {ElMessage} from "element-plus";
 import {MaterialPrice} from "@/api/material/types.ts";
 import {reqMaterialPrices, reqRemoveMaterialPrice} from "@/api/material";
 import NP from "number-precision";
-import {DateFormat} from "../../../../utils/time.ts";
+import {DateFormat} from "@/utils/time.ts";
+import {nameEncrypt} from "@/utils/name_encrypt.ts";
 
 defineOptions({
   name: 'Revise'
@@ -151,7 +152,7 @@ onMounted(async () => {
               @click="()=>{row.price=one.price;computeTotalAmount()}"
               @close="removeMaterialPrice(row.material_id, props.customer_id, one.price)"
           >
-            {{ one.price }}({{one.customer_name}})[{{DateFormat(one.since)}}]
+            {{ one.price }}({{nameEncrypt(one.customer_name)}})[{{DateFormat(one.since)}}]
           </el-tag>
           <el-text
               v-else

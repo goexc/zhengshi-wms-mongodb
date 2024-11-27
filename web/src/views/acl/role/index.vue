@@ -541,7 +541,7 @@ const apisConfirm = async () => {
                 placeholder="请填写角色名称，例如：运营、财务、运维"/>
           </el-form-item>
           <el-form-item label="状态" prop="status">
-            <el-select v-model.trim="roleForm.status" clearable placeholder="请选择状态">
+            <el-select filterable v-model.trim="roleForm.status" clearable placeholder="请选择状态">
               <el-option label="启用" value="启用"></el-option>
               <el-option label="禁用" value="禁用"></el-option>
             </el-select>

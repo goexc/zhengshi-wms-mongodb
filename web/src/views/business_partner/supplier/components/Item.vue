@@ -201,7 +201,7 @@ const submit = async () => {
       ></el-image>
     </el-form-item>
     <el-form-item label="供应商类型" prop="name">
-      <el-select
+      <el-select filterable
           v-model.trim="form.type"
           placeholder="请选择供应商类型"
           clearable
@@ -210,7 +210,7 @@ const submit = async () => {
       </el-select>
     </el-form-item>
     <el-form-item prop="level" label="等级">
-      <el-select v-model.trim="form.level" placeholder="请选择供应商等级" clearable>
+      <el-select filterable v-model.trim="form.level" placeholder="请选择供应商等级" clearable>
         <el-option v-for="(one, idx) in SupplierLevels" :key="idx" :label="one.label" :value="one.value"></el-option>
       </el-select>
     </el-form-item>

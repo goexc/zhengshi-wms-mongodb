@@ -577,9 +577,9 @@ let orderStatus = (status:string) => {
               <td>-</td>
               <td>-</td>
               <td>-</td>
-              <td>-</td>
               <td>{{ item.materials.map(material => material.quantity).reduce((total, value) => total + value, 0) }}</td>
-              <td>￥{{ item.total_amount }}</td>
+              <td>-</td>
+              <td>{{ item.total_amount }}</td>
             </tr>
             </tbody>
           </table>

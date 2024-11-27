@@ -31,7 +31,7 @@ onMounted(()=>{
 
 <template>
   <el-form-item label="客户" prop="customer_id">
-    <el-select v-model.trim="form.customer_id" autocomplete="off" clearable>
+    <el-select filterable v-model.trim="form.customer_id" autocomplete="off" clearable>
       <el-option v-for="(one,idx) in customers"
                  :label="`${idx+1}. ${one.name}`"
                  :value="one.id" :key="idx"/>

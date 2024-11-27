@@ -201,7 +201,7 @@ const submit = async () => {
       ></el-image>
     </el-form-item>
     <el-form-item label="承运商类型" prop="name">
-      <el-select
+      <el-select filterable
           v-model.trim="form.type"
           placeholder="请选择承运商类型"
           clearable

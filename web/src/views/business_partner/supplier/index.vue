@@ -196,7 +196,7 @@ onMounted(() => {
           <el-input v-model.trim="suppliersForm.code" placeholder="请填写供应商编号" clearable/>
         </el-form-item>
         <el-form-item prop="level" label="等级">
-          <el-select v-model.trim="suppliersForm.level" placeholder="请选择供应商等级" clearable>
+          <el-select filterable v-model.trim="suppliersForm.level" placeholder="请选择供应商等级" clearable>
             <el-option v-for="(one, idx) in SupplierLevels" :key="idx" :label="one.label" :value="one.value"></el-option>
           </el-select>
         </el-form-item>

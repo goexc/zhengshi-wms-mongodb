@@ -54,7 +54,7 @@ watch(()=>props.form.warehouse_zone_id, () => {
 
 <template>
   <el-form-item label="货架列表" prop="warehouse_rack_id">
-    <el-select v-model.trim="form.warehouse_rack_id" autocomplete="off" clearable>
+    <el-select filterable v-model.trim="form.warehouse_rack_id" autocomplete="off" clearable>
       <el-option v-for="(one,idx) in racks"
                  :label="`${ idx+1 }. ${one.name}`"
                  :value="one.id" :key="idx"/>

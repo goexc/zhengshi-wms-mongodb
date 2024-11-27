@@ -163,7 +163,7 @@ onMounted(async () => {
           <el-input v-model.trim="form.name" clearable placeholder="请填写库区名称"/>
         </el-form-item>
 <!--        <el-form-item label="库区类型" prop="type">
-          <el-select v-model.trim="form.type" clearable placeholder="请选择库区类型">
+          <el-select filterable v-model.trim="form.type" clearable placeholder="请选择库区类型">
             <el-option v-for="(item,idx) in ZoneTypes" :key="idx" :label="`${idx+1}.${item}`"
                        :value="item"></el-option>
           </el-select>
@@ -172,7 +172,7 @@ onMounted(async () => {
           <el-input v-model.trim="form.code" clearable placeholder="请填写库区编号"/>
         </el-form-item>
         <el-form-item label="库区状态" prop="status">
-          <el-select v-model.trim="form.status" clearable placeholder="请选择库区状态">
+          <el-select filterable v-model.trim="form.status" clearable placeholder="请选择库区状态">
             <el-option v-for="(item,idx) in ZoneStatus" :key="idx" :label="`${idx+1}.${item}`"
                        :value="item"></el-option>
           </el-select>

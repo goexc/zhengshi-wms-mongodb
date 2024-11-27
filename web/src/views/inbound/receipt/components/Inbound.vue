@@ -335,7 +335,7 @@ let submit = async () => {
     <el-table-column label="入库状态" prop="status" align="center">
       <template #default="{row, col, $index}">
         <el-text :hidden="true">{{col}}</el-text>
-        <el-select
+        <el-select filterable
             size="default"
             v-model.trim="row.status"
             :key="$index"

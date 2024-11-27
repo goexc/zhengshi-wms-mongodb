@@ -1,6 +1,6 @@
 //登录接口需要携带的参数类型
 export interface loginForm {
-  name: string;
+  mobile: string;
   password: string;
 }
 

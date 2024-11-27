@@ -72,7 +72,7 @@ const cancel = () => {
 >
 
   <el-form-item label="供应商状态" prop="status">
-    <el-select v-model.trim="form.status" clearable placeholder="请选择供应商状态">
+    <el-select filterable v-model.trim="form.status" clearable placeholder="请选择供应商状态">
       <el-option v-for="(item,idx) in SupplierStatus" :key="idx" :label="`${idx+1}.${item}`" :value="item"></el-option>
     </el-select>
   </el-form-item>

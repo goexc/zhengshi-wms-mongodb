@@ -167,7 +167,7 @@ let inboundType = (text: string) => {
         </template>
       </el-table-column>
       <el-table-column prop="unit" label="计量单位" width="70px" align="center"/>
-      <el-table-column prop="price" label="物料单价" width="80px" align="right">
+      <el-table-column prop="price" label="物料单价" width="100px" align="right">
         <template #default="{row}">
           <el-text underline type="primary" size="default">{{ row.price.toFixed(3) }}</el-text>
         </template>

@@ -64,8 +64,8 @@ export const userRules = reactive<FormRules>({
       trigger: ["blur", "change"],
     },
     {
-      len: 14,
-      message: "手机号码格式：+8618810509066",
+      len: 11,
+      message: "手机号码格式：18810509066",
       trigger: ["blur", "change"],
     },
   ],

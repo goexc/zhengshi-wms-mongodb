@@ -161,7 +161,7 @@ onMounted(async () => {
           <el-input v-model.trim="warehousesForm.name" clearable placeholder="请填写仓库名称"/>
         </el-form-item>
         <el-form-item label="仓库类型" prop="type">
-          <el-select v-model.trim="warehousesForm.type" clearable placeholder="请选择仓库类型">
+          <el-select filterable v-model.trim="warehousesForm.type" clearable placeholder="请选择仓库类型">
             <el-option v-for="(item,idx) in WarehouseTypes" :key="idx" :label="`${idx+1}.${item}`"
                        :value="item"></el-option>
           </el-select>
@@ -170,7 +170,7 @@ onMounted(async () => {
           <el-input v-model.trim="warehousesForm.code" clearable placeholder="请填写仓库编号"/>
         </el-form-item>
         <el-form-item label="仓库状态" prop="status">
-          <el-select v-model.trim="warehousesForm.status" clearable placeholder="请选择仓库状态">
+          <el-select filterable v-model.trim="warehousesForm.status" clearable placeholder="请选择仓库状态">
             <el-option v-for="(item,idx) in WarehouseStatus" :key="idx" :label="`${idx+1}.${item}`"
                        :value="item"></el-option>
           </el-select>

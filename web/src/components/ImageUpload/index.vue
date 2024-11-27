@@ -54,7 +54,7 @@ const handleCover = () => {
 }
 
 // 分页
-const form = reactive<ImagesRequest>({
+const form = ref<ImagesRequest>({
   page: 1,
   size: 10,
   name: ''
@@ -67,7 +67,7 @@ const images = ref<ImageItem[]>([])
 const loadImages = async () => {
   loading.value = true
 
-  let res = await reqImages(form)
+  let res = await reqImages(form.value)
   if (res.code === 200) {
     images.value = res.data.list
     total.value = res.data.total
@@ -85,6 +85,19 @@ const handleSizeChange = () => {
 }
 const handleCurrentChange = () => {
   loadImages()
+}
+
+const initForm = () => {
+  return <ImagesRequest>{
+    page: 1,
+    size: 30,
+    name: '',
+  }
+}
+//
+const reset = async () => {
+  form.value = initForm()
+  await loadImages()
 }
 
 const uploadHeaders = reactive({
@@ -169,7 +182,7 @@ const handleTabChange = async () => {
         v-model.trim="visible"
         :title="title"
         draggable
-        width="800"
+        width="1000"
         :close-on-click-modal="true"
     >
       <el-tabs
@@ -178,8 +191,21 @@ const handleTabChange = async () => {
           @tab-change="handleTabChange"
       >
         <el-tab-pane label="素材库" name="images">
+          <el-form
+              inline
+              size="small"
+              class="m-b-2"
+          >
+            <el-form-item label="名称" prop="name">
+              <el-input v-model.trim="form.name" clearable placeholder="请填写图片名称"/>
+            </el-form-item>
+            <el-form-item label=" ">
+              <el-button type="primary" plain @click="loadImages" icon="Search">查询</el-button>
+              <el-button plain @click="reset" icon="RefreshRight">重置</el-button>
+            </el-form-item>
+          </el-form>
           <el-row :gutter="10" class="mb-2">
-            <el-col :xs="24" :sm="12" :md="8" :lg="6" :xl="4"
+            <el-col :xs="24" :sm="24" :md="12" :lg="8" :xl="6"
                     v-for="($image, $index) in images"
                     :key="$index"
             >
@@ -190,6 +216,11 @@ const handleTabChange = async () => {
                   fit="cover"
                   @click="handleSelect($image.url)"
               ></el-image>
+              <div class="m-b-1">
+                <el-text size="small">
+                  {{$image.alt}}
+                </el-text>
+              </div>
               <div v-if="$image" class="image-selected" @click="handleSelect($image.url)"></div>
             </el-col>
           </el-row>

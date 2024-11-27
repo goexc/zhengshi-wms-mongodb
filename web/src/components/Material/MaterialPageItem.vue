@@ -49,7 +49,7 @@ onMounted(()=>{
 
 <template>
   <el-form-item label="物料列表" prop="material_id">
-    <el-select v-model.trim="form.material_id" autocomplete="off" clearable>
+    <el-select filterable v-model.trim="form.material_id" autocomplete="off" clearable>
       <el-pagination
           v-model:page-size="materialsForm.size"
           v-model:current-page="materialsForm.page"
