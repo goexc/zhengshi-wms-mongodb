@@ -254,3 +254,20 @@ export interface OutboundMaterialPrice {
   material_id: string; //物料id
   price: number; //重量
 }
+
+export interface FastOutboundRequest {
+  code: string;
+  type: string;
+  customer_id: string;
+  departure_time: number;
+  picking_time?: number;
+  packing_time?: number;
+  weighing_time?: number;
+  receipt_time?: number;
+  materials: FastOutboundMaterial[];
+}
+
+export interface FastOutboundMaterial {
+  material_id: string;
+  quantity: number;
+}

@@ -617,6 +617,10 @@ service main {
 	@doc "出库单汇总"
 	@handler summary
 	get /summary (OutboundSummaryRequest) returns (OutboundSummaryResponse)
+
+	@doc "极速出库"
+	@handler fastDeparture
+	post /fast_departure (FastOutboundRequest) returns (BaseResponse)
 }
 
 //库存管理

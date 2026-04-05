@@ -10,7 +10,8 @@ import {
   OutboundOrderRequest,
   OutboundOrdersRequest,
   OutboundOrdersResponse, OutboundOrderSummaryRequest, OutboundOrderSummaryResponse,
-  OutboundOrderWeighRequest
+  OutboundOrderWeighRequest,
+  FastOutboundRequest
 } from "@/api/outbound/types.ts";
 import {baseResponse} from "@/api/types.ts";
 
@@ -45,7 +46,8 @@ enum API {
   //出库汇总
   OUTBOUND_SUMMARY_URL = '/outbound/summary',
 
-
+  //极速出库
+  OUTBOUND_FAST_DEPARTURE_URL = '/outbound/fast_departure',
 }
 
 
@@ -124,4 +126,9 @@ export const reqOutboundOrderSummary = (req: OutboundOrderSummaryRequest) => {
   return request.get<any, OutboundOrderSummaryResponse>(API.OUTBOUND_SUMMARY_URL, {
     params: req,
   });
+}
+
+//极速出库
+export const reqFastDepartureOutboundOrder = (data: FastOutboundRequest) => {
+  return request.post<any, baseResponse>(API.OUTBOUND_FAST_DEPARTURE_URL, data);
 }
