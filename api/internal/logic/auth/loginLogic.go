@@ -102,6 +102,7 @@ func (l *LoginLogic) Login(req *types.LoginRequest) (resp *types.LoginResponse, 
 		return resp, nil
 	}
 
+	logx.Infof("user id:%s", user.Id.Hex())
 	//6.缓存token
 	err = l.svcCtx.Cache.SetWithExpireCtx(l.ctx, fmt.Sprintf(userTokenKey, user.Id.Hex()), token, time.Duration(l.svcCtx.Config.Auth.AccessExpire))
 	if err != nil {

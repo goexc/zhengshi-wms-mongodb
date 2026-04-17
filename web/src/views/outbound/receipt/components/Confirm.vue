@@ -76,10 +76,15 @@ let materialId = ref<string>('')
 //勾选的物料列表
 let selectedMaterials = ref<{ id: string, index: number }[]>([])
 
+//当前选中物料的发货数量
+let currentMaterialShipmentQuantity=ref(0)
+
 //切换物料
 let handleMaterialChange = async (item: OutboundOrderMaterial) => {
   //1.请求物料列表
   form.value.material_id = item.material_id
+  //2.当前选中物料的发货数量
+  currentMaterialShipmentQuantity.value = item.quantity
   await getInventorys()
 }
 
@@ -248,7 +253,7 @@ let submit = async () => {
           </template>
         </el-table-column>
         <el-table-column prop="price" label="单价" align="center" width="90px"/>
-        <el-table-column prop="name" label="剩余数量" width="90px">
+        <el-table-column prop="name" label="发货数量" width="90px">
           <template #default="{row}">
             <el-text size="small" tag="b" type="danger">{{ row.quantity }} {{ row.unit }}</el-text>
           </template>
@@ -301,7 +306,7 @@ let submit = async () => {
             <el-text v-else size="default">-</el-text>
           </template>
         </el-table-column>
-        <el-table-column prop="quantity" label="库存数量">
+        <el-table-column prop="quantity" label="入库数量">
           <template #default="{row}">
             <el-text type="primary" size="default">{{ row.quantity }}</el-text>
           </template>
@@ -336,7 +341,8 @@ let submit = async () => {
                 :step="1"
                 size="small"
             />
-            <el-text type="primary" size="small" @click="row.shipment_quantity=row.available_quantity - row.frozen_quantity - row.locked_quantity">全部</el-text>
+<!--            <el-text type="primary" size="small" @click="row.shipment_quantity=row.available_quantity - row.frozen_quantity - row.locked_quantity">全部</el-text>-->
+            <el-text type="primary" size="small" @click="row.shipment_quantity=currentMaterialShipmentQuantity">全部</el-text>
           </template>
         </el-table-column>
       </el-table>

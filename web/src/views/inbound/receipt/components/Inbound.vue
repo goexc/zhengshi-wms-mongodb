@@ -51,7 +51,7 @@ let materials = ref<InboundMaterial[]>([])
 //批次入库
 let receive = ref<InboundReceiptReceiveRequest>({
   id: receipt.value.id,
-  code: 'BI-'+ dayjs().format('YYYY-MM-DD-HH-mm-ss-SSS'),
+  code: 'BI-' + dayjs().format('YYYY-MM-DD-HH-mm-ss-SSS'),
   // receiving_date: dayjs().startOf('day').unix(),
   receiving_date: '',
   carrier_id: '',
@@ -66,13 +66,29 @@ let warehouses = ref<WarehouseTree[]>()
 
 //计算总金额
 let total_amount = ref<number>(0)
-let computeTotalAmount = () => {
+let computeTotalAmount = (index: number=-1) => {
   total_amount.value = materials.value.reduce((total, current) => {
     return total + NP.times(current.price, current.actual_quantity);
   }, 0)
   total_amount.value = NP.plus(total_amount.value, receive.value.carrier_cost, receive.value.other_cost)
+
+  if(index <0 ) return
+
+  //批次入库数量变动时，修改入库状态
+    if(materials.value[index].actual_quantity >=materials.value[index].estimated_quantity){
+      materials.value[index].status = '入库完成'
+    }
+    if(materials.value[index].actual_quantity < materials.value[index].estimated_quantity &&materials.value[index].actual_quantity>0){
+      materials.value[index].status = '部分入库'
+    }
+  if(materials.value[index].actual_quantity===0){
+    materials.value[index].status = '未发货'
+  }
 }
 
+// const handleActualQuantityChange = (row:InboundMaterial)=>{
+//
+// }
 //关闭表单
 const cancel = () => {
   emit('cancel')
@@ -117,7 +133,7 @@ let submit = async () => {
   }
 
   //3.入库物料不能全部未发货
-  if(materials.value.filter((item)=>item.status === '未发货').length === materials.value.length){
+  if (materials.value.filter((item) => item.status === '未发货').length === materials.value.length) {
     ElMessage.error('出库状态不能全部是「未发货」.')
     return
   }
@@ -291,9 +307,9 @@ let submit = async () => {
     <el-table-column label="物料规格" prop="model"/>
     <el-table-column label="计划数量" prop="estimated_quantity" align="center"/>
     <el-table-column label="本批次入库数量" prop="actual_quantity" align="center">
-<!--      <template #default="{row, col, $index}">-->
+      <!--      <template #default="{row, col, $index}">-->
       <template #default="{row, col, $index}">
-        <el-text :hidden="true">{{col}}</el-text>
+        <el-text :hidden="true">{{ col }}</el-text>
         <el-input-number
             v-model.trim="row.actual_quantity"
             :key="$index"
@@ -304,9 +320,10 @@ let submit = async () => {
             :value-on-clear="1"
             :step="1"
             size="default"
-            @change="computeTotalAmount"
+            @change="computeTotalAmount($index)"
         />
         <el-text type="primary" @click="row.actual_quantity=row.estimated_quantity" size="small">全部</el-text>
+        <!--        <el-text type="primary" @click="handleActualQuantityChange(row)" size="small">全部</el-text>-->
       </template>
     </el-table-column>
     <el-table-column label="单价" prop="price" align="center" width="200"/>
@@ -317,7 +334,7 @@ let submit = async () => {
     </el-table-column>
     <el-table-column label="仓库/库区/货架/货位" width="500px" align="center">
       <template #default="{row, col, $index}">
-        <el-text :hidden="true">{{col}}</el-text>
+        <el-text :hidden="true">{{ col }}</el-text>
         <el-cascader
             size="default"
             :key="$index"
@@ -334,20 +351,20 @@ let submit = async () => {
     </el-table-column>
     <el-table-column label="入库状态" prop="status" align="center">
       <template #default="{row, col, $index}">
-        <el-text :hidden="true">{{col}}</el-text>
+        <el-text :hidden="true">{{ col }}</el-text>
         <el-select filterable
-            size="default"
-            v-model.trim="row.status"
-            :key="$index"
-            clearable
-            placeholder="请选择入库状态"
+                   size="default"
+                   v-model.trim="row.status"
+                   :key="$index"
+                   clearable
+                   placeholder="请选择入库状态"
         >
-<!--          <el-option
-              v-for="(item, idx) in InboundReceiptMaterialStatus.filter((one, idx)=> idx>=InboundReceiptMaterialStatus.findIndex((current) => current === form.materials[$index].status))"
-              :key="idx"
-              :label="item"
-              :value="item"
-          />-->
+          <!--          <el-option
+                        v-for="(item, idx) in InboundReceiptMaterialStatus.filter((one, idx)=> idx>=InboundReceiptMaterialStatus.findIndex((current) => current === form.materials[$index].status))"
+                        :key="idx"
+                        :label="item"
+                        :value="item"
+                    />-->
           <el-option
               v-for="(item, idx) in InboundReceiptMaterialStatus"
               :key="idx"
