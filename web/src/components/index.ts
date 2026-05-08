@@ -16,6 +16,7 @@ import MaterialCategoryListItem from "@/components/MaterialCategory/MaterialCate
 import SupplierPageItem from "@/components/Supplier/SupplierPageItem.vue";
 import SupplierListItem from "@/components/Supplier/SupplierListItem.vue";
 import CarrierPageItem from "@/components/Carrier/CarrierPageItem.vue";
+import FastOutbound from "@/components/Outbound/FastOutbound.vue";
 
 const allGlobalComponent: any = {
   SvgIcon,
@@ -33,6 +34,7 @@ const allGlobalComponent: any = {
   SupplierPageItem,
   SupplierListItem,
   CarrierPageItem,
+  FastOutbound,
 };
 export default {
   //install方法

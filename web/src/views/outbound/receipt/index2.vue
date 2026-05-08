@@ -414,6 +414,9 @@ let orderStatus = (status:string) => {
               :plain="true"
               @click="add"
           />
+          <FastOutbound
+              @success="handleSuccess"
+          />
         </el-form-item>
       </el-form>
 
