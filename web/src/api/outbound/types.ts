@@ -269,5 +269,6 @@ export interface FastOutboundRequest {
 
 export interface FastOutboundMaterial {
   material_id: string;
+  price: number;
   quantity: number;
 }

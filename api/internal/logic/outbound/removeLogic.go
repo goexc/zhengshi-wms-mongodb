@@ -180,11 +180,19 @@ func (l *RemoveLogic) Remove(req *types.OutboundOrderIdRequest) (resp *types.Bas
 	//4.2 执行批量更新操作
 	if len(bulkWrites) > 0 {
 		bulkOptions := options.BulkWriteOptions{}
-		_, err = l.svcCtx.InventoryModel.BulkWrite(l.ctx, bulkWrites, &bulkOptions)
-		if err != nil {
-			fmt.Printf("[Error]批量更新客户交易流水：%s\n", err.Error())
+		bulkRes, e := l.svcCtx.InventoryModel.BulkWrite(dbCtx, bulkWrites, &bulkOptions)
+		if e != nil {
+			fmt.Printf("[Error]删除出库单[%s]恢复库存：%s\n", receipt.Code, e.Error())
+			sess.AbortTransaction(dbCtx)
 			resp.Code = http.StatusInternalServerError
 			resp.Msg = "服务器内部错误"
+			return resp, nil
+		}
+		if bulkRes.ModifiedCount != int64(len(bulkWrites)) {
+			fmt.Printf("[Error]删除出库单[%s]库存恢复数量不匹配\n", receipt.Code)
+			sess.AbortTransaction(dbCtx)
+			resp.Code = http.StatusBadRequest
+			resp.Msg = "库存已发生变化，请重试"
 			return resp, nil
 		}
 	}

@@ -113,6 +113,22 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		panic(fmt.Sprintf("[Error]创建角色索引:%s", err.Error()))
 	}
 
+	uniqueCodeOpt := options.Index().SetUnique(true)
+	_, err = ctx.OutboundOrderModel.Indexes().CreateOne(context.Background(), mongo.IndexModel{
+		Keys:    bson.M{"code": 1},
+		Options: uniqueCodeOpt.SetName("uniq_outbound_order_code"),
+	}, indexOpt)
+	if err != nil {
+		panic(fmt.Sprintf("[Error]创建出库单号唯一索引:%s", err.Error()))
+	}
+	_, err = ctx.InboundReceiptModel.Indexes().CreateOne(context.Background(), mongo.IndexModel{
+		Keys:    bson.M{"code": 1},
+		Options: options.Index().SetUnique(true).SetName("uniq_inbound_receipt_code"),
+	}, indexOpt)
+	if err != nil {
+		panic(fmt.Sprintf("[Error]创建入库单号唯一索引:%s", err.Error()))
+	}
+
 	//3.系统初始化步骤
 	SystemInit(ctx)
 
