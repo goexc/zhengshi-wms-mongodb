@@ -26,7 +26,7 @@ const nowSeconds = () => Math.floor(Date.now() / 1000);
 const initFastForm = (): FastOutboundRequest => {
   const now = nowSeconds();
   return {
-    code: `FAST-${dayjs().format("YYYYMMDD-HHmmss")}`,
+    code: `O-${dayjs().format("YYYYMM")}-`,
     type: "销售出库",
     customer_id: "",
     departure_time: now,
@@ -70,7 +70,8 @@ const rules = reactive<FormRules>({
   code: [{ required: true, message: "出库单号不能为空", trigger: "blur" }],
   type: [{ required: true, message: "请选择出库类型", trigger: "change" }],
   customer_id: [{ required: true, message: "请选择客户", trigger: "change" }],
-  departure_time: [{ required: true, message: "请选择出库时间", trigger: "change" }]
+  picking_time: [{ required: true, message: "请选择拣货日期", trigger: "change" }],
+  departure_time: [{ required: true, message: "请选择出库日期", trigger: "change" }]
 });
 
 const openDialog = () => {
@@ -267,19 +268,19 @@ const submit = async () => {
 </script>
 
 <template>
-  <el-button icon="Promotion" type="warning" plain @click="openDialog">极速出库</el-button>
+  <el-button icon="Promotion" size="default" type="warning" plain @click="openDialog">极速出库</el-button>
 
   <el-dialog
       v-model="dialogVisible"
       title="极速出库"
-      width="1880px"
+      fullscreen
       draggable
       destroy-on-close
       :close-on-click-modal="false"
-      top="0vh"
   >
     <el-form
         ref="formRef"
+        class="fast-form"
         :model="fastForm"
         :rules="rules"
         size="default"
@@ -313,9 +314,9 @@ const submit = async () => {
           <el-form-item label="拣货时间" prop="picking_time">
             <el-date-picker
                 v-model.number="fastForm.picking_time"
-                type="datetime"
+                type="date"
                 value-format="X"
-                placeholder="默认等于出库时间"
+                placeholder="请选择拣货日期"
                 style="width: 100%"
             />
           </el-form-item>
@@ -324,7 +325,7 @@ const submit = async () => {
           <el-form-item label="打包时间" prop="packing_time">
             <el-date-picker
                 v-model.number="fastForm.packing_time"
-                type="datetime"
+                type="date"
                 value-format="X"
                 placeholder="可选"
                 style="width: 100%"
@@ -335,7 +336,7 @@ const submit = async () => {
           <el-form-item label="称重时间" prop="weighing_time">
             <el-date-picker
                 v-model.number="fastForm.weighing_time"
-                type="datetime"
+                type="date"
                 value-format="X"
                 placeholder="可选"
                 style="width: 100%"
@@ -346,9 +347,9 @@ const submit = async () => {
           <el-form-item label="出库时间" prop="departure_time">
             <el-date-picker
                 v-model.number="fastForm.departure_time"
-                type="datetime"
+                type="date"
                 value-format="X"
-                placeholder="请选择出库时间"
+                placeholder="请选择出库日期"
                 style="width: 100%"
             />
           </el-form-item>
@@ -357,9 +358,9 @@ const submit = async () => {
           <el-form-item label="签收时间" prop="receipt_time">
             <el-date-picker
                 v-model.number="fastForm.receipt_time"
-                type="datetime"
+                type="date"
                 value-format="X"
-                placeholder="默认当前时间"
+                placeholder="默认当前日期"
                 style="width: 100%"
             />
           </el-form-item>
@@ -474,7 +475,7 @@ const submit = async () => {
         :close-on-click-modal="false"
         top="0vh"
     >
-      <el-form inline label-width="80px">
+      <el-form class="material-search-form" inline label-width="80px">
         <MaterialCategoryListItem :form="materialsForm"/>
         <el-form-item label="名称" prop="name">
           <el-input v-model.trim="materialsForm.name" clearable placeholder="请填写名称"/>
@@ -585,6 +586,13 @@ const submit = async () => {
 
 .add {
   margin: 10px;
+}
+
+.fast-form,
+.material-search-form {
+  :deep(.el-form-item) {
+    margin-bottom: 18px;
+  }
 }
 
 .table {
