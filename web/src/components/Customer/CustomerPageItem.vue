@@ -10,6 +10,7 @@ import {reqCustomers} from "@/api/customer";
 import {ElMessage} from "element-plus";
 
 defineProps(['form'])
+const emit = defineEmits(['change'])
 
 const initCustomersForm = () => {
   return {
@@ -40,6 +41,10 @@ const getCustomers = async () => {
   }
 }
 
+const handleChange = (id?: string) => {
+  emit('change', customers.value.find(one => one.id === id))
+}
+
 onMounted(()=>{
   getCustomers()
 })
@@ -47,7 +52,7 @@ onMounted(()=>{
 
 <template>
   <el-form-item label="客户" prop="customer_id">
-    <el-select filterable v-model.trim="form.customer_id" autocomplete="off" clearable>
+    <el-select filterable v-model.trim="form.customer_id" autocomplete="off" clearable @change="handleChange">
       <el-pagination
           v-model:page-size="customersForm.size"
           v-model:current-page="customersForm.page"
@@ -58,7 +63,7 @@ onMounted(()=>{
       />
       <el-option v-for="(one,idx) in customers"
                  :label="`${customersForm.size * (customersForm.page-1) + idx+1}. ${one.name}`"
-                 :value="one.id" :key="idx"/>
+                 :value="one.id" :key="one.id"/>
     </el-select>
   </el-form-item>
 </template>
