@@ -28,7 +28,11 @@ type Customer struct {
 	//合同到期（Contract Expired）：表示客户的合同已到期，需要进行续签或重新协商合同条款。
 	//删除(Deleted)
 	Status            string             `json:"status" bson:"status"`                         //状态
-	ReceivableBalance float64            `json:"receivable_balance" bson:"receivable_balance"` //应收账款
+	StatusCode        string             `json:"status_code" bson:"status_code"`               //状态 code，索引和业务判断使用 ASCII 值
+	IsDeleted         bool               `json:"is_deleted" bson:"is_deleted"`                 //软删除标记，避免索引依赖中文状态
+	NameFingerprint   string             `json:"name_fingerprint" bson:"name_fingerprint"`     //客户名称归一化哈希，用于唯一索引
+	ReceivableBalance float64            `json:"receivable_balance" bson:"receivable_balance"` //应收账款缓存，来源于客户流水净额的正数部分
+	CreditBalance     float64            `json:"credit_balance" bson:"credit_balance"`         //客户贷项缓存，来源于客户流水净额的负数部分
 	Creator           primitive.ObjectID `json:"creator" bson:"creator"`                       //创建人
 	CreatorName       string             `json:"creator_name,optional" bson:"creator_name"`    //创建人
 	CreatedAt         int64              `json:"created_at,optional" bson:"created_at"`

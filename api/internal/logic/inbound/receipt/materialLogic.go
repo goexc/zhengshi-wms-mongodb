@@ -150,7 +150,7 @@ func getReceiptStatus(statuses map[int]int) (status int) {
 		case status > key:
 			status = key
 		default:
-			fmt.Println("当前状态：%d，给定状态：%d\n", status, key)
+			fmt.Printf("当前状态：%d，给定状态：%d\n", status, key)
 		}
 	}
 

@@ -56,7 +56,7 @@ export const reqChangeCustomerStatus = (data: CustomerStatusRequest) =>
 
 //重新统计客户应收账款
 export const reqRecountReceivableBalance = ()=>
-    request.get<any,baseResponse>(API.CUSTOMER_RECOUNT, {})
+    request.post<any,baseResponse>(API.CUSTOMER_RECOUNT, {})
 
 //获取客户交易流水分页接口
 export const reqCustomerTransactions = (req:CustomerTransactionPageRequest) => {

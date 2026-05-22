@@ -35,11 +35,11 @@ func (l *PageLogic) Page(req *types.CustomersRequest) (resp *types.CustomersResp
 
 	name := strings.TrimSpace(req.Name)
 	//1.客户分页
-	var filter = bson.M{"status": bson.M{"$ne": "删除"}} //过滤已删除客户
+	var filter = bson.M{"is_deleted": bson.M{"$ne": true}, "status": bson.M{"$ne": "删除"}} //过滤已删除客户，索引字段使用 is_deleted
 	if name != "" {
 		//i 表示不区分大小写
 		regex := bson.M{"$regex": primitive.Regex{Pattern: ".*" + name + ".*", Options: "i"}}
-		filter = bson.M{"name": regex, "status": bson.M{"$ne": "删除"}}
+		filter = bson.M{"name": regex, "is_deleted": bson.M{"$ne": true}, "status": bson.M{"$ne": "删除"}}
 	}
 	if strings.TrimSpace(req.Code) != "" {
 		filter["code"] = strings.TrimSpace(req.Code)
@@ -89,6 +89,7 @@ func (l *PageLogic) Page(req *types.CustomersRequest) (resp *types.CustomersResp
 			{"status", 1},
 			{"remark", 1},
 			{"receivable_balance", 1},
+			{"credit_balance", 1},
 			{"creator_name", bson.D{
 				//在投影中，使用 $ifNull 操作符检查 user.name 字段，
 				//如果为空（即关联集合没有数据），则将 create_by 字段置为空字符串。
@@ -162,6 +163,7 @@ func (l *PageLogic) Page(req *types.CustomersRequest) (resp *types.CustomersResp
 			Status:                        customer.Status,
 			Remark:                        customer.Remark,
 			ReceivableBalance:             customer.ReceivableBalance,
+			CreditBalance:                 customer.CreditBalance,
 			CreateBy:                      customer.CreatorName,
 			CreatedAt:                     customer.CreatedAt,
 			UpdatedAt:                     customer.UpdatedAt,

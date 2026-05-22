@@ -318,7 +318,7 @@ service main {
 
 	@doc "重新统计应收账款"
 	@handler recount
-	get /recount returns (BaseResponse)
+	post /recount returns (BaseResponse)
 }
 
 // 承运商管理

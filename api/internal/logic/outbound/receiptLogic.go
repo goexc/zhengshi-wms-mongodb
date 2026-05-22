@@ -1,12 +1,13 @@
 package outbound
 
 import (
+	customerfinance "api/internal/logic/customer/finance"
 	"api/model"
+	financeCode "api/pkg/code"
 	"context"
 	"fmt"
 	"github.com/shopspring/decimal"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"net/http"
 	"strings"
@@ -104,7 +105,11 @@ func (l *ReceiptLogic) Receipt(req *types.OutboundOrderReceiptRequest) (resp *ty
 	}
 
 	//1.4.3 累计物料金额
+	unpricedCount := 0
 	for _, one := range materials {
+		if one.Price <= 0 {
+			unpricedCount++
+		}
 		amount = decimal.NewFromFloat(one.Quantity).Mul(decimal.NewFromFloat(one.Price)).Add(amount)
 	}
 
@@ -133,17 +138,40 @@ func (l *ReceiptLogic) Receipt(req *types.OutboundOrderReceiptRequest) (resp *ty
 		return resp, nil
 	}
 
+	priceStatus := financeCode.OutboundPriceStatusFullyPriced
+	switch {
+	case len(materials) > 0 && unpricedCount == len(materials):
+		priceStatus = financeCode.OutboundPriceStatusUnpriced
+	case unpricedCount > 0:
+		priceStatus = financeCode.OutboundPriceStatusPartialPriced
+	}
+	outboundTypeCode := order.TypeCode
+	if outboundTypeCode == "" {
+		outboundTypeCode = financeCode.OutboundTypeCodeFromLabel(order.Type)
+	}
+	arStatus := financeCode.OutboundARStatusNotApplicable
+	shouldCreateAR := financeCode.ShouldCreateReceivable(outboundTypeCode)
+	if shouldCreateAR {
+		arStatus = financeCode.OutboundARStatusPending
+		if priceStatus == financeCode.OutboundPriceStatusFullyPriced {
+			arStatus = financeCode.OutboundARStatusPosted
+		}
+	}
+
 	//4.修改发货单状态：已出库->已签收
 	var set = bson.M{
 		"$set": bson.M{
 			"status":       "已签收",
 			"annex":        strings.Join(req.Annex, ","),
 			"total_amount": amount.InexactFloat64(),
+			"type_code":    outboundTypeCode,
+			"price_status": priceStatus,
+			"ar_status":    arStatus,
 			"receipt_time": req.ReceiptTime,
 		},
 	}
 
-	_, err = l.svcCtx.OutboundOrderModel.UpdateByID(dbCtx, order.Id, &set)
+	updateRes, err := l.svcCtx.OutboundOrderModel.UpdateOne(dbCtx, bson.M{"_id": order.Id, "status": "已出库"}, &set)
 	if err != nil {
 		fmt.Printf("[Error]更新出库单[%s]状态(已签收)：%s\n", code, err.Error())
 		// 回滚事务
@@ -153,49 +181,49 @@ func (l *ReceiptLogic) Receipt(req *types.OutboundOrderReceiptRequest) (resp *ty
 		resp.Msg = "服务器内部错误"
 		return resp, nil
 	}
-
-	//5.添加客户交易记录
-	var record = model.CustomerTransaction{
-		Type:         "应收账款",
-		Code:         fmt.Sprintf("CT-%s-%d", time.Now().Format("2006-01-02-15-04-05"), time.Now().UnixMilli()%1000), //交易编号:YYYY-MM-DD-HH-mm-ss-SSS
-		OrderCode:    order.Code,
-		CustomerId:   order.CustomerId,
-		CustomerName: order.CustomerName,
-		Amount:       amount.InexactFloat64(),
-		Annex:        strings.Join(req.Annex, ","),
-		Remark:       "",
-		Time:         req.ReceiptTime,
-		Creator:      l.ctx.Value("uid").(string),
-		CreatorName:  l.ctx.Value("name").(string),
-		CreatedAt:    time.Now().Unix(),
-		UpdatedAt:    0,
-	}
-	_, err = l.svcCtx.CustomerTransactionModel.InsertOne(dbCtx, &record)
-	if err != nil {
-		fmt.Printf("[Error]添加客户[%s]订单[%s]应收账款:%s\n", order.CustomerName, order.Code, err.Error())
-
-		// 回滚事务
-		session.AbortTransaction(dbCtx)
-
-		resp.Code = http.StatusInternalServerError
-		resp.Msg = "服务器内部错误"
+	if updateRes.MatchedCount != 1 {
+		_ = session.AbortTransaction(dbCtx)
+		resp.Code = http.StatusBadRequest
+		resp.Msg = "出库单状态已变化，请刷新后重试"
 		return resp, nil
 	}
 
-	//6.累计客户表应收账款
-	var update = bson.M{
-		"$inc": bson.M{"receivable_balance": amount.InexactFloat64()},
-	}
-	customerId, _ := primitive.ObjectIDFromHex(order.CustomerId)
-	_, err = l.svcCtx.CustomerModel.UpdateByID(dbCtx, customerId, update)
-	if err != nil {
-		fmt.Printf("[Error]累计客户[%s]应收账款：%s\n", order.CustomerName, err.Error())
-		// 回滚事务
-		session.AbortTransaction(dbCtx)
+	if shouldCreateAR && priceStatus == financeCode.OutboundPriceStatusFullyPriced {
+		//5.添加客户交易记录。未完全定价的签收单只进入 pending，应收在补齐价格后生成。
+		now := time.Now().Unix()
+		_, err = customerfinance.PostTransaction(dbCtx, l.svcCtx, customerfinance.PostTransactionRequest{
+			TransactionType: financeCode.TransactionTypeOutboundAR,
+			Status:          financeCode.TransactionStatusConfirmed,
+			Code:            fmt.Sprintf("CT-%s-%d", time.Now().Format("2006-01-02-15-04-05"), time.Now().UnixMilli()%1000),
+			OrderCode:       order.Code,
+			SourceType:      financeCode.SourceTypeOutboundOrder,
+			SourceId:        order.Id.Hex(),
+			SourceCode:      order.Code,
+			IdempotencyKey:  financeCode.IdempotencyKey(financeCode.TransactionTypeOutboundAR, order.Id.Hex()),
+			CustomerId:      order.CustomerId,
+			CustomerName:    order.CustomerName,
+			Amount:          amount.InexactFloat64(),
+			Annex:           strings.Join(req.Annex, ","),
+			Time:            req.ReceiptTime,
+			Creator:         l.ctx.Value("uid").(string),
+			CreatorName:     l.ctx.Value("name").(string),
+			CreatedAt:       now,
+		})
+		if err != nil {
+			fmt.Printf("[Error]添加客户[%s]订单[%s]应收账款:%s\n", order.CustomerName, order.Code, err.Error())
 
-		resp.Msg = "服务器内部错误"
-		resp.Code = http.StatusInternalServerError
-		return resp, nil
+			// 回滚事务
+			session.AbortTransaction(dbCtx)
+
+			if msg, isBusiness := customerfinance.IsBusinessError(err); isBusiness {
+				resp.Code = http.StatusBadRequest
+				resp.Msg = msg
+				return resp, nil
+			}
+			resp.Code = http.StatusInternalServerError
+			resp.Msg = "服务器内部错误"
+			return resp, nil
+		}
 	}
 
 	// 提交事务

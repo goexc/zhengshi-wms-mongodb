@@ -2,6 +2,7 @@ package outbound
 
 import (
 	"api/model"
+	financeCode "api/pkg/code"
 	"context"
 	"fmt"
 	"github.com/shopspring/decimal"
@@ -50,6 +51,7 @@ func (l *AddLogic) Add(req *types.OutboundOrderAddRequest) (resp *types.BaseResp
 	receipt.IsPack = 0
 	receipt.IsWeigh = 0
 	receipt.Type = strings.TrimSpace(req.Type)
+	receipt.TypeCode = financeCode.OutboundTypeCodeFromLabel(req.Type)
 	receipt.Code = strings.TrimSpace(req.Code)
 	receipt.Remark = strings.TrimSpace(req.Remark)
 	receipt.Annex = strings.Join(req.Annex, ",")
@@ -169,10 +171,27 @@ func (l *AddLogic) Add(req *types.OutboundOrderAddRequest) (resp *types.BaseResp
 
 	//总金额
 	var amount decimal.Decimal
+	unpricedCount := 0
 	for _, one := range req.Materials {
+		if one.Price <= 0 {
+			unpricedCount++
+		}
 		amount = decimal.NewFromFloat(one.Quantity).Mul(decimal.NewFromFloat(one.Price)).Add(amount)
 	}
 	receipt.TotalAmount = amount.InexactFloat64()
+	switch {
+	case unpricedCount == len(req.Materials):
+		receipt.PriceStatus = financeCode.OutboundPriceStatusUnpriced
+	case unpricedCount > 0:
+		receipt.PriceStatus = financeCode.OutboundPriceStatusPartialPriced
+	default:
+		receipt.PriceStatus = financeCode.OutboundPriceStatusFullyPriced
+	}
+	if financeCode.ShouldCreateReceivable(receipt.TypeCode) {
+		receipt.ArStatus = financeCode.OutboundARStatusPending
+	} else {
+		receipt.ArStatus = financeCode.OutboundARStatusNotApplicable
+	}
 
 	receipt.CreatorId = l.ctx.Value("uid").(string)
 	receipt.CreatorName = l.ctx.Value("name").(string)

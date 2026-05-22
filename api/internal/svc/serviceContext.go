@@ -129,6 +129,79 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		panic(fmt.Sprintf("[Error]创建入库单号唯一索引:%s", err.Error()))
 	}
 
+	// 客户财务相关索引只使用 ASCII code、布尔值、ObjectId 或 hash。
+	// 旧数据缺少 is_deleted 时不会进入这些唯一索引，迁移完成后再补齐即可。
+	customerIndexes := []mongo.IndexModel{
+		{
+			Keys: bson.M{"code": 1},
+			Options: options.Index().
+				SetUnique(true).
+				SetName("uniq_customer_code_active").
+				SetPartialFilterExpression(bson.M{"is_deleted": false}),
+		},
+		{
+			Keys: bson.M{"unified_social_credit_identifier": 1},
+			Options: options.Index().
+				SetUnique(true).
+				SetName("uniq_customer_usci_active").
+				SetPartialFilterExpression(bson.M{"is_deleted": false}),
+		},
+		{
+			Keys: bson.M{"name_fingerprint": 1},
+			Options: options.Index().
+				SetUnique(true).
+				SetName("uniq_customer_name_fingerprint_active").
+				SetPartialFilterExpression(bson.M{"is_deleted": false}),
+		},
+	}
+	if _, err = ctx.CustomerModel.Indexes().CreateMany(context.Background(), customerIndexes, indexOpt); err != nil {
+		panic(fmt.Sprintf("[Error]创建客户唯一索引:%s", err.Error()))
+	}
+
+	transactionIndexes := []mongo.IndexModel{
+		{
+			Keys: bson.M{"idempotency_key": 1},
+			Options: options.Index().
+				SetUnique(true).
+				SetName("uniq_customer_transaction_idempotency").
+				SetPartialFilterExpression(bson.M{"idempotency_key": bson.M{"$exists": true}}),
+		},
+		{
+			Keys: bson.D{{"customer_id", 1}, {"status", 1}, {"time", -1}},
+			Options: options.Index().
+				SetName("idx_customer_transaction_customer_status_time"),
+		},
+		{
+			Keys: bson.D{{"source_type", 1}, {"source_id", 1}, {"transaction_type", 1}},
+			Options: options.Index().
+				SetName("idx_customer_transaction_source"),
+		},
+		{
+			Keys: bson.D{{"source_type", 1}, {"source_id", 1}, {"transaction_type", 1}, {"status", 1}},
+			Options: options.Index().
+				SetName("idx_customer_transaction_source_status"),
+		},
+		{
+			Keys: bson.D{{"customer_id", 1}, {"transaction_type", 1}, {"status", 1}},
+			Options: options.Index().
+				SetName("idx_customer_transaction_customer_type_status"),
+		},
+	}
+	if _, err = ctx.CustomerTransactionModel.Indexes().CreateMany(context.Background(), transactionIndexes, indexOpt); err != nil {
+		panic(fmt.Sprintf("[Error]创建客户流水索引:%s", err.Error()))
+	}
+
+	_, err = ctx.InboundReceiptReceiveModel.Indexes().CreateOne(context.Background(), mongo.IndexModel{
+		Keys: bson.M{"idempotency_key": 1},
+		Options: options.Index().
+			SetUnique(true).
+			SetName("uniq_inbound_receive_idempotency").
+			SetPartialFilterExpression(bson.M{"idempotency_key": bson.M{"$exists": true}}),
+	}, indexOpt)
+	if err != nil {
+		panic(fmt.Sprintf("[Error]创建批次入库幂等索引:%s", err.Error()))
+	}
+
 	//3.系统初始化步骤
 	SystemInit(ctx)
 

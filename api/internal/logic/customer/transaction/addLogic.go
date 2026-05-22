@@ -1,7 +1,9 @@
 package transaction
 
 import (
+	customerfinance "api/internal/logic/customer/finance"
 	"api/model"
+	financeCode "api/pkg/code"
 	"context"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
@@ -39,13 +41,13 @@ func (l *AddLogic) Add(req *types.CustomerTransactionAddRequest) (resp *types.Ba
 
 	customerId, err := primitive.ObjectIDFromHex(req.CustomerId)
 	if err != nil {
-		fmt.Printf("[Error]客户id[%s]格式错误：%s\n", req.CustomerId)
+		fmt.Printf("[Error]客户id[%s]格式错误：%s\n", req.CustomerId, err.Error())
 		resp.Code = http.StatusBadRequest
 		resp.Msg = "客户不存在"
 		return resp, nil
 	}
 
-	var filter = bson.M{"_id": customerId, "status": bson.M{"$ne": "删除"}}
+	var filter = bson.M{"_id": customerId, "is_deleted": bson.M{"$ne": true}, "status": bson.M{"$ne": "删除"}}
 	singleRes := l.svcCtx.CustomerModel.FindOne(l.ctx, filter)
 	switch singleRes.Err() {
 	case nil:
@@ -68,39 +70,75 @@ func (l *AddLogic) Add(req *types.CustomerTransactionAddRequest) (resp *types.Ba
 		return resp, nil
 	}
 
-	//2.添加客户交易记录
-	var transaction = model.CustomerTransaction{
-		Type:         req.Type,
-		Code:         fmt.Sprintf("O-%s-%d", time.Now().Format("20060102-15-04-05"), time.Now().UnixMilli()%1000), //YYYY-MM-DD-HH-mm-ss-SSS
-		OrderCode:    "",
-		CustomerId:   customer.Id.Hex(),
-		CustomerName: customer.Name,
-		Amount:       req.Amount,
-		Annex:        strings.Join(req.Annex, ","),
-		Remark:       strings.TrimSpace(req.Remark),
-		Time:         req.Time,
-		Creator:      l.ctx.Value("uid").(string),
-		CreatorName:  l.ctx.Value("name").(string),
-		CreatedAt:    time.Now().Unix(),
+	typeInput := req.TransactionType
+	if strings.TrimSpace(typeInput) == "" {
+		typeInput = req.Type
 	}
-	_, err = l.svcCtx.CustomerTransactionModel.InsertOne(l.ctx, &transaction)
+	transactionType, ok := financeCode.ManualTransactionTypeCode(typeInput)
+	if !ok {
+		resp.Code = http.StatusBadRequest
+		resp.Msg = "交易类型错误"
+		return resp, nil
+	}
+	if transactionType == financeCode.TransactionTypeManualAdjustment {
+		resp.Code = http.StatusBadRequest
+		resp.Msg = "手工调整需走审批流程，不能直接入账"
+		return resp, nil
+	}
+
+	session, err := l.svcCtx.DBClient.StartSession()
 	if err != nil {
-		fmt.Printf("[Error]添加客户[%s]交易记录:%s\n", customer.Name, err.Error())
+		fmt.Printf("[Error]添加客户[%s]交易记录：创建事务失败:%s\n", customer.Name, err.Error())
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "服务器内部错误"
+		return resp, nil
+	}
+	defer session.EndSession(l.ctx)
+
+	dbCtx := mongo.NewSessionContext(l.ctx, session)
+	if err = session.StartTransaction(); err != nil {
+		fmt.Printf("[Error]添加客户[%s]交易记录：开启事务失败:%s\n", customer.Name, err.Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务器内部错误"
 		return resp, nil
 	}
 
-	//3.扣减客户应收款项
-	var update = bson.M{
-		"$inc": bson.M{
-			"receivable_balance": req.Amount,
-		},
+	idempotencyKey := strings.TrimSpace(req.IdempotencyKey)
+	if idempotencyKey == "" {
+		idempotencyKey = financeCode.IdempotencyKey(financeCode.SourceTypeManualAdjustment, primitive.NewObjectID().Hex())
 	}
 
-	_, err = l.svcCtx.CustomerModel.UpdateByID(l.ctx, customer.Id, &update)
+	_, err = customerfinance.PostTransaction(dbCtx, l.svcCtx, customerfinance.PostTransactionRequest{
+		TransactionType: transactionType,
+		Status:          financeCode.TransactionStatusConfirmed,
+		Code:            fmt.Sprintf("CT-%s-%d", time.Now().Format("20060102-15-04-05"), time.Now().UnixMilli()%1000),
+		SourceType:      financeCode.SourceTypeManualAdjustment,
+		SourceId:        idempotencyKey,
+		IdempotencyKey:  idempotencyKey,
+		CustomerId:      customer.Id.Hex(),
+		CustomerName:    customer.Name,
+		Amount:          req.Amount,
+		Annex:           strings.Join(req.Annex, ","),
+		Remark:          strings.TrimSpace(req.Remark),
+		Time:            req.Time,
+		Creator:         l.ctx.Value("uid").(string),
+		CreatorName:     l.ctx.Value("name").(string),
+	})
 	if err != nil {
-		fmt.Printf("[Error]扣减客户[%s]应收款项：%s\n", customer.Name, err.Error())
+		fmt.Printf("[Error]添加客户[%s]交易记录:%s\n", customer.Name, err.Error())
+		_ = session.AbortTransaction(dbCtx)
+		if msg, isBusiness := customerfinance.IsBusinessError(err); isBusiness {
+			resp.Code = http.StatusBadRequest
+			resp.Msg = msg
+			return resp, nil
+		}
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "服务器内部错误"
+		return resp, nil
+	}
+
+	if err = session.CommitTransaction(dbCtx); err != nil {
+		fmt.Printf("[Error]添加客户[%s]交易记录：提交事务失败:%s\n", customer.Name, err.Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务器内部错误"
 		return resp, nil
