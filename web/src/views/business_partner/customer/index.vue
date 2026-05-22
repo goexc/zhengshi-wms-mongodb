@@ -3,7 +3,7 @@
 import {onMounted, ref} from "vue";
 import {ElMessage, FormInstance} from "element-plus";
 import {Customer, CustomersRequest, CustomerStatusRequest} from "@/api/customer/types.ts";
-import {reqChangeCustomerStatus, reqCustomers} from "@/api/customer";
+import {reqChangeCustomerStatus, reqCustomers, reqRecountReceivableBalance} from "@/api/customer";
 import {Sizes, Types} from "@/utils/enum.ts";
 import {TimeFormat} from "@/utils/time.ts";
 import Item from "./components/Item.vue";
@@ -47,6 +47,7 @@ let statusType = (status: string) => {
 const oss_domain = ref<string>(import.meta.env.VITE_OSS_DOMAIN)
 
 let loading = ref<boolean>(false)
+let recounting = ref<boolean>(false)
 let customersForm = ref<CustomersRequest>(initCustomersForm())
 let customersRef = ref<FormInstance>()
 let customers = ref<Customer[]>([])
@@ -76,6 +77,18 @@ let handleSizeChange = () => {
 }
 let handleCurrentChange = () => {
   getCustomers()
+}
+
+const handleRecount = async () => {
+  recounting.value = true
+  let res = await reqRecountReceivableBalance()
+  if (res.code === 200) {
+    ElMessage.success(res.msg)
+    await getCustomers()
+  } else {
+    ElMessage.error(res.msg)
+  }
+  recounting.value = false
 }
 
 
@@ -214,6 +227,7 @@ onMounted(() => {
         class="data"
     >
       <el-button type="success" plain icon="CirclePlus" @click="add">添加客户</el-button>
+      <el-button type="warning" plain icon="Refresh" :loading="recounting" @click="handleRecount">重算应收</el-button>
       <!--   分页   -->
       <el-pagination
           class="m-t-2"

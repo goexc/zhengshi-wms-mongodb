@@ -46,6 +46,10 @@ func NewRecountLogic(ctx context.Context, svcCtx *svc.ServiceContext) *RecountLo
 	}
 }
 
+// Recount is an immediate repair action. It intentionally does not create a
+// preview, confirmation, or approval record; the caller triggers the repair
+// directly and this logic writes missing receivable adjustments plus balance
+// caches in customer-sized transactions.
 func (l *RecountLogic) Recount() (resp *types.BaseResponse, err error) {
 	resp = new(types.BaseResponse)
 
