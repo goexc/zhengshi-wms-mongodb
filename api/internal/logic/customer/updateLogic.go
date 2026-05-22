@@ -2,6 +2,7 @@ package customer
 
 import (
 	"api/model"
+	financeCode "api/pkg/code"
 	"context"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
@@ -53,8 +54,9 @@ func (l *UpdateLogic) Update(req *types.CustomerRequest) (resp *types.BaseRespon
 	}
 	//排除已删除的客户
 	filter := bson.M{
-		"_id":    id,
-		"status": bson.M{"$ne": "删除"},
+		"_id":        id,
+		"is_deleted": bson.M{"$ne": true},
+		"status":     bson.M{"$ne": "删除"},
 	}
 	count, err := l.svcCtx.CustomerModel.CountDocuments(l.ctx, filter)
 	if err != nil {
@@ -71,8 +73,9 @@ func (l *UpdateLogic) Update(req *types.CustomerRequest) (resp *types.BaseRespon
 
 	//2.客户名称是否重复
 	filter = bson.M{
-		"_id":    bson.M{"$ne": id},
-		"status": bson.M{"$ne": "删除"},
+		"_id":        bson.M{"$ne": id},
+		"is_deleted": bson.M{"$ne": true},
+		"status":     bson.M{"$ne": "删除"},
 		"$or": []bson.M{
 			{"name": strings.TrimSpace(req.Name)},
 			{"code": strings.TrimSpace(req.Code)},
@@ -115,6 +118,7 @@ func (l *UpdateLogic) Update(req *types.CustomerRequest) (resp *types.BaseRespon
 		"$set": bson.M{
 			"type":                             req.Type,
 			"name":                             strings.TrimSpace(req.Name),
+			"name_fingerprint":                 financeCode.CustomerNameFingerprint(req.Name),
 			"code":                             strings.TrimSpace(req.Code),
 			"image":                            strings.TrimSpace(req.Image),
 			"legal_representative":             strings.TrimSpace(req.LegalRepresentative),
@@ -124,7 +128,6 @@ func (l *UpdateLogic) Update(req *types.CustomerRequest) (resp *types.BaseRespon
 			"manager":                          req.Manager,
 			"email":                            req.Email,
 			"remark":                           req.Remark,
-			"receivable_balance":               req.ReceivableBalance,
 			"updated_at":                       time.Now().Unix(),
 		},
 	}
@@ -132,6 +135,11 @@ func (l *UpdateLogic) Update(req *types.CustomerRequest) (resp *types.BaseRespon
 	_, err = l.svcCtx.CustomerModel.UpdateByID(l.ctx, id, &update)
 	if err != nil {
 		fmt.Printf("[Error]更新客户[%s]信息：%s\n", req.Id, err.Error())
+		if mongo.IsDuplicateKeyError(err) {
+			resp.Code = http.StatusBadRequest
+			resp.Msg = "客户编号、名称或统一社会信用代码已占用"
+			return resp, nil
+		}
 		resp.Msg = "服务器内部错误"
 		resp.Code = http.StatusInternalServerError
 		return resp, nil

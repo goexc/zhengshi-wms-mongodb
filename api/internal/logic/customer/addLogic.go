@@ -1,7 +1,9 @@
 package customer
 
 import (
+	customerfinance "api/internal/logic/customer/finance"
 	"api/model"
+	financeCode "api/pkg/code"
 	"context"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
@@ -51,7 +53,8 @@ func (l *AddLogic) Add(req *types.CustomerRequest) (resp *types.BaseResponse, er
 			{"code": strings.TrimSpace(req.Code)},
 			{"unified_social_credit_identifier": strings.TrimSpace(req.UnifiedSocialCreditIdentifier)},
 		},
-		"status": bson.M{"$ne": "删除"},
+		"is_deleted": bson.M{"$ne": true},
+		"status":     bson.M{"$ne": "删除"},
 	}
 	singleRes := l.svcCtx.CustomerModel.FindOne(l.ctx, filter)
 	switch singleRes.Err() {
@@ -84,28 +87,96 @@ func (l *AddLogic) Add(req *types.CustomerRequest) (resp *types.BaseResponse, er
 		return resp, nil
 	}
 
+	session, err := l.svcCtx.DBClient.StartSession()
+	if err != nil {
+		fmt.Printf("[Error]客户[%s]入库：创建事务失败:%s\n", req.Name, err.Error())
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "服务器内部错误"
+		return resp, nil
+	}
+	defer session.EndSession(l.ctx)
+
+	dbCtx := mongo.NewSessionContext(l.ctx, session)
+	if err = session.StartTransaction(); err != nil {
+		fmt.Printf("[Error]客户[%s]入库：开启事务失败:%s\n", req.Name, err.Error())
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "服务器内部错误"
+		return resp, nil
+	}
+
 	//2.添加客户
 	var customer = model.Customer{
+		Id:                            primitive.NewObjectID(),
 		Type:                          req.Type,
 		Code:                          strings.TrimSpace(req.Code),
 		Image:                         strings.TrimSpace(req.Image),
 		LegalRepresentative:           strings.TrimSpace(req.LegalRepresentative),
 		UnifiedSocialCreditIdentifier: strings.TrimSpace(req.UnifiedSocialCreditIdentifier),
 		Name:                          strings.TrimSpace(req.Name),
+		NameFingerprint:               financeCode.CustomerNameFingerprint(req.Name),
 		Address:                       strings.TrimSpace(req.Address),
 		Contact:                       strings.TrimSpace(req.Contact),
 		Manager:                       strings.TrimSpace(req.Manager),
 		Status:                        "潜在", //默认:潜在
+		StatusCode:                    "",
+		IsDeleted:                     false,
 		Email:                         req.Email,
 		Remark:                        strings.TrimSpace(req.Remark),
-		ReceivableBalance:             req.ReceivableBalance,
+		ReceivableBalance:             0,
+		CreditBalance:                 0,
 		Creator:                       uObjectID,
 		CreatedAt:                     time.Now().Unix(),
 		UpdatedAt:                     time.Now().Unix(),
 	}
-	_, err = l.svcCtx.CustomerModel.InsertOne(l.ctx, &customer)
+	_, err = l.svcCtx.CustomerModel.InsertOne(dbCtx, &customer)
 	if err != nil {
 		fmt.Printf("[Error]客户[%s]入库:%s\n", req.Name, err.Error())
+		_ = session.AbortTransaction(dbCtx)
+		if mongo.IsDuplicateKeyError(err) {
+			resp.Code = http.StatusBadRequest
+			resp.Msg = "客户编号、名称或统一社会信用代码已占用"
+			return resp, nil
+		}
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "服务器内部错误"
+		return resp, nil
+	}
+
+	if req.ReceivableBalance > 0 {
+		now := time.Now().Unix()
+		if _, err = customerfinance.PostTransaction(dbCtx, l.svcCtx, customerfinance.PostTransactionRequest{
+			TransactionType: financeCode.TransactionTypeOpeningAR,
+			Status:          financeCode.TransactionStatusConfirmed,
+			Code:            fmt.Sprintf("CT-%s-%d", time.Now().Format("20060102-15-04-05"), time.Now().UnixMilli()%1000),
+			OrderCode:       customer.Code,
+			SourceType:      financeCode.SourceTypeOpening,
+			SourceId:        customer.Id.Hex(),
+			SourceCode:      customer.Code,
+			IdempotencyKey:  financeCode.IdempotencyKey(financeCode.TransactionTypeOpeningAR, customer.Id.Hex()),
+			CustomerId:      customer.Id.Hex(),
+			CustomerName:    customer.Name,
+			Amount:          req.ReceivableBalance,
+			Remark:          "期初应收",
+			Time:            now,
+			Creator:         l.ctx.Value("uid").(string),
+			CreatorName:     l.ctx.Value("name").(string),
+			CreatedAt:       now,
+		}); err != nil {
+			fmt.Printf("[Error]客户[%s]期初应收流水入库:%s\n", req.Name, err.Error())
+			_ = session.AbortTransaction(dbCtx)
+			if msg, isBusiness := customerfinance.IsBusinessError(err); isBusiness {
+				resp.Code = http.StatusBadRequest
+				resp.Msg = msg
+				return resp, nil
+			}
+			resp.Code = http.StatusInternalServerError
+			resp.Msg = "服务器内部错误"
+			return resp, nil
+		}
+	}
+
+	if err = session.CommitTransaction(dbCtx); err != nil {
+		fmt.Printf("[Error]客户[%s]入库：提交事务失败:%s\n", req.Name, err.Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务器内部错误"
 		return resp, nil

@@ -9,6 +9,7 @@ type InboundReceive struct {
 	Id               primitive.ObjectID       `json:"_id" bson:"_id,omitempty"`
 	InboundReceiptId string                   `json:"inbound_receipt_id" bson:"inbound_receipt_id"` //入库单id
 	Code             string                   `json:"code" bson:"code"`                             //批次入库编号
+	IdempotencyKey   string                   `json:"idempotency_key" bson:"idempotency_key"`       //批次入库幂等键，唯一索引使用 ASCII 内容
 	CarrierId        string                   `json:"carrier_id" bson:"carrier_id"`                 //承运商id
 	CarrierName      string                   `json:"carrier_name" bson:"carrier_name"`             //承运商名称
 	CarrierCost      float64                  `json:"carrier_cost" bson:"carrier_cost"`             //运费

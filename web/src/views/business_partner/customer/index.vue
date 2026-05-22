@@ -3,7 +3,7 @@
 import {onMounted, ref} from "vue";
 import {ElMessage, FormInstance} from "element-plus";
 import {Customer, CustomersRequest, CustomerStatusRequest} from "@/api/customer/types.ts";
-import {reqChangeCustomerStatus, reqCustomers, reqRecountReceivableBalance} from "@/api/customer";
+import {reqChangeCustomerStatus, reqCustomers} from "@/api/customer";
 import {Sizes, Types} from "@/utils/enum.ts";
 import {TimeFormat} from "@/utils/time.ts";
 import Item from "./components/Item.vue";
@@ -111,6 +111,7 @@ let initCustomer = () => {
     status: '',
     remark: '',
     receivable_balance: 0,
+    credit_balance: 0,
   }
 }
 
@@ -145,18 +146,6 @@ const changeStatus = (item: Customer) => {
 const handleSuccess = () => {
   getCustomers()
   visible.value = false
-}
-
-//重新统计应收账款
-const recountReceivableBalance = async () => {
-  loading.value = true
-  let res = await reqRecountReceivableBalance()
-  if (res.code === 200) {
-    ElMessage.success(res.msg)
-  } else {
-    ElMessage.error(res.msg)
-  }
-  loading.value = false
 }
 
 //查看客户交易流水
@@ -225,7 +214,6 @@ onMounted(() => {
         class="data"
     >
       <el-button type="success" plain icon="CirclePlus" @click="add">添加客户</el-button>
-      <el-button :disabled="loading" type="warning" plain icon="WarningFilled" @click="recountReceivableBalance">重新统计应收账款</el-button>
       <!--   分页   -->
       <el-pagination
           class="m-t-2"
@@ -280,9 +268,11 @@ onMounted(() => {
           <template #default="{row}">
 <!--          <template>-->
             <el-text class="money" type="danger" size="default">{{ row.receivable_balance.toFixed(4) }}</el-text>
+            <el-text v-if="row.credit_balance > 0" class="money" type="success" size="default">{{ row.credit_balance.toFixed(4) }}</el-text>
             <el-row>
               <el-text class="money" type="primary" size="small">+应收</el-text>
               <el-text class="money" type="primary" size="small">-结款</el-text>
+              <el-text v-if="row.credit_balance > 0" class="money" type="success" size="small">贷项</el-text>
               <el-text class="money" type="primary" size="small" @click="handleTransaction(row)">查看流水</el-text>
             </el-row>
           </template>
@@ -392,6 +382,7 @@ onMounted(() => {
       <Transaction
           v-if="visible&&action === 'transaction'"
           :customer="customer"
+          @success="getCustomers"
         />
     </el-dialog>
 

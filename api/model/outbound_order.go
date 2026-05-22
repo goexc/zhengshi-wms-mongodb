@@ -28,7 +28,8 @@ type OutboundOrder struct {
 	//生产用料出库
 	//退货出库
 	//损耗出库
-	Type         string  `json:"type" bson:"type"`                           //出库单类型
+	Type         string  `json:"type" bson:"type"`                           //出库单类型展示文案，兼容历史中文数据
+	TypeCode     string  `json:"type_code" bson:"type_code"`                 //出库单类型 code，财务策略和索引使用 ASCII 值
 	Code         string  `json:"code" bson:"code"`                           //出库单号
 	SupplierId   string  `json:"supplier_id" bson:"supplier_id"`             //供应商id
 	SupplierName string  `json:"supplier_name" bson:"supplier_name"`         //供应商名称
@@ -39,6 +40,9 @@ type OutboundOrder struct {
 	CarrierCost  float64 `json:"carrier_cost" bson:"carrier_cost"`           //运费
 	OtherCost    float64 `json:"other_cost" bson:"other_cost"`               //其他费用
 	TotalAmount  float64 `json:"total_amount" bson:"total_amount"`           //物料总金额
+	PriceStatus  string  `json:"price_status" bson:"price_status"`           //定价状态 code：unpriced、partial_priced、fully_priced
+	ArStatus     string  `json:"ar_status" bson:"ar_status"`                 //应收状态 code：pending、posted、adjusted、not_applicable
+	RevisionNo   int64   `json:"revision_no" bson:"revision_no"`             //核价修订次数，用于生成调价幂等键
 	Remark       string  `json:"remark" bson:"remark"`                       //备注
 	Annex        string  `json:"annex" bson:"annex"`                         //附件
 	//Receipt       string  `json:"receipt" bson:"receipt"`                     //签收收据

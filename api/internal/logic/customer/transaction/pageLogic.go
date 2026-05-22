@@ -4,6 +4,7 @@ import (
 	"api/internal/svc"
 	"api/internal/types"
 	"api/model"
+	financeCode "api/pkg/code"
 	"context"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
@@ -37,13 +38,13 @@ func (l *PageLogic) Page(req *types.CustomerTransactionPageRequest) (resp *types
 
 	customerId, err := primitive.ObjectIDFromHex(req.CustomerId)
 	if err != nil {
-		fmt.Printf("[Error]客户id[%s]格式错误：%s\n", req.CustomerId)
+		fmt.Printf("[Error]客户id[%s]格式错误：%s\n", req.CustomerId, err.Error())
 		resp.Code = http.StatusBadRequest
 		resp.Msg = "客户不存在"
 		return resp, nil
 	}
 
-	var filter = bson.M{"_id": customerId, "status": bson.M{"$ne": "删除"}}
+	var filter = bson.M{"_id": customerId, "is_deleted": bson.M{"$ne": true}, "status": bson.M{"$ne": "删除"}}
 	singleRes := l.svcCtx.CustomerModel.FindOne(l.ctx, filter)
 	switch singleRes.Err() {
 	case nil:
@@ -88,11 +89,16 @@ func (l *PageLogic) Page(req *types.CustomerTransactionPageRequest) (resp *types
 
 	for _, one := range transactions {
 		resp.Data.List = append(resp.Data.List, types.CustomerTransaction{
-			Type:   one.Type,
-			Time:   one.Time,
-			Amount: one.Amount,
-			Remark: one.Remark,
-			Annex:  one.Annex,
+			Type:            financeCode.TransactionTypeLabel(one.TransactionType, one.Type),
+			TransactionType: one.TransactionType,
+			Direction:       one.Direction,
+			Status:          one.Status,
+			SourceType:      one.SourceType,
+			SourceCode:      one.SourceCode,
+			Time:            one.Time,
+			Amount:          one.Amount,
+			Remark:          one.Remark,
+			Annex:           one.Annex,
 		})
 	}
 

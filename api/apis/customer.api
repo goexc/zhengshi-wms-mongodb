@@ -57,6 +57,7 @@ type Customer {
     Remark string `json:"remark"`                                                 //备注
     Status string `json:"status"`                                                 //状态
     ReceivableBalance float64            `json:"receivable_balance"` //应收账款
+    CreditBalance float64                `json:"credit_balance"` //贷项余额
     CreateBy string `json:"create_by,optional"`                                   //创建人
     CreatedAt int64 `json:"created_at,optional"`
     UpdatedAt int64 `json:"updated_at,optional"`

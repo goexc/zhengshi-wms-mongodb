@@ -8,7 +8,7 @@ import {
 import {reqAddCustomerTransaction, reqCustomerTransactions} from "@/api/customer";
 import {ElMessage, FormRules} from "element-plus";
 import {DateFormat} from "@/utils/time.ts";
-import {CustomerTransactionTypes} from "@/enums/customer.ts";
+import {CustomerTransactionTypeLabels, CustomerTransactionTypes} from "@/enums/customer.ts";
 import dayjs from "dayjs";
 
 defineOptions({
@@ -16,7 +16,7 @@ defineOptions({
 })
 
 const props = defineProps(['customer'])
-// const emit = defineEmits(['success', 'cancel'])
+const emit = defineEmits(['success'])
 
 const form = ref<CustomerTransactionPageRequest>({
   page: 1,
@@ -59,19 +59,32 @@ let handleCurrentChange = () => {
 //交易类型样式
 const transactionType = (type: string) => {
   switch (type) {
-    case '应收账款':
+    case 'outbound_ar':
+    case 'opening_ar':
+    case 'manual_adjustment':
       return ''
-    case '回款':
+    case 'payment':
       return 'success'
-    case '退货':
+    case 'return_credit':
+    case 'ar_adjustment':
       return 'danger'
     default:
       return ''
   }
 }
 
+const transactionLabel = (row: CustomerTransaction) => {
+  return row.type || CustomerTransactionTypeLabels[row.transaction_type] || row.transaction_type
+}
+
+const createIdempotencyKey = () => {
+  const uuid = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`
+  return `manual:${props.customer.id}:${uuid}`
+}
+
 //添加回款记录
 const handleRecord = () => {
+  recordForm.value.idempotency_key = createIdempotencyKey()
   visible.value = true
 }
 
@@ -79,7 +92,9 @@ const handleRecord = () => {
 const recordForm = ref<CustomerTransactionAddRequest>({
   customer_id: props.customer.id,
   time: 0,
-  type: '回款',
+  transaction_type: 'payment',
+  direction: 'receivable_decrease',
+  idempotency_key: '',
   amount: 0,
   remark: '',
   annex: [],
@@ -96,9 +111,9 @@ const rules = reactive<FormRules>({
     {type: "number", min: 1, message: '请选择交易时间', trigger: ['blur', 'change']},
     {type: "number", max: dayjs().unix(), message: '交易时间不能超过当前时间', trigger: ['blur', 'change']},
   ],
-  type: [
+  transaction_type: [
     {required: true, message: '必填', trigger: ['blur', 'change']},
-    {type: 'enum', enum: CustomerTransactionTypes, message: '请选择指定的交易类型', trigger: ['blur', 'change']},
+    {type: 'enum', enum: CustomerTransactionTypes.map(one => one.value), message: '请选择指定的交易类型', trigger: ['blur', 'change']},
   ],
   amount: [
     {required: true, message: '必填', trigger: ['blur', 'change']},
@@ -136,11 +151,17 @@ const handleAdd = async () => {
   }
 
   loading.value = true
+  if (!recordForm.value.idempotency_key) {
+    recordForm.value.idempotency_key = createIdempotencyKey()
+  }
+  const option = CustomerTransactionTypes.find(one => one.value === recordForm.value.transaction_type)
+  recordForm.value.direction = option?.direction || 'receivable_decrease'
   let res = await reqAddCustomerTransaction(recordForm.value)
   if (res.code === 200) {
     ElMessage.success(res.msg)
     visible.value = false
     await getTransactions()
+    emit('success')
   } else {
     ElMessage.error(res.msg)
   }
@@ -158,7 +179,7 @@ onMounted(() => {
   >
     <el-form-item>
       <el-button type="success" plain size="default" icon="CirclePlus" :loading="loading" @click="handleRecord">
-        添加回款记录
+        添加交易记录
       </el-button>
       <el-button type="primary" plain size="default" icon="Refresh" :loading="loading" @click="getTransactions">刷新
       </el-button>
@@ -190,7 +211,7 @@ onMounted(() => {
     <el-table-column label="序号" type="index" prop="index" width="60px" align="center"/>
     <el-table-column label="交易类型" prop="type" align="center">
       <template #default="{row}">
-        <el-tag :type="transactionType(row.type)">{{ row.type }}</el-tag>
+        <el-tag :type="transactionType(row.transaction_type)">{{ transactionLabel(row) }}</el-tag>
       </template>
 
     </el-table-column>
@@ -239,7 +260,7 @@ onMounted(() => {
   ></el-pagination>
   <el-dialog
       v-model.trim="visible"
-      title="添加回款记录"
+      title="添加交易记录"
       draggable
       width="800"
       :close-on-click-modal="false"
@@ -270,14 +291,14 @@ onMounted(() => {
       </el-form-item>
       <el-form-item
           label="交易类型"
-          prop="type"
+          prop="transaction_type"
       >
-        <el-radio-group v-model.trim="recordForm.type" size="default">
+        <el-radio-group v-model.trim="recordForm.transaction_type" size="default">
           <el-radio-button
               v-for="($type,$idx) in CustomerTransactionTypes"
               :key="$idx"
-              :label="$type"
-          />
+              :label="$type.value"
+          >{{ $type.label }}</el-radio-button>
         </el-radio-group>
       </el-form-item>
       <el-form-item
@@ -290,7 +311,7 @@ onMounted(() => {
           label="备注"
           prop="remark"
       >
-        <el-input size="default" v-model.number="recordForm.remark" placeholder="请填写备注" clearable/>
+        <el-input size="default" v-model.trim="recordForm.remark" placeholder="请填写备注" clearable/>
       </el-form-item>
       <el-form-item
           label="附件"

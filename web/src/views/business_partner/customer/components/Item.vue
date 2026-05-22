@@ -145,7 +145,7 @@ const submit = async () => {
     email: form.value.email,
     address: form.value.address,
     remark: form.value.remark,
-    receivable_balance: form.value.receivable_balance,
+    receivable_balance: form.value.id ? 0 : form.value.receivable_balance,
   })
 
   if (res.code === 200) {
@@ -235,7 +235,7 @@ const submit = async () => {
     <el-form-item label="备注" prop="remark">
       <el-input v-model.trim="form.remark" clearable/>
     </el-form-item>
-    <el-form-item label="应收账款余额" prop="receivable_balance">
+    <el-form-item v-if="!form.id" label="期初应收账款" prop="receivable_balance">
       <el-input v-model.number="form.receivable_balance" clearable/>
     </el-form-item>
     <el-form-item>

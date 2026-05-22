@@ -210,7 +210,7 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			},
 			{
 				// 重新统计应收账款
-				Method:  http.MethodGet,
+				Method:  http.MethodPost,
 				Path:    "/recount",
 				Handler: customer.RecountHandler(serverCtx),
 			},

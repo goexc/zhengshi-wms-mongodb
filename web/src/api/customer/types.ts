@@ -36,6 +36,7 @@ export interface Customer {
   status: string; //客户状态:10.审核中;20.审核不通过;30.活动;40.停用;50.黑名单;60.合同到期;100.删除
   remark: string; //备注
   receivable_balance: number; //应收账款余额
+  credit_balance: number; //贷项余额
   create_by?: string; //新增客户没有create_by，创建人
   created_at?: number; //
   updated_at?: number; //
@@ -83,9 +84,14 @@ export interface CustomerTransactionPaginate {
 
 export interface CustomerTransaction {
   type: string;//交易类型：应收账款、回款、退货
+  transaction_type: string; //交易类型 code
+  direction: string; //余额方向 code
+  status: string; //流水状态 code
+  source_type: string; //来源类型 code
+  source_code: string; //来源单据编号
   time: number; //交易时间
   amount: number; //交易金额
-  remark: number; //备注
+  remark: string; //备注
   annex: string; //附件
 }
 
@@ -93,7 +99,10 @@ export interface CustomerTransaction {
 export interface CustomerTransactionAddRequest {
   customer_id: string;//客户id
   time: number;//交易类型：应收账款、回款、退货
-  type: string;//交易时间
+  type?: string;//兼容旧字段，新增时不再提交中文枚举
+  transaction_type: string;//交易类型 code
+  direction: string;//余额方向 code
+  idempotency_key?: string;//幂等键
   amount: number;//交易金额
   remark: string;//备注
   annex: string[]; //附件

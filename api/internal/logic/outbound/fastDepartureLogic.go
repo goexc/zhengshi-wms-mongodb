@@ -1,7 +1,9 @@
 package outbound
 
 import (
+	customerfinance "api/internal/logic/customer/finance"
 	"api/model"
+	financeCode "api/pkg/code"
 	"context"
 	"fmt"
 	"math"
@@ -64,6 +66,7 @@ func (l *FastDepartureLogic) FastDeparture(req *types.FastOutboundRequest) (resp
 	name := l.ctx.Value("name").(string)
 	code := strings.TrimSpace(req.Code)
 	outboundType := strings.TrimSpace(req.Type)
+	outboundTypeCode := financeCode.OutboundTypeCodeFromLabel(outboundType)
 	customerIdText := strings.TrimSpace(req.CustomerId)
 
 	if _, ok := fastOutboundCustomerTypes[outboundType]; !ok {
@@ -225,6 +228,7 @@ func (l *FastDepartureLogic) FastDeparture(req *types.FastOutboundRequest) (resp
 
 	var inboundMaterials []model.InboundMaterial
 	var inboundInventories []interface{}
+	unpricedCount := 0
 
 	// 5. 库存不足时，按本次出库量补足约 20 次出库需求，并按 10000 批量向上取整。
 	for materialId, quantity := range materialQuantities {
@@ -276,6 +280,9 @@ func (l *FastDepartureLogic) FastDeparture(req *types.FastOutboundRequest) (resp
 	for materialId, quantity := range materialQuantities {
 		material := materialsMap[materialId]
 		price := materialPrices[materialId]
+		if price <= 0 {
+			unpricedCount++
+		}
 		qtyToDeduct := quantity
 		deductedInventories := make([]model.OutboundMaterialInventory, 0)
 
@@ -389,14 +396,18 @@ func (l *FastDepartureLogic) FastDeparture(req *types.FastOutboundRequest) (resp
 	}
 
 	outboundOrder := model.OutboundOrder{
+		Id:            primitive.NewObjectID(),
 		Status:        "已签收",
 		IsPack:        boolToInt(req.PackingTime > 0),
 		IsWeigh:       boolToInt(req.WeighingTime > 0),
 		Type:          outboundType,
+		TypeCode:      outboundTypeCode,
 		Code:          code,
 		CustomerId:    customer.Id.Hex(),
 		CustomerName:  customer.Name,
 		TotalAmount:   totalAmount.InexactFloat64(),
+		PriceStatus:   financeCode.OutboundPriceStatusFullyPriced,
+		ArStatus:      financeCode.OutboundARStatusNotApplicable,
 		CreatorId:     uid,
 		CreatorName:   name,
 		ConfirmTime:   pickingTime,
@@ -407,6 +418,17 @@ func (l *FastDepartureLogic) FastDeparture(req *types.FastOutboundRequest) (resp
 		ReceiptTime:   receiptTime,
 		CreatedAt:     now,
 		UpdatedAt:     now,
+	}
+	switch {
+	case unpricedCount == len(materialQuantities):
+		outboundOrder.PriceStatus = financeCode.OutboundPriceStatusUnpriced
+	case unpricedCount > 0:
+		outboundOrder.PriceStatus = financeCode.OutboundPriceStatusPartialPriced
+	default:
+		outboundOrder.PriceStatus = financeCode.OutboundPriceStatusFullyPriced
+	}
+	if financeCode.ShouldCreateReceivable(outboundTypeCode) {
+		outboundOrder.ArStatus = financeCode.OutboundARStatusPending
 	}
 
 	if _, err = l.svcCtx.OutboundOrderModel.InsertOne(dbCtx, &outboundOrder); err != nil {
@@ -460,33 +482,42 @@ func (l *FastDepartureLogic) FastDeparture(req *types.FastOutboundRequest) (resp
 		}
 	}
 
-	record := model.CustomerTransaction{
-		Type:         "应收账款",
-		Code:         fmt.Sprintf("CT-%s-%d", time.Now().Format("2006-01-02-15-04-05"), time.Now().UnixMilli()%1000),
-		OrderCode:    code,
-		CustomerId:   customer.Id.Hex(),
-		CustomerName: customer.Name,
-		Amount:       totalAmount.InexactFloat64(),
-		Annex:        "",
-		Remark:       "极速出库自动签收",
-		Time:         receiptTime,
-		Creator:      uid,
-		CreatorName:  name,
-		CreatedAt:    now,
-		UpdatedAt:    0,
-	}
-	if _, err = l.svcCtx.CustomerTransactionModel.InsertOne(dbCtx, &record); err != nil {
-		_ = session.AbortTransaction(dbCtx)
-		resp.Code = http.StatusInternalServerError
-		resp.Msg = "生成客户交易流水失败"
-		return resp, nil
-	}
+	if financeCode.ShouldCreateReceivable(outboundTypeCode) && outboundOrder.PriceStatus == financeCode.OutboundPriceStatusFullyPriced {
+		if _, err = customerfinance.PostTransaction(dbCtx, l.svcCtx, customerfinance.PostTransactionRequest{
+			TransactionType: financeCode.TransactionTypeOutboundAR,
+			Status:          financeCode.TransactionStatusConfirmed,
+			Code:            fmt.Sprintf("CT-%s-%d", time.Now().Format("2006-01-02-15-04-05"), time.Now().UnixMilli()%1000),
+			OrderCode:       code,
+			SourceType:      financeCode.SourceTypeOutboundOrder,
+			SourceId:        outboundOrder.Id.Hex(),
+			SourceCode:      code,
+			IdempotencyKey:  financeCode.IdempotencyKey(financeCode.TransactionTypeOutboundAR, outboundOrder.Id.Hex()),
+			CustomerId:      customer.Id.Hex(),
+			CustomerName:    customer.Name,
+			Amount:          totalAmount.InexactFloat64(),
+			Remark:          "极速出库自动签收",
+			Time:            receiptTime,
+			Creator:         uid,
+			CreatorName:     name,
+			CreatedAt:       now,
+		}); err != nil {
+			_ = session.AbortTransaction(dbCtx)
+			if msg, isBusiness := customerfinance.IsBusinessError(err); isBusiness {
+				resp.Code = http.StatusBadRequest
+				resp.Msg = msg
+				return resp, nil
+			}
+			resp.Code = http.StatusInternalServerError
+			resp.Msg = "生成客户交易流水失败"
+			return resp, nil
+		}
 
-	if _, err = l.svcCtx.CustomerModel.UpdateByID(dbCtx, customer.Id, bson.M{"$inc": bson.M{"receivable_balance": totalAmount.InexactFloat64()}}); err != nil {
-		_ = session.AbortTransaction(dbCtx)
-		resp.Code = http.StatusInternalServerError
-		resp.Msg = "更新客户应收余额失败"
-		return resp, nil
+		if _, err = l.svcCtx.OutboundOrderModel.UpdateByID(dbCtx, outboundOrder.Id, bson.M{"$set": bson.M{"ar_status": financeCode.OutboundARStatusPosted}}); err != nil {
+			_ = session.AbortTransaction(dbCtx)
+			resp.Code = http.StatusInternalServerError
+			resp.Msg = "更新出库单应收状态失败"
+			return resp, nil
+		}
 	}
 
 	if err = session.CommitTransaction(dbCtx); err != nil {

@@ -165,6 +165,7 @@ type Customer struct {
 	Remark                        string  `json:"remark"`                           //备注
 	Status                        string  `json:"status"`                           //状态
 	ReceivableBalance             float64 `json:"receivable_balance"`               //应收账款
+	CreditBalance                 float64 `json:"credit_balance"`                   //贷项余额
 	CreateBy                      string  `json:"create_by,optional"`               //创建人
 	CreatedAt                     int64   `json:"created_at,optional"`
 	UpdatedAt                     int64   `json:"updated_at,optional"`
@@ -205,20 +206,28 @@ type CustomerStatusRequest struct {
 }
 
 type CustomerTransaction struct {
-	Type   string  `json:"type"`   //交易类型：应收账款、回款、退货
-	Time   int64   `json:"time"`   //交易时间
-	Amount float64 `json:"amount"` //交易金额
-	Remark string  `json:"remark"` //备注
-	Annex  string  `json:"annex"`  //附件
+	Type            string  `json:"type"`             //交易类型展示文案
+	TransactionType string  `json:"transaction_type"` //交易类型 code，业务判断使用英文值
+	Direction       string  `json:"direction"`        //余额方向 code
+	Status          string  `json:"status"`           //流水状态 code
+	SourceType      string  `json:"source_type"`      //来源类型 code
+	SourceCode      string  `json:"source_code"`      //来源单据编号
+	Time            int64   `json:"time"`             //交易时间
+	Amount          float64 `json:"amount"`           //交易金额
+	Remark          string  `json:"remark"`           //备注
+	Annex           string  `json:"annex"`            //附件
 }
 
 type CustomerTransactionAddRequest struct {
-	CustomerId string   `json:"customer_id,optional" validate:"required,mongodb" comment:"客户"`
-	Time       int64    `json:"time,optional" validate:"required,gt=0" comment:"交易时间"`             //交易时间
-	Type       string   `json:"type,optional" validate:"required,oneof=应收账款 回款 退货" comment:"交易类型"` //交易类型：应收账款、回款、退货
-	Amount     float64  `json:"amount,optional" validate:"required,gt=0" comment:"交易金额"`           //交易金额
-	Annex      []string `json:"annex,optional" validate:"omitempty,dive,gt=3" comment:"附件"`        //附件
-	Remark     string   `json:"remark,optional" validate:"omitempty" comment:"备注"`                 //备注
+	CustomerId      string   `json:"customer_id,optional" validate:"required,mongodb" comment:"客户"`
+	Time            int64    `json:"time,optional" validate:"required,gt=0" comment:"交易时间"` //交易时间
+	Type            string   `json:"type,optional" validate:"omitempty" comment:"交易类型"`     //兼容旧前端的中文交易类型
+	TransactionType string   `json:"transaction_type,optional" validate:"omitempty,oneof=payment return_credit" comment:"交易类型code"`
+	Direction       string   `json:"direction,optional" validate:"omitempty,oneof=receivable_increase receivable_decrease" comment:"余额方向code"`
+	IdempotencyKey  string   `json:"idempotency_key,optional" validate:"omitempty" comment:"幂等键"`
+	Amount          float64  `json:"amount,optional" validate:"required,gt=0" comment:"交易金额"`    //交易金额
+	Annex           []string `json:"annex,optional" validate:"omitempty,dive,gt=3" comment:"附件"` //附件
+	Remark          string   `json:"remark,optional" validate:"omitempty" comment:"备注"`          //备注
 }
 
 type CustomerTransactionPageRequest struct {
@@ -300,15 +309,15 @@ type FastOutboundMaterial struct {
 }
 
 type FastOutboundRequest struct {
-	Code          string                 `json:"code,optional" validate:"required"`                // 单号
+	Code          string                 `json:"code,optional" validate:"required"`                      // 单号
 	Type          string                 `json:"type,optional" validate:"required,oneof=销售出库 样品出库 赠品出库"` // 出库类型
-	CustomerId    string                 `json:"customer_id,optional" validate:"required,mongodb"` // 客户
-	DepartureTime int64                  `json:"departure_time,optional" validate:"required,gt=0"` // 发货时间
-	PickingTime   int64                  `json:"picking_time,optional" validate:"omitempty,gt=0"`  // 拣货时间
-	PackingTime   int64                  `json:"packing_time,optional" validate:"omitempty,gt=0"`  // 打包时间
-	WeighingTime  int64                  `json:"weighing_time,optional" validate:"omitempty,gt=0"` // 称重时间
-	ReceiptTime   int64                  `json:"receipt_time,optional" validate:"omitempty,gt=0"`  // 签收时间
-	Materials     []FastOutboundMaterial `json:"materials,optional" validate:"required,gt=0,dive"` // 物料及数量
+	CustomerId    string                 `json:"customer_id,optional" validate:"required,mongodb"`       // 客户
+	DepartureTime int64                  `json:"departure_time,optional" validate:"required,gt=0"`       // 发货时间
+	PickingTime   int64                  `json:"picking_time,optional" validate:"omitempty,gt=0"`        // 拣货时间
+	PackingTime   int64                  `json:"packing_time,optional" validate:"omitempty,gt=0"`        // 打包时间
+	WeighingTime  int64                  `json:"weighing_time,optional" validate:"omitempty,gt=0"`       // 称重时间
+	ReceiptTime   int64                  `json:"receipt_time,optional" validate:"omitempty,gt=0"`        // 签收时间
+	Materials     []FastOutboundMaterial `json:"materials,optional" validate:"required,gt=0,dive"`       // 物料及数量
 }
 
 type ImageItem struct {

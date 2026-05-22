@@ -1,10 +1,12 @@
 package receipt
 
 import (
+	customerfinance "api/internal/logic/customer/finance"
 	"api/internal/svc"
 	"api/internal/types"
 	"api/model"
 	"api/pkg/code"
+	financeCode "api/pkg/code"
 	"context"
 	"fmt"
 	"github.com/shopspring/decimal"
@@ -312,6 +314,7 @@ func (l *ReceiveLogic) Receive(req *types.InboundReceiptReceiveRequest) (resp *t
 	var inboundReceive = model.InboundReceive{
 		InboundReceiptId: req.Id,
 		Code:             req.Code,
+		IdempotencyKey:   financeCode.IdempotencyKey(financeCode.SourceTypeInboundReturn, req.Id, req.Code),
 		CarrierId:        req.CarrierId,
 		CarrierName:      carrier.Name,
 		CarrierCost:      req.CarrierCost,
@@ -326,11 +329,34 @@ func (l *ReceiveLogic) Receive(req *types.InboundReceiptReceiveRequest) (resp *t
 		CreatedAt:        time.Now().Unix(),
 	}
 
+	session, err := l.svcCtx.DBClient.StartSession()
+	if err != nil {
+		fmt.Printf("[Error]批次入库创建事务:%s\n", err.Error())
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "服务器内部错误"
+		return resp, nil
+	}
+	defer session.EndSession(l.ctx)
+
+	dbCtx := mongo.NewSessionContext(l.ctx, session)
+	if err = session.StartTransaction(); err != nil {
+		fmt.Printf("[Error]批次入库开启事务:%s\n", err.Error())
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "服务器内部错误"
+		return resp, nil
+	}
+
 	//4.记录批次入库
 	//4.1 查询仓库
-	_, err = l.svcCtx.InboundReceiptReceiveModel.InsertOne(l.ctx, &inboundReceive)
+	_, err = l.svcCtx.InboundReceiptReceiveModel.InsertOne(dbCtx, &inboundReceive)
 	if err != nil {
 		fmt.Printf("[Error]批次入库:%s\n", err.Error())
+		_ = session.AbortTransaction(dbCtx)
+		if mongo.IsDuplicateKeyError(err) {
+			resp.Code = http.StatusBadRequest
+			resp.Msg = "批次入库编号已处理，请勿重复提交"
+			return resp, nil
+		}
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务器内部错误"
 		return resp, nil
@@ -344,9 +370,10 @@ func (l *ReceiveLogic) Receive(req *types.InboundReceiptReceiveRequest) (resp *t
 			"materials":    receipt.Materials,
 		},
 	}
-	_, err = l.svcCtx.InboundReceiptModel.UpdateByID(l.ctx, receipt.Id, &update)
+	_, err = l.svcCtx.InboundReceiptModel.UpdateByID(dbCtx, receipt.Id, &update)
 	if err != nil {
 		fmt.Printf("[Error]更新入库单[%s]物料状态：%s\n", req.Id, err.Error())
+		_ = session.AbortTransaction(dbCtx)
 		resp.Msg = "服务器内部错误"
 		resp.Code = http.StatusInternalServerError
 		return resp, nil
@@ -359,9 +386,48 @@ func (l *ReceiveLogic) Receive(req *types.InboundReceiptReceiveRequest) (resp *t
 
 	//6.2 退货入库流水
 	case receipt.Type == "退货入库":
+		returnAmount := totalAmount.Abs()
+		if returnAmount.GreaterThan(decimal.Zero) {
+			now := time.Now().Unix()
+			transactionTime := req.ReceivingDate
+			if transactionTime == 0 {
+				transactionTime = now
+			}
+			if _, err = customerfinance.PostTransaction(dbCtx, l.svcCtx, customerfinance.PostTransactionRequest{
+				TransactionType: financeCode.TransactionTypeReturnCredit,
+				Status:          financeCode.TransactionStatusConfirmed,
+				Code:            fmt.Sprintf("CT-%s-%d", time.Now().Format("20060102-15-04-05"), time.Now().UnixMilli()%1000),
+				OrderCode:       req.Code,
+				SourceType:      financeCode.SourceTypeInboundReturn,
+				SourceId:        req.Id,
+				SourceCode:      req.Code,
+				IdempotencyKey:  financeCode.IdempotencyKey(financeCode.TransactionTypeReturnCredit, req.Id, req.Code),
+				CustomerId:      receipt.CustomerId,
+				CustomerName:    receipt.CustomerName,
+				Amount:          returnAmount.InexactFloat64(),
+				Remark:          fmt.Sprintf("退货入库单:%s", receipt.Code),
+				Time:            transactionTime,
+				Creator:         l.ctx.Value("uid").(string),
+				CreatorName:     l.ctx.Value("name").(string),
+				CreatedAt:       now,
+			}); err != nil {
+				fmt.Printf("[Error]添加客户[%s]退货入库[%s]流水:%s\n", receipt.CustomerName, req.Code, err.Error())
+				_ = session.AbortTransaction(dbCtx)
+				if msg, isBusiness := customerfinance.IsBusinessError(err); isBusiness {
+					resp.Code = http.StatusBadRequest
+					resp.Msg = msg
+					return resp, nil
+				}
+				resp.Code = http.StatusInternalServerError
+				resp.Msg = "服务器内部错误"
+				return resp, nil
+			}
+
+		}
 
 	default:
 		fmt.Printf("[Error]入库类型[%s]异常，本批次入库未计入流水\n", receipt.Type)
+		_ = session.AbortTransaction(dbCtx)
 		resp.Code = http.StatusBadRequest
 		resp.Msg = fmt.Sprintf("[Error]入库类型[%s]异常，本批次入库未计入流水", receipt.Type)
 		return resp, nil
@@ -397,8 +463,18 @@ func (l *ReceiveLogic) Receive(req *types.InboundReceiptReceiveRequest) (resp *t
 		})
 	}
 
-	_, err = l.svcCtx.InventoryModel.InsertMany(l.ctx, inventorys)
-	if err != nil {
+	if len(inventorys) > 0 {
+		_, err = l.svcCtx.InventoryModel.InsertMany(dbCtx, inventorys)
+		if err != nil {
+			_ = session.AbortTransaction(dbCtx)
+			resp.Code = http.StatusInternalServerError
+			resp.Msg = "服务器内部错误"
+			return resp, nil
+		}
+	}
+
+	if err = session.CommitTransaction(dbCtx); err != nil {
+		fmt.Printf("[Error]批次入库提交事务:%s\n", err.Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务器内部错误"
 		return resp, nil

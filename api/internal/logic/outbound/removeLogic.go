@@ -55,11 +55,11 @@ func (l *RemoveLogic) Remove(req *types.OutboundOrderIdRequest) (resp *types.Bas
 			return resp, nil
 		}
 
-		//if _, ok := canDeleteStatus[receipt.Status]; !ok {
-		//	resp.Code = http.StatusBadRequest
-		//	resp.Msg = fmt.Sprintf("无法删除[%s]状态的出库单", receipt.Status)
-		//	return resp, nil
-		//}
+		if receipt.Status == "已签收" {
+			resp.Code = http.StatusBadRequest
+			resp.Msg = "已签收出库单已入账，不能删除，请通过退货或调账处理"
+			return resp, nil
+		}
 
 	case mongo.ErrNoDocuments: //出库单不存在
 		resp.Code = http.StatusBadRequest
