@@ -133,7 +133,7 @@ const resolveCustomerName = async (customerId: string) => {
 }
 
 const buildReportTitle = () => {
-  return `x司（${DateFormat(searchedForm.value.start_date)} 至 ${DateFormat(searchedForm.value.end_date)}）`
+  return `诸城市双喜机械有限公司（${DateFormat(searchedForm.value.start_date)} 至 ${DateFormat(searchedForm.value.end_date)}）`
 }
 
 const buildFileName = (type: string) => {
