@@ -162,7 +162,8 @@ func (l *Page2Logic) Page2(req *types.OutboundOrdersRequest) (resp *types.Outbou
 		return resp, nil
 	}
 
-	cur, err = l.svcCtx.OutboundMaterialModel.Find(l.ctx, bson.M{"order_code": bson.M{"$in": codes}})
+	materialOpt := options.Find().SetSort(bson.D{{"order_code", 1}, {"index", 1}})
+	cur, err = l.svcCtx.OutboundMaterialModel.Find(l.ctx, bson.M{"order_code": bson.M{"$in": codes}}, materialOpt)
 	if err != nil {
 		fmt.Printf("[Error]查询出库单分页物料:%s\n", err.Error())
 		resp.Code = http.StatusInternalServerError

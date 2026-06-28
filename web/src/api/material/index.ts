@@ -5,10 +5,23 @@ import {
   MaterialCategoryIdRequest,
   MaterialCategoryRequest,
   MaterialCategorysResponse,
-  MaterialIdRequest, MaterialPricesResponse,
+  MaterialDeliveryRebuildTaskPageResponse,
+  MaterialDeliveryRebuildTaskRequest,
+  MaterialDeliveryRebuildTaskResponse,
+  MaterialIdRequest,
+  MaterialPricesResponse,
+  MaterialQuoteIdRequest,
+  MaterialQuotePageRequest,
+  MaterialQuotePageResponse,
+  MaterialQuotePriceRequest,
+  MaterialQuoteResponse,
+  MaterialQuoteSaveRequest,
   MaterialRequest,
   MaterialsRequest,
-  MaterialsResponse
+  MaterialsResponse,
+  NewCustomerMaterialExportRequest,
+  NewCustomerMaterialRequest,
+  NewCustomerMaterialResponse
 } from "@/api/material/types.ts";
 
 enum API {
@@ -23,6 +36,12 @@ enum API {
 
   //查询/删除物料单价
   MATERIAL_PRICE_URL = '/material/price',
+
+  //客户新增物料
+  MATERIAL_NEW_DELIVERY_URL = '/material/new_delivery',
+
+  //物料报价
+  MATERIAL_QUOTE_URL = '/material/quote',
 
 }
 
@@ -79,3 +98,54 @@ export const reqMaterialPrices = (material_id:string, customer_id:string) =>
 //删除物料单价
 export const reqRemoveMaterialPrice = (id:string, customer_id:string, price:number) =>
   request.delete<any, baseResponse>(API.MATERIAL_PRICE_URL, {params: {id:id, customer_id:customer_id, price:price}})
+
+//查询客户新增物料
+export const reqNewCustomerMaterials = (req: NewCustomerMaterialRequest) =>
+  request.get<any, NewCustomerMaterialResponse>(API.MATERIAL_NEW_DELIVERY_URL, {params: req});
+
+//重建客户新增物料记录
+export const reqExportNewCustomerMaterialQuotes = (data: NewCustomerMaterialExportRequest) =>
+  request.post<any, Blob>(`${API.MATERIAL_NEW_DELIVERY_URL}/quote/export`, data, {responseType: 'blob'});
+
+export const reqRebuildNewCustomerMaterials = () =>
+  request.post<any, MaterialDeliveryRebuildTaskResponse>(`${API.MATERIAL_NEW_DELIVERY_URL}/rebuild`, {});
+
+//查询最近一次客户新增物料重建任务
+export const reqLatestMaterialDeliveryRebuildTask = () =>
+  request.get<any, MaterialDeliveryRebuildTaskResponse>(`${API.MATERIAL_NEW_DELIVERY_URL}/rebuild/latest`);
+
+//查询客户新增物料重建任务列表
+export const reqMaterialDeliveryRebuildTasks = (req: MaterialDeliveryRebuildTaskRequest) =>
+  request.get<any, MaterialDeliveryRebuildTaskPageResponse>(`${API.MATERIAL_NEW_DELIVERY_URL}/rebuild/tasks`, {params: req});
+
+//保存物料报价
+export const reqSaveMaterialQuote = (data: MaterialQuoteSaveRequest) => {
+  if (data.id.trim().length === 0) {
+    return request.post<any, MaterialQuoteResponse>(API.MATERIAL_QUOTE_URL, data);
+  }
+  return request.put<any, MaterialQuoteResponse>(API.MATERIAL_QUOTE_URL, data);
+};
+
+//查询报价单分页
+export const reqMaterialQuotes = (req: MaterialQuotePageRequest) =>
+  request.get<any, MaterialQuotePageResponse>(API.MATERIAL_QUOTE_URL, {params: req});
+
+//查询报价单详情
+export const reqMaterialQuoteInfo = (req: MaterialQuoteIdRequest) =>
+  request.get<any, MaterialQuoteResponse>(`${API.MATERIAL_QUOTE_URL}/info`, {params: req});
+
+//提交物料报价
+export const reqSubmitMaterialQuote = (data: MaterialQuoteIdRequest) =>
+  request.post<any, MaterialQuoteResponse>(`${API.MATERIAL_QUOTE_URL}/submit`, data);
+
+//导出物料报价
+export const reqExportMaterialQuote = (data: MaterialQuoteIdRequest) =>
+  request.post<any, Blob>(`${API.MATERIAL_QUOTE_URL}/export`, data, {responseType: 'blob'});
+
+//报价转最终定价
+export const reqPriceMaterialQuote = (data: MaterialQuotePriceRequest) =>
+  request.post<any, MaterialQuoteResponse>(`${API.MATERIAL_QUOTE_URL}/price`, data);
+
+//作废物料报价
+export const reqVoidMaterialQuote = (data: MaterialQuoteIdRequest) =>
+  request.patch<any, baseResponse>(`${API.MATERIAL_QUOTE_URL}/void`, data);

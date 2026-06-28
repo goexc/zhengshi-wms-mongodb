@@ -1,6 +1,7 @@
 package outbound
 
 import (
+	materialdelivery "api/internal/logic/material/delivery"
 	"api/internal/svc"
 	"api/internal/types"
 	"api/model"
@@ -43,7 +44,7 @@ func (l *DepartureLogic) Departure(req *types.OutboundOrderDepartureRequest) (re
 		resp.Msg = "出库单不存在"
 		return resp, nil
 	default: //其他错误
-		fmt.Printf("[Error]查询出库单[%s]:%s\n", req.Code, err.Error())
+		fmt.Printf("[Error]查询出库单[%s]:%s\n", req.Code, singleRes.Err().Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务内部错误"
 		return resp, nil
@@ -100,7 +101,45 @@ func (l *DepartureLogic) Departure(req *types.OutboundOrderDepartureRequest) (re
 
 	fmt.Println("承运商：", carrier.Name)
 
-	//2.修改发货单状态：“已拣货”、“已打包”、“已称重”->“已出库”
+	session, err := l.svcCtx.DBClient.StartSession()
+	if err != nil {
+		fmt.Printf("[Error]出库单[%s]创建出库事务：%s\n", req.Code, err.Error())
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "服务器内部错误"
+		return resp, nil
+	}
+	defer session.EndSession(l.ctx)
+
+	dbCtx := mongo.NewSessionContext(l.ctx, session)
+	if err = session.StartTransaction(); err != nil {
+		fmt.Printf("[Error]出库单[%s]开启出库事务：%s\n", req.Code, err.Error())
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "服务器内部错误"
+		return resp, nil
+	}
+
+	//2.查询发货单物料，后续用于维护客户首次交付记录
+	cur, err := l.svcCtx.OutboundMaterialModel.Find(dbCtx, bson.M{"order_code": strings.TrimSpace(req.Code)})
+	if err != nil {
+		_ = session.AbortTransaction(dbCtx)
+		fmt.Printf("[Error]查询出库单[%s]物料列表：%s\n", req.Code, err.Error())
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "服务器内部错误"
+		return resp, nil
+	}
+
+	var materials []model.OutboundOrderMaterial
+	if err = cur.All(dbCtx, &materials); err != nil {
+		_ = cur.Close(dbCtx)
+		_ = session.AbortTransaction(dbCtx)
+		fmt.Printf("[Error]解析出库单[%s]物料列表：%s\n", req.Code, err.Error())
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "服务器内部错误"
+		return resp, nil
+	}
+	_ = cur.Close(dbCtx)
+
+	//3.修改发货单状态：“已拣货”、“已打包”、“已称重”->“已出库”
 	var update = bson.M{
 		"$set": bson.M{
 			"status":         "已出库",
@@ -111,9 +150,39 @@ func (l *DepartureLogic) Departure(req *types.OutboundOrderDepartureRequest) (re
 			"departure_time": req.DepartureTime,
 		},
 	}
-	_, err = l.svcCtx.OutboundOrderModel.UpdateOne(l.ctx, bson.M{"code": strings.TrimSpace(req.Code)}, update)
+	updateRes, err := l.svcCtx.OutboundOrderModel.UpdateOne(dbCtx, bson.M{"_id": order.Id, "status": order.Status}, update)
 	if err != nil {
+		_ = session.AbortTransaction(dbCtx)
 		fmt.Printf("[Error]更新出库单[%s]状态(已出库)：%s\n", req.Code, err.Error())
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "服务器内部错误"
+		return resp, nil
+	}
+	if updateRes.MatchedCount != 1 {
+		_ = session.AbortTransaction(dbCtx)
+		resp.Code = http.StatusBadRequest
+		resp.Msg = "出库单状态已变化，请刷新后重试"
+		return resp, nil
+	}
+
+	deliveredOrder := order
+	deliveredOrder.Status = "已出库"
+	deliveredOrder.CarrierId = req.CarrierId
+	deliveredOrder.CarrierName = carrier.Name
+	deliveredOrder.CarrierCost = req.CarrierCost
+	deliveredOrder.OtherCost = req.OtherCost
+	deliveredOrder.DepartureTime = req.DepartureTime
+
+	if err = materialdelivery.SyncCustomerMaterialDeliveries(dbCtx, l.svcCtx, deliveredOrder, materials); err != nil {
+		_ = session.AbortTransaction(dbCtx)
+		fmt.Printf("[Error]维护出库单[%s]客户物料首次交付记录：%s\n", req.Code, err.Error())
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "维护客户物料首次交付记录失败"
+		return resp, nil
+	}
+
+	if err = session.CommitTransaction(dbCtx); err != nil {
+		fmt.Printf("[Error]出库单[%s]提交出库事务：%s\n", req.Code, err.Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务器内部错误"
 		return resp, nil

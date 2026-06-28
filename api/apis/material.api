@@ -143,3 +143,189 @@ type MaterialPriceRequest {
     CustomerId string `form:"customer_id,optional" validate:"required,mongodb" comment:"客户"` //客户id
     Price float64 `form:"price,optional" validate:"number" comment:"单价"`
 }
+
+type NewCustomerMaterialRequest {
+    Page int64 `form:"page,optional" validate:"required,gte=1" comment:"页码"`                         // 页码
+    Size int64 `form:"size,optional" validate:"required,gte=5,lte=100" comment:"每页条数"`                // 每页条数
+    CustomerId string `form:"customer_id,optional" validate:"required,mongodb" comment:"客户id"`         // 客户id
+    StartTime int64 `form:"start_time,optional" validate:"required,gt=0" comment:"首次交付开始时间"`          // 首次交付开始时间
+    EndTime int64 `form:"end_time,optional" validate:"required,gt=0" comment:"首次交付结束时间"`              // 首次交付结束时间
+    QuoteStatus string `form:"quote_status,optional" validate:"omitempty,oneof=unquoted quoting quoted priced" comment:"报价状态"` // 报价状态：unquoted、quoting、quoted、priced
+    MaterialName string `form:"material_name,optional" validate:"omitempty" comment:"物料名称"`           // 物料名称
+    MaterialModel string `form:"material_model,optional" validate:"omitempty" comment:"物料型号"`          // 物料型号
+}
+
+type NewCustomerMaterialExportRequest {
+    CustomerId string `json:"customer_id" validate:"required,mongodb" comment:"customer id"`                  // customer id
+    StartTime int64 `json:"start_time" validate:"required,gt=0" comment:"first delivery start time"`          // first delivery start time
+    EndTime int64 `json:"end_time" validate:"required,gt=0" comment:"first delivery end time"`                // first delivery end time
+    QuoteStatus string `json:"quote_status,optional" validate:"omitempty,oneof=unquoted quoting quoted priced" comment:"quote status"` // quote status
+    MaterialName string `json:"material_name,optional" validate:"omitempty" comment:"material name"`           // material name
+    MaterialModel string `json:"material_model,optional" validate:"omitempty" comment:"material model"`        // material model
+}
+type NewCustomerMaterialItem {
+    Id string `json:"id"`                                            // 客户物料首次交付记录id
+    CustomerId string `json:"customer_id"`                           // 客户id
+    CustomerName string `json:"customer_name"`                       // 客户名称
+    MaterialId string `json:"material_id"`                           // 物料id
+    MaterialName string `json:"material_name"`                       // 物料名称
+    MaterialModel string `json:"material_model"`                     // 物料型号
+    MaterialSpecification string `json:"material_specification"`     // 物料规格
+    MaterialUnit string `json:"material_unit"`                       // 物料单位
+    FirstDeliveryTime int64 `json:"first_delivery_time"`             // 首次交付时间
+    FirstDeliveryOrderCode string `json:"first_delivery_order_code"` // 首次交付出库单号
+    FirstDeliveryQuantity float64 `json:"first_delivery_quantity"`   // 首次交付数量
+    FirstDeliveryPrice float64 `json:"first_delivery_price"`         // 首次交付单价
+    QuoteStatus string `json:"quote_status"`                         // 报价状态
+    LatestQuoteId string `json:"latest_quote_id"`                    // 最新报价单id
+    LatestQuoteNo string `json:"latest_quote_no"`                    // 最新报价单号
+    LatestPrice float64 `json:"latest_price"`                        // 最新报价或最终定价
+}
+
+type NewCustomerMaterialPaginate {
+    Total int64 `json:"total"`                   // 总数
+    List []NewCustomerMaterialItem `json:"list"` // 客户新增物料列表
+}
+
+type NewCustomerMaterialResponse {
+    Code int `json:"code"`                         // 响应状态码
+    Msg string `json:"msg"`                        // 响应消息
+    Data NewCustomerMaterialPaginate `json:"data"` // 分页数据
+}
+
+type MaterialDeliveryRebuildTask {
+    Id string `json:"id"`                              // 重建任务id
+    Status string `json:"status"`                      // 任务状态：queued、running、success、failed
+    OrderCount int64 `json:"order_count"`              // 已扫描出库单数量
+    DeliveryCount int64 `json:"delivery_count"`        // 已生成或更新的客户新增物料记录数量
+    Message string `json:"message"`                    // 任务执行消息
+    ErrorMessage string `json:"error_message"`         // 失败原因
+    CreatorId string `json:"creator_id"`               // 创建人id
+    CreatorName string `json:"creator_name"`           // 创建人名称
+    CreatedAt int64 `json:"created_at"`                // 创建时间
+    StartedAt int64 `json:"started_at"`                // 开始执行时间
+    FinishedAt int64 `json:"finished_at"`              // 结束时间
+    UpdatedAt int64 `json:"updated_at"`                // 更新时间
+}
+
+type MaterialDeliveryRebuildTaskRequest {
+    Page int64 `form:"page,optional" validate:"required,gte=1" comment:"页码"`                  // 页码
+    Size int64 `form:"size,optional" validate:"required,gte=5,lte=100" comment:"每页条数"`       // 每页条数
+    Status string `form:"status,optional" validate:"omitempty,oneof=queued running success failed" comment:"任务状态"` // 任务状态
+}
+
+type MaterialDeliveryRebuildTaskPaginate {
+    Total int64 `json:"total"`                         // 总数
+    List []MaterialDeliveryRebuildTask `json:"list"`   // 重建任务列表
+}
+
+type MaterialDeliveryRebuildTaskResponse {
+    Code int `json:"code"`                             // 响应状态码
+    Msg string `json:"msg"`                            // 响应消息
+    Data MaterialDeliveryRebuildTask `json:"data"`     // 重建任务
+}
+
+type MaterialDeliveryRebuildTaskPageResponse {
+    Code int `json:"code"`                                  // 响应状态码
+    Msg string `json:"msg"`                                 // 响应消息
+    Data MaterialDeliveryRebuildTaskPaginate `json:"data"`  // 分页数据
+}
+
+type MaterialQuoteCostItem {
+    Index int `json:"index"`                   // 成本项排序序号，前端按升序展示
+    CategoryCode string `json:"category_code"` // 成本类型编码
+    CategoryName string `json:"category_name"` // 成本类型名称
+    Name string `json:"name"`                  // 成本项名称
+    Enabled bool `json:"enabled"`              // 是否启用该成本项
+    Custom bool `json:"custom"`                // 是否为手工新增的定制成本项
+    Amount float64 `json:"amount"`             // 成本金额
+    Remark string `json:"remark"`              // 成本项备注
+}
+
+type MaterialQuote {
+    Id string `json:"id"`                                          // 报价单id
+    QuoteNo string `json:"quote_no"`                               // 报价单号
+    CustomerId string `json:"customer_id"`                         // 客户id
+    CustomerName string `json:"customer_name"`                     // 客户名称
+    MaterialId string `json:"material_id"`                         // 物料id
+    MaterialName string `json:"material_name"`                     // 物料名称
+    MaterialModel string `json:"material_model"`                   // 物料型号
+    MaterialSpecification string `json:"material_specification"`   // 物料规格
+    MaterialUnit string `json:"material_unit"`                     // 物料单位
+    DeliveryId string `json:"delivery_id"`                         // 客户物料首次交付记录id
+    SourceOrderCode string `json:"source_order_code"`              // 来源首次交付出库单号
+    QuoteMode string `json:"quote_mode"`                           // 报价方式：detailed详细报价、simple简单报价
+    Status string `json:"status"`                                  // 报价状态
+    Currency string `json:"currency"`                              // 币种
+    CostItems []MaterialQuoteCostItem `json:"cost_items"`          // 详细报价成本项
+    SimplePrice float64 `json:"simple_price"`                      // 简单报价单价
+    TotalCost float64 `json:"total_cost"`                          // 成本合计
+    ProfitRate float64 `json:"profit_rate"`                        // 利润率
+    ProfitAmount float64 `json:"profit_amount"`                    // 利润金额
+    TaxRate float64 `json:"tax_rate"`                              // 税率
+    TaxAmount float64 `json:"tax_amount"`                          // 税额
+    FinalPrice float64 `json:"final_price"`                        // 最终报价单价
+    TotalAmount float64 `json:"total_amount"`                      // 兼容字段，当前等于最终报价
+    ValidFrom int64 `json:"valid_from"`                            // 报价有效开始时间
+    ValidTo int64 `json:"valid_to"`                                // 报价有效结束时间
+    Remark string `json:"remark"`                                  // 备注
+    CreatorId string `json:"creator_id"`                           // 创建人id
+    CreatorName string `json:"creator_name"`                       // 创建人名称
+    CreatedAt int64 `json:"created_at"`                            // 创建时间
+    UpdatedAt int64 `json:"updated_at"`                            // 更新时间
+}
+
+type MaterialQuoteSaveRequest {
+    Id string `json:"id,optional" validate:"omitempty,mongodb" comment:"报价单id"`                    // 报价单id，新增时为空
+    DeliveryId string `json:"delivery_id,optional" validate:"required,mongodb" comment:"首次交付记录id"` // 客户物料首次交付记录id
+    QuoteMode string `json:"quote_mode" validate:"required,oneof=detailed simple" comment:"报价方式"`  // 报价方式：detailed、simple
+    Currency string `json:"currency,optional" validate:"omitempty" comment:"币种"`                    // 币种，默认 CNY
+    CostItems []MaterialQuoteCostItem `json:"cost_items,optional" comment:"详细报价成本项"`             // 详细报价成本项
+    SimplePrice float64 `json:"simple_price,optional" validate:"omitempty,gte=0" comment:"简单报价单价"` // 简单报价单价
+    ProfitAmount float64 `json:"profit_amount,optional" validate:"omitempty,gte=0" comment:"利润金额"` // 利润金额
+    TaxRate float64 `json:"tax_rate,optional" validate:"omitempty,gte=0" comment:"税率"`              // 税率
+    FinalPrice float64 `json:"final_price,optional" validate:"omitempty,gte=0" comment:"最终报价单价"`    // 最终报价单价
+    ValidFrom int64 `json:"valid_from,optional" validate:"omitempty,gte=0" comment:"有效开始时间"`       // 有效开始时间
+    ValidTo int64 `json:"valid_to,optional" validate:"omitempty,gte=0" comment:"有效结束时间"`           // 有效结束时间
+    Remark string `json:"remark,optional" validate:"omitempty" comment:"备注"`                        // 备注
+}
+
+type MaterialQuotePageRequest {
+    Page int64 `form:"page,optional" validate:"required,gte=1" comment:"页码"`                      // 页码
+    Size int64 `form:"size,optional" validate:"required,gte=5,lte=100" comment:"每页条数"`             // 每页条数
+    CustomerId string `form:"customer_id,optional" validate:"omitempty,mongodb" comment:"客户id"`      // 客户id
+    MaterialId string `form:"material_id,optional" validate:"omitempty,mongodb" comment:"物料id"`      // 物料id
+    DeliveryId string `form:"delivery_id,optional" validate:"omitempty,mongodb" comment:"首次交付记录id"` // 客户物料首次交付记录id
+    Status string `form:"status,optional" validate:"omitempty,oneof=draft submitted quoted priced void" comment:"报价单状态"` // 报价单状态
+    QuoteMode string `form:"quote_mode,optional" validate:"omitempty,oneof=detailed simple" comment:"报价方式"`              // 报价方式
+    MaterialName string `form:"material_name,optional" validate:"omitempty" comment:"物料名称"`         // 物料名称
+    MaterialModel string `form:"material_model,optional" validate:"omitempty" comment:"物料型号"`        // 物料型号
+}
+
+type MaterialQuotePaginate {
+    Total int64 `json:"total"`         // 总数
+    List []MaterialQuote `json:"list"` // 报价单列表
+}
+
+type MaterialQuotePageResponse {
+    Code int `json:"code"`                    // 响应状态码
+    Msg string `json:"msg"`                   // 响应消息
+    Data MaterialQuotePaginate `json:"data"`  // 分页数据
+}
+
+type MaterialQuoteResponse {
+    Code int `json:"code"`           // 响应状态码
+    Msg string `json:"msg"`          // 响应消息
+    Data MaterialQuote `json:"data"` // 报价单详情
+}
+
+type MaterialQuoteIdRequest {
+    Id string `form:"id,optional" json:"id,optional" validate:"required,mongodb" comment:"报价单id"` // 报价单id
+}
+
+type MaterialQuotePriceRequest {
+    Id string `json:"id,optional" validate:"required,mongodb" comment:"报价单id"`                    // 报价单id
+    FinalPrice float64 `json:"final_price,optional" validate:"required,gte=0" comment:"最终单价"`      // 最终确认单价
+    EffectiveAt int64 `json:"effective_at,optional" validate:"omitempty,gte=0" comment:"生效时间"`    // 价格生效时间
+    Remark string `json:"remark,optional" validate:"omitempty" comment:"备注"`                      // 备注
+}

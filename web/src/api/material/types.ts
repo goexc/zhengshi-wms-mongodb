@@ -124,3 +124,189 @@ export interface MaterialPricesResponse {
   msg: string;
   data: MaterialPrice[];
 }
+
+export type QuoteStatus = 'unquoted' | 'quoting' | 'quoted' | 'priced';
+export type MaterialQuoteMode = 'detailed' | 'simple';
+export type MaterialQuoteStatus = 'draft' | 'submitted' | 'quoted' | 'priced' | 'void';
+export type MaterialDeliveryRebuildTaskStatus = 'queued' | 'running' | 'success' | 'failed';
+
+export interface NewCustomerMaterialRequest {
+  page: number;
+  size: number;
+  customer_id: string;
+  start_time: number;
+  end_time: number;
+  quote_status: string;
+  material_name: string;
+  material_model: string;
+}
+
+export interface NewCustomerMaterialExportRequest {
+  customer_id: string;
+  start_time: number;
+  end_time: number;
+  quote_status: string;
+  material_name: string;
+  material_model: string;
+}
+
+export interface NewCustomerMaterialItem {
+  id: string;
+  customer_id: string;
+  customer_name: string;
+  material_id: string;
+  material_name: string;
+  material_model: string;
+  material_specification: string;
+  material_unit: string;
+  first_delivery_time: number;
+  first_delivery_order_code: string;
+  first_delivery_quantity: number;
+  first_delivery_price: number;
+  quote_status: QuoteStatus;
+  latest_quote_id: string;
+  latest_quote_no: string;
+  latest_price: number;
+}
+
+export interface NewCustomerMaterialResponse {
+  code: number;
+  msg: string;
+  data: {
+    total: number;
+    list: NewCustomerMaterialItem[];
+  };
+}
+
+export interface MaterialDeliveryRebuildTask {
+  id: string;
+  status: MaterialDeliveryRebuildTaskStatus | '';
+  order_count: number;
+  delivery_count: number;
+  message: string;
+  error_message: string;
+  creator_id: string;
+  creator_name: string;
+  created_at: number;
+  started_at: number;
+  finished_at: number;
+  updated_at: number;
+}
+
+export interface MaterialDeliveryRebuildTaskRequest {
+  page: number;
+  size: number;
+  status: string;
+}
+
+export interface MaterialDeliveryRebuildTaskResponse {
+  code: number;
+  msg: string;
+  data: MaterialDeliveryRebuildTask;
+}
+
+export interface MaterialDeliveryRebuildTaskPageResponse {
+  code: number;
+  msg: string;
+  data: {
+    total: number;
+    list: MaterialDeliveryRebuildTask[];
+  };
+}
+
+export interface MaterialQuoteCostItem {
+  index: number;
+  category_code: string;
+  category_name: string;
+  name: string;
+  enabled: boolean;
+  custom: boolean;
+  amount: number;
+  remark: string;
+}
+
+export interface MaterialQuote {
+  id: string;
+  quote_no: string;
+  customer_id: string;
+  customer_name: string;
+  material_id: string;
+  material_name: string;
+  material_model: string;
+  material_specification: string;
+  material_unit: string;
+  delivery_id: string;
+  source_order_code: string;
+  quote_mode: MaterialQuoteMode;
+  status: MaterialQuoteStatus;
+  currency: string;
+  cost_items: MaterialQuoteCostItem[];
+  simple_price: number;
+  total_cost: number;
+  profit_rate: number;
+  profit_amount: number;
+  tax_rate: number;
+  tax_amount: number;
+  final_price: number;
+  total_amount: number;
+  valid_from: number;
+  valid_to: number;
+  remark: string;
+  creator_id: string;
+  creator_name: string;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface MaterialQuoteSaveRequest {
+  id: string;
+  delivery_id: string;
+  quote_mode: MaterialQuoteMode;
+  currency: string;
+  cost_items: MaterialQuoteCostItem[];
+  simple_price: number;
+  profit_amount: number;
+  tax_rate: number;
+  final_price: number;
+  valid_from: number;
+  valid_to: number;
+  remark: string;
+}
+
+export interface MaterialQuotePageRequest {
+  page: number;
+  size: number;
+  customer_id: string;
+  material_id: string;
+  delivery_id: string;
+  status: string;
+  quote_mode: string;
+  material_name: string;
+  material_model: string;
+}
+
+export interface MaterialQuotePageResponse {
+  code: number;
+  msg: string;
+  data: {
+    total: number;
+    list: MaterialQuote[];
+  };
+}
+
+export interface MaterialQuoteResponse {
+  code: number;
+  msg: string;
+  data: MaterialQuote;
+}
+
+export interface MaterialQuoteIdRequest {
+  id: string;
+}
+
+export interface MaterialQuotePriceRequest {
+  id: string;
+  final_price: number;
+  effective_at: number;
+  remark: string;
+}

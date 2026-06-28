@@ -23,40 +23,43 @@ import (
 )
 
 type ServiceContext struct {
-	Config                     config.Config
-	Cache                      cache.Cache
-	Enforcer                   *casbin.SyncedEnforcer
-	OSS                        *oss.Client
-	Cos                        *cos.Client
-	DBClient                   *mongo.Client
-	SystemInitModel            *mongo.Collection
-	ImageModel                 *mongo.Collection
-	CompanyModel               *mongo.Collection
-	UserModel                  *mongo.Collection
-	ApiModel                   *mongo.Collection
-	MenuModel                  *mongo.Collection
-	DepartmentModel            *mongo.Collection
-	RoleModel                  *mongo.Collection
-	RoleMenuModel              *mongo.Collection
-	CarrierModel               *mongo.Collection
-	SupplierModel              *mongo.Collection
-	CustomerModel              *mongo.Collection
-	WarehouseModel             *mongo.Collection //仓库
-	WarehouseZoneModel         *mongo.Collection //库区
-	WarehouseRackModel         *mongo.Collection //货架
-	WarehouseBinModel          *mongo.Collection //货位
-	MaterialCategoryModel      *mongo.Collection //物料分类表
-	MaterialModel              *mongo.Collection //物料表
-	MaterialPriceModel         *mongo.Collection //物料价格表
-	InboundReceiptModel        *mongo.Collection //入库单
-	OutboundOrderModel         *mongo.Collection //出库单
-	InboundReceiptReceiveModel *mongo.Collection //入库单批次入库记录
-	CustomerTransactionModel   *mongo.Collection //客户流水
-	SupplierTransactionModel   *mongo.Collection //供应商流水
-	CarrierTransactionModel    *mongo.Collection //承运商流水
-	InventoryModel             *mongo.Collection //库存
-	OutboundMaterialModel      *mongo.Collection //出库单批次出库记录
-	PlanModel                  *mongo.Collection //计划
+	Config                           config.Config
+	Cache                            cache.Cache
+	Enforcer                         *casbin.SyncedEnforcer
+	OSS                              *oss.Client
+	Cos                              *cos.Client
+	DBClient                         *mongo.Client
+	SystemInitModel                  *mongo.Collection
+	ImageModel                       *mongo.Collection
+	CompanyModel                     *mongo.Collection
+	UserModel                        *mongo.Collection
+	ApiModel                         *mongo.Collection
+	MenuModel                        *mongo.Collection
+	DepartmentModel                  *mongo.Collection
+	RoleModel                        *mongo.Collection
+	RoleMenuModel                    *mongo.Collection
+	CarrierModel                     *mongo.Collection
+	SupplierModel                    *mongo.Collection
+	CustomerModel                    *mongo.Collection
+	WarehouseModel                   *mongo.Collection //仓库
+	WarehouseZoneModel               *mongo.Collection //库区
+	WarehouseRackModel               *mongo.Collection //货架
+	WarehouseBinModel                *mongo.Collection //货位
+	MaterialCategoryModel            *mongo.Collection //物料分类表
+	MaterialModel                    *mongo.Collection //物料表
+	MaterialPriceModel               *mongo.Collection //物料价格表
+	CustomerMaterialDeliveryModel    *mongo.Collection //客户物料首次交付表
+	MaterialDeliveryRebuildTaskModel *mongo.Collection //客户新增物料重建任务表
+	MaterialQuoteModel               *mongo.Collection //物料报价单表
+	InboundReceiptModel              *mongo.Collection //入库单
+	OutboundOrderModel               *mongo.Collection //出库单
+	InboundReceiptReceiveModel       *mongo.Collection //入库单批次入库记录
+	CustomerTransactionModel         *mongo.Collection //客户流水
+	SupplierTransactionModel         *mongo.Collection //供应商流水
+	CarrierTransactionModel          *mongo.Collection //承运商流水
+	InventoryModel                   *mongo.Collection //库存
+	OutboundMaterialModel            *mongo.Collection //出库单批次出库记录
+	PlanModel                        *mongo.Collection //计划
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -66,40 +69,43 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	db := mongodbClient.Database(c.MongoDB.Database)
 
 	ctx := &ServiceContext{
-		Config:                     c,
-		Cache:                      cache.New([]cache.NodeConf{c.CacheRedis}, syncx.NewSingleFlight(), cache.NewStat(""), mongo.ErrNoDocuments),
-		Enforcer:                   InitCasbin(c),
-		OSS:                        InitOSS(c),
-		Cos:                        InitCos(c),
-		DBClient:                   mongodbClient,
-		SystemInitModel:            db.Collection("system_init"),
-		ImageModel:                 db.Collection("image"),
-		CompanyModel:               db.Collection("company"),
-		UserModel:                  db.Collection("user"),
-		ApiModel:                   db.Collection("api"),
-		MenuModel:                  db.Collection("menu"),
-		DepartmentModel:            db.Collection("department"),
-		RoleModel:                  db.Collection("role"),
-		RoleMenuModel:              db.Collection("role_menu"),
-		SupplierModel:              db.Collection("supplier"),
-		CustomerModel:              db.Collection("customer"),
-		CarrierModel:               db.Collection("carrier"),
-		WarehouseModel:             db.Collection("warehouse"),               //仓库
-		WarehouseZoneModel:         db.Collection("warehouse_zone"),          //库区
-		WarehouseRackModel:         db.Collection("warehouse_rack"),          //货架
-		WarehouseBinModel:          db.Collection("warehouse_bin"),           //货位
-		MaterialCategoryModel:      db.Collection("material_category"),       //物料分类表
-		MaterialModel:              db.Collection("material"),                //物料表
-		MaterialPriceModel:         db.Collection("material_price"),          //物料价格表
-		InboundReceiptModel:        db.Collection("inbound_receipt"),         //入库单
-		OutboundOrderModel:         db.Collection("outbound_order"),          //出库单
-		InboundReceiptReceiveModel: db.Collection("inbound_receipt_receive"), //入库单批次入库记录
-		CustomerTransactionModel:   db.Collection("customer_transaction"),    //客户流水
-		SupplierTransactionModel:   db.Collection("supplier_transaction"),    //供应商流水
-		CarrierTransactionModel:    db.Collection("carrier_transaction"),     //承运商流水
-		InventoryModel:             db.Collection("inventory"),               //库存
-		OutboundMaterialModel:      db.Collection("outbound_material"),       //出库单物料
-		PlanModel:                  db.Collection("plan"),                    //计划
+		Config:                           c,
+		Cache:                            cache.New([]cache.NodeConf{c.CacheRedis}, syncx.NewSingleFlight(), cache.NewStat(""), mongo.ErrNoDocuments),
+		Enforcer:                         InitCasbin(c),
+		OSS:                              InitOSS(c),
+		Cos:                              InitCos(c),
+		DBClient:                         mongodbClient,
+		SystemInitModel:                  db.Collection("system_init"),
+		ImageModel:                       db.Collection("image"),
+		CompanyModel:                     db.Collection("company"),
+		UserModel:                        db.Collection("user"),
+		ApiModel:                         db.Collection("api"),
+		MenuModel:                        db.Collection("menu"),
+		DepartmentModel:                  db.Collection("department"),
+		RoleModel:                        db.Collection("role"),
+		RoleMenuModel:                    db.Collection("role_menu"),
+		SupplierModel:                    db.Collection("supplier"),
+		CustomerModel:                    db.Collection("customer"),
+		CarrierModel:                     db.Collection("carrier"),
+		WarehouseModel:                   db.Collection("warehouse"),                      //仓库
+		WarehouseZoneModel:               db.Collection("warehouse_zone"),                 //库区
+		WarehouseRackModel:               db.Collection("warehouse_rack"),                 //货架
+		WarehouseBinModel:                db.Collection("warehouse_bin"),                  //货位
+		MaterialCategoryModel:            db.Collection("material_category"),              //物料分类表
+		MaterialModel:                    db.Collection("material"),                       //物料表
+		MaterialPriceModel:               db.Collection("material_price"),                 //物料价格表
+		CustomerMaterialDeliveryModel:    db.Collection("customer_material_delivery"),     //客户物料首次交付表
+		MaterialDeliveryRebuildTaskModel: db.Collection("material_delivery_rebuild_task"), //客户新增物料重建任务表
+		MaterialQuoteModel:               db.Collection("material_quote"),                 //物料报价单表
+		InboundReceiptModel:              db.Collection("inbound_receipt"),                //入库单
+		OutboundOrderModel:               db.Collection("outbound_order"),                 //出库单
+		InboundReceiptReceiveModel:       db.Collection("inbound_receipt_receive"),        //入库单批次入库记录
+		CustomerTransactionModel:         db.Collection("customer_transaction"),           //客户流水
+		SupplierTransactionModel:         db.Collection("supplier_transaction"),           //供应商流水
+		CarrierTransactionModel:          db.Collection("carrier_transaction"),            //承运商流水
+		InventoryModel:                   db.Collection("inventory"),                      //库存
+		OutboundMaterialModel:            db.Collection("outbound_material"),              //出库单物料
+		PlanModel:                        db.Collection("plan"),                           //计划
 	}
 
 	//2.角色表添加索引
@@ -120,6 +126,33 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	}, indexOpt)
 	if err != nil {
 		panic(fmt.Sprintf("[Error]创建出库单号唯一索引:%s", err.Error()))
+	}
+	outboundIndexes := []mongo.IndexModel{
+		{
+			Keys: bson.D{{"status", 1}, {"type_code", 1}, {"departure_time", 1}, {"code", 1}},
+			Options: options.Index().
+				SetName("idx_outbound_order_delivery_type_code_time").
+				SetBackground(true),
+		},
+		{
+			Keys: bson.D{{"status", 1}, {"type", 1}, {"departure_time", 1}, {"code", 1}},
+			Options: options.Index().
+				SetName("idx_outbound_order_delivery_type_time").
+				SetBackground(true),
+		},
+	}
+	largeIndexOpt := options.CreateIndexes().SetMaxTime(60 * time.Second)
+	if _, err = ctx.OutboundOrderModel.Indexes().CreateMany(context.Background(), outboundIndexes, largeIndexOpt); err != nil {
+		panic(fmt.Sprintf("[Error]创建出库单交付查询索引:%s", err.Error()))
+	}
+	_, err = ctx.OutboundMaterialModel.Indexes().CreateOne(context.Background(), mongo.IndexModel{
+		Keys: bson.D{{"order_code", 1}, {"material_id", 1}},
+		Options: options.Index().
+			SetName("idx_outbound_material_order_material").
+			SetBackground(true),
+	}, largeIndexOpt)
+	if err != nil {
+		panic(fmt.Sprintf("[Error]创建出库单物料索引:%s", err.Error()))
 	}
 	_, err = ctx.InboundReceiptModel.Indexes().CreateOne(context.Background(), mongo.IndexModel{
 		Keys:    bson.M{"code": 1},
@@ -200,6 +233,71 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	}, indexOpt)
 	if err != nil {
 		panic(fmt.Sprintf("[Error]创建批次入库幂等索引:%s", err.Error()))
+	}
+
+	customerMaterialDeliveryIndexes := []mongo.IndexModel{
+		{
+			Keys: bson.D{{"customer_id", 1}, {"material_id", 1}},
+			Options: options.Index().
+				SetUnique(true).
+				SetName("uniq_customer_material_delivery"),
+		},
+		{
+			Keys: bson.D{{"customer_id", 1}, {"first_delivery_time", -1}},
+			Options: options.Index().
+				SetName("idx_customer_material_delivery_time"),
+		},
+		{
+			Keys: bson.D{{"customer_id", 1}, {"quote_status", 1}, {"first_delivery_time", -1}},
+			Options: options.Index().
+				SetName("idx_customer_material_delivery_quote_status"),
+		},
+	}
+	if _, err = ctx.CustomerMaterialDeliveryModel.Indexes().CreateMany(context.Background(), customerMaterialDeliveryIndexes, indexOpt); err != nil {
+		panic(fmt.Sprintf("[Error]创建客户物料首次交付索引:%s", err.Error()))
+	}
+
+	materialDeliveryRebuildTaskIndexes := []mongo.IndexModel{
+		{
+			Keys: bson.D{{"status", 1}, {"created_at", -1}},
+			Options: options.Index().
+				SetName("idx_material_delivery_rebuild_task_status_created"),
+		},
+		{
+			Keys: bson.D{{"created_at", -1}},
+			Options: options.Index().
+				SetName("idx_material_delivery_rebuild_task_created"),
+		},
+	}
+	if _, err = ctx.MaterialDeliveryRebuildTaskModel.Indexes().CreateMany(context.Background(), materialDeliveryRebuildTaskIndexes, indexOpt); err != nil {
+		panic(fmt.Sprintf("[Error]创建客户新增物料重建任务索引:%s", err.Error()))
+	}
+
+	materialQuoteIndexes := []mongo.IndexModel{
+		{
+			Keys: bson.M{"quote_no": 1},
+			Options: options.Index().
+				SetUnique(true).
+				SetName("uniq_material_quote_no"),
+		},
+		{
+			Keys: bson.D{{"customer_id", 1}, {"material_id", 1}, {"created_at", -1}},
+			Options: options.Index().
+				SetName("idx_material_quote_customer_material"),
+		},
+		{
+			Keys: bson.D{{"delivery_id", 1}, {"created_at", -1}},
+			Options: options.Index().
+				SetName("idx_material_quote_delivery"),
+		},
+		{
+			Keys: bson.D{{"status", 1}, {"created_at", -1}},
+			Options: options.Index().
+				SetName("idx_material_quote_status"),
+		},
+	}
+	if _, err = ctx.MaterialQuoteModel.Indexes().CreateMany(context.Background(), materialQuoteIndexes, indexOpt); err != nil {
+		panic(fmt.Sprintf("[Error]创建物料报价单索引:%s", err.Error()))
 	}
 
 	//3.系统初始化步骤

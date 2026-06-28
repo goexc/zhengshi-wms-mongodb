@@ -505,6 +505,26 @@ service main {
 	@doc "物料分页"
 	@handler list
 	get / (MaterialsRequest) returns (MaterialsResponse)
+
+	@doc "客户新增物料分页"
+	@handler newDelivery
+	get /new_delivery (NewCustomerMaterialRequest) returns (NewCustomerMaterialResponse)
+
+	@doc "导出客户新增物料报价"
+	@handler exportNewDeliveryQuote
+	post /new_delivery/quote/export (NewCustomerMaterialExportRequest) returns (BaseResponse)
+
+	@doc "重建客户物料首次交付记录"
+	@handler rebuildDelivery
+	post /new_delivery/rebuild returns (MaterialDeliveryRebuildTaskResponse)
+
+	@doc "客户物料首次交付重建任务列表"
+	@handler rebuildDeliveryTasks
+	get /new_delivery/rebuild/tasks (MaterialDeliveryRebuildTaskRequest) returns (MaterialDeliveryRebuildTaskPageResponse)
+
+	@doc "最近一次客户物料首次交付重建任务"
+	@handler latestRebuildDeliveryTask
+	get /new_delivery/rebuild/latest returns (MaterialDeliveryRebuildTaskResponse)
 }
 
 // 物料单价管理
@@ -521,6 +541,46 @@ service main {
 	@doc "删除物料单价"
 	@handler remove
 	delete / (MaterialPriceRequest) returns (BaseResponse)
+}
+
+// 物料报价管理
+@server (
+	jwt:    Auth
+	group:  material/quote
+	prefix: material/quote
+)
+service main {
+	@doc "创建物料报价单"
+	@handler add
+	post / (MaterialQuoteSaveRequest) returns (MaterialQuoteResponse)
+
+	@doc "保存物料报价单"
+	@handler update
+	put / (MaterialQuoteSaveRequest) returns (MaterialQuoteResponse)
+
+	@doc "物料报价单分页"
+	@handler page
+	get / (MaterialQuotePageRequest) returns (MaterialQuotePageResponse)
+
+	@doc "物料报价单详情"
+	@handler info
+	get /info (MaterialQuoteIdRequest) returns (MaterialQuoteResponse)
+
+	@doc "提交物料报价"
+	@handler submit
+	post /submit (MaterialQuoteIdRequest) returns (MaterialQuoteResponse)
+
+	@doc "导出物料报价"
+	@handler export
+	post /export (MaterialQuoteIdRequest) returns (BaseResponse)
+
+	@doc "报价转最终定价"
+	@handler price
+	post /price (MaterialQuotePriceRequest) returns (MaterialQuoteResponse)
+
+	@doc "作废物料报价"
+	@handler void
+	patch /void (MaterialQuoteIdRequest) returns (BaseResponse)
 }
 
 // 入库单管理

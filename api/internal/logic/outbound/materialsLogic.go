@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"net/http"
 
 	"api/internal/svc"
@@ -46,7 +47,8 @@ func (l *MaterialsLogic) Materials(req *types.OutboundOrderMaterialsRequest) (re
 	}
 
 	//2.查询物料列表
-	cur, err := l.svcCtx.OutboundMaterialModel.Find(l.ctx, bson.M{"order_code": req.OrderCode})
+	opt := options.Find().SetSort(bson.D{{"index", 1}})
+	cur, err := l.svcCtx.OutboundMaterialModel.Find(l.ctx, bson.M{"order_code": req.OrderCode}, opt)
 	if err != nil {
 		fmt.Printf("[Error]查询入库单[%s]物料:%s\n", req.OrderCode, err.Error())
 		resp.Code = http.StatusInternalServerError

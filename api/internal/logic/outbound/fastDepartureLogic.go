@@ -2,6 +2,7 @@ package outbound
 
 import (
 	customerfinance "api/internal/logic/customer/finance"
+	materialdelivery "api/internal/logic/material/delivery"
 	"api/model"
 	financeCode "api/pkg/code"
 	"context"
@@ -274,6 +275,7 @@ func (l *FastDepartureLogic) FastDeparture(req *types.FastOutboundRequest) (resp
 	}
 
 	outboundMaterials := make([]interface{}, 0, len(materialQuantities))
+	outboundMaterialDocs := make([]model.OutboundOrderMaterial, 0, len(materialQuantities))
 	bulkWrites := make([]mongo.WriteModel, 0)
 	var totalAmount decimal.Decimal
 
@@ -312,7 +314,7 @@ func (l *FastDepartureLogic) FastDeparture(req *types.FastOutboundRequest) (resp
 
 		totalAmount = decimal.NewFromFloat(quantity).Mul(decimal.NewFromFloat(price)).Add(totalAmount)
 
-		outboundMaterials = append(outboundMaterials, model.OutboundOrderMaterial{
+		outboundMaterial := model.OutboundOrderMaterial{
 			OrderCode:     code,
 			MaterialId:    material.Id.Hex(),
 			Index:         materialIndexes[materialId],
@@ -323,7 +325,9 @@ func (l *FastDepartureLogic) FastDeparture(req *types.FastOutboundRequest) (resp
 			Quantity:      quantity,
 			Unit:          material.Unit,
 			Inventorys:    deductedInventories,
-		})
+		}
+		outboundMaterialDocs = append(outboundMaterialDocs, outboundMaterial)
+		outboundMaterials = append(outboundMaterials, outboundMaterial)
 	}
 
 	session, err := l.svcCtx.DBClient.StartSession()
@@ -450,6 +454,14 @@ func (l *FastDepartureLogic) FastDeparture(req *types.FastOutboundRequest) (resp
 			resp.Msg = "新增出库单物料失败"
 			return resp, nil
 		}
+	}
+
+	if err = materialdelivery.SyncCustomerMaterialDeliveries(dbCtx, l.svcCtx, outboundOrder, outboundMaterialDocs); err != nil {
+		_ = session.AbortTransaction(dbCtx)
+		fmt.Printf("[Error]极速出库[%s]维护客户物料首次交付记录:%s\n", code, err.Error())
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "维护客户物料首次交付记录失败"
+		return resp, nil
 	}
 
 	for materialId, price := range materialPrices {
