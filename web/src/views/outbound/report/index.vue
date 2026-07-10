@@ -199,11 +199,11 @@ const styleDataRows = (worksheet: Worksheet) => {
         right: {style: 'thin'},
       }
     })
-    row.getCell(7).numFmt = '#,##0.0000'
-    row.getCell(8).numFmt = '#,##0.####'
-    row.getCell(9).numFmt = '#,##0.####'
-    row.getCell(10).numFmt = '#,##0.0000'
-    row.getCell(11).numFmt = '#,##0.0000'
+    row.getCell(7).numFmt = '#,##0.000'
+    row.getCell(8).numFmt = '#,##0'
+    row.getCell(9).numFmt = '#,##0'
+    row.getCell(10).numFmt = '#,##0.000'
+    row.getCell(11).numFmt = '#,##0.000'
   }
 }
 
