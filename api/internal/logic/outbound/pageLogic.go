@@ -71,7 +71,10 @@ func (l *PageLogic) Page(req *types.OutboundOrdersRequest) (resp *types.Outbound
 		filter["customer_id"] = strings.TrimSpace(req.CustomerId)
 	}
 
-	var opt = options.Find().SetSort(bson.M{"receipt_time": -1}).SetSkip((req.Page - 1) * req.Size).SetLimit(req.Size)
+	var opt = options.Find().
+		SetSort(bson.D{{"receipt_time", -1}, {"_id", -1}}).
+		SetSkip((req.Page - 1) * req.Size).
+		SetLimit(req.Size)
 
 	//2.查询出库单分页
 	cur, err := l.svcCtx.OutboundOrderModel.Find(l.ctx, filter, opt)

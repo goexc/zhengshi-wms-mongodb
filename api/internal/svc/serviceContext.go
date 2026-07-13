@@ -129,6 +129,12 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	}
 	outboundIndexes := []mongo.IndexModel{
 		{
+			Keys: bson.D{{"receipt_time", -1}, {"_id", -1}},
+			Options: options.Index().
+				SetName("idx_outbound_order_receipt_time_id").
+				SetBackground(true),
+		},
+		{
 			Keys: bson.D{{"status", 1}, {"type_code", 1}, {"departure_time", 1}, {"code", 1}},
 			Options: options.Index().
 				SetName("idx_outbound_order_delivery_type_code_time").
