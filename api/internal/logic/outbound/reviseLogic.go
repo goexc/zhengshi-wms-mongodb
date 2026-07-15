@@ -321,13 +321,18 @@ func (l *ReviseLogic) upsertCustomerMaterialPrices(ctx context.Context, customer
 		}
 		update := bson.M{
 			"$set": bson.M{
-				"material":      one.MaterialId,
-				"customer_id":   customerId,
-				"customer_name": customerName,
-				"price":         one.Price,
-				"creator":       l.ctx.Value("uid").(string),
-				"creator_name":  l.ctx.Value("name").(string),
-				"created_at":    time.Now().Unix(),
+				"material":              one.MaterialId,
+				"customer_id":           customerId,
+				"customer_name":         customerName,
+				"price":                 one.Price,
+				"creator":               l.ctx.Value("uid").(string),
+				"creator_name":          l.ctx.Value("name").(string),
+				"source_type":           financeCode.MaterialPriceSourceOutbound,
+				"source_quote_id":       "",
+				"source_delivery_id":    "",
+				"source_valid":          true,
+				"source_invalid_reason": "",
+				"created_at":            time.Now().Unix(),
 			},
 		}
 		if _, err := l.svcCtx.MaterialPriceModel.UpdateOne(

@@ -116,6 +116,11 @@ export interface MaterialPrice {
   since: number; //应用时间
   customer_id: string; //客户id
   customer_name: string; //客户
+  source_type: string;
+  source_quote_id: string;
+  source_delivery_id: string;
+  source_valid: boolean;
+  source_invalid_reason: string;
 }
 
 //物料单价列表
@@ -252,6 +257,8 @@ export interface MaterialQuote {
   valid_from: number;
   valid_to: number;
   remark: string;
+  source_valid: boolean;
+  source_invalid_reason: string;
   creator_id: string;
   creator_name: string;
   created_at: number;

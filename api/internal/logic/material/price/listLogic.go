@@ -62,7 +62,10 @@ func (l *ListLogic) List(req *types.MaterialPricesRequest) (resp *types.Material
 
 	//2.查询物料价格
 	opts := options.Find().SetSort(bson.M{"created_at": -1})
-	filter = bson.M{"material": strings.TrimSpace(req.MaterialId)}
+	filter = bson.M{
+		"material":     strings.TrimSpace(req.MaterialId),
+		"source_valid": bson.M{"$ne": false},
+	}
 	if req.CustomerId != "" {
 		filter["customer_id"] = strings.TrimSpace(req.CustomerId)
 	}
@@ -86,9 +89,15 @@ func (l *ListLogic) List(req *types.MaterialPricesRequest) (resp *types.Material
 
 	for _, one := range prices {
 		resp.Data = append(resp.Data, types.MaterialPrice{
-			Price:        one.Price,
-			Since:        one.CreatedAt,
-			CustomerName: one.CustomerName,
+			Price:               one.Price,
+			Since:               one.CreatedAt,
+			CustomerId:          one.CustomerId,
+			CustomerName:        one.CustomerName,
+			SourceType:          one.SourceType,
+			SourceQuoteId:       one.SourceQuoteId,
+			SourceDeliveryId:    one.SourceDeliveryId,
+			SourceValid:         one.SourceValid || strings.TrimSpace(one.SourceInvalidReason) == "",
+			SourceInvalidReason: one.SourceInvalidReason,
 		})
 	}
 

@@ -21,6 +21,12 @@ const (
 	MaterialDeliveryRebuildTaskStatusRunning = "running"
 	MaterialDeliveryRebuildTaskStatusSuccess = "success"
 	MaterialDeliveryRebuildTaskStatusFailed  = "failed"
+
+	MaterialPriceSourceManual        = "manual"
+	MaterialPriceSourceOutbound      = "outbound"
+	MaterialPriceSourceMaterialQuote = "material_quote"
+
+	SourceInvalidReasonRebuildChanged = "source_order_not_in_rebuild_result"
 )
 
 // IsCustomerDeliveryOutbound 判断出库类型是否属于客户侧交付，客户新增物料只统计这类出库。

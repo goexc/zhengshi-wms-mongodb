@@ -30,6 +30,8 @@ type MaterialQuote struct {
 	ValidFrom             int64                   `json:"valid_from" bson:"valid_from"`                         // 报价有效开始时间
 	ValidTo               int64                   `json:"valid_to" bson:"valid_to"`                             // 报价有效结束时间
 	Remark                string                  `json:"remark" bson:"remark"`                                 // 备注
+	SourceValid           bool                    `json:"source_valid" bson:"source_valid"`                     // 来源首次交付记录是否有效
+	SourceInvalidReason   string                  `json:"source_invalid_reason" bson:"source_invalid_reason"`   // 来源失效原因
 	CreatorId             string                  `json:"creator_id" bson:"creator_id"`                         // 创建人id
 	CreatorName           string                  `json:"creator_name" bson:"creator_name"`                     // 创建人名称
 	CreatedAt             int64                   `json:"created_at" bson:"created_at"`                         // 创建时间

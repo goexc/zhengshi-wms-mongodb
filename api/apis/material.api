@@ -135,6 +135,11 @@ type MaterialPrice {
     Since int64 `json:"since"`                 //价格应用时间
     CustomerId string `json:"customer_id"`     //客户id
     CustomerName string `json:"customer_name"` //客户
+    SourceType string `json:"source_type"` // 来源类型：manual、outbound、material_quote
+    SourceQuoteId string `json:"source_quote_id"` // 来源报价单id
+    SourceDeliveryId string `json:"source_delivery_id"` // 来源客户新增物料记录id
+    SourceValid bool `json:"source_valid"` // 来源是否有效
+    SourceInvalidReason string `json:"source_invalid_reason"` // 来源失效原因
 }
 
 //删除物料价格
@@ -269,6 +274,8 @@ type MaterialQuote {
     ValidFrom int64 `json:"valid_from"`                            // 报价有效开始时间
     ValidTo int64 `json:"valid_to"`                                // 报价有效结束时间
     Remark string `json:"remark"`                                  // 备注
+    SourceValid bool `json:"source_valid"`                          // 来源是否有效
+    SourceInvalidReason string `json:"source_invalid_reason"`        // 来源失效原因
     CreatorId string `json:"creator_id"`                           // 创建人id
     CreatorName string `json:"creator_name"`                       // 创建人名称
     CreatedAt int64 `json:"created_at"`                            // 创建时间

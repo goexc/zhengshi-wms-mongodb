@@ -54,3 +54,23 @@ func TestToTypeQuoteRecomputesProfitRate(t *testing.T) {
 		t.Fatalf("ProfitRate = %v, want 0.16667", quote.ProfitRate)
 	}
 }
+
+func TestToTypeQuoteSourceValidCompatibility(t *testing.T) {
+	quote := toTypeQuote(model.MaterialQuote{})
+	if !quote.SourceValid {
+		t.Fatal("SourceValid = false, want true for legacy quote without invalid reason")
+	}
+}
+
+func TestToTypeQuoteSourceInvalidReason(t *testing.T) {
+	quote := toTypeQuote(model.MaterialQuote{
+		SourceValid:         false,
+		SourceInvalidReason: quoteCode.SourceInvalidReasonRebuildChanged,
+	})
+	if quote.SourceValid {
+		t.Fatal("SourceValid = true, want false for invalid quote source")
+	}
+	if quote.SourceInvalidReason != quoteCode.SourceInvalidReasonRebuildChanged {
+		t.Fatalf("SourceInvalidReason = %q, want %q", quote.SourceInvalidReason, quoteCode.SourceInvalidReasonRebuildChanged)
+	}
+}

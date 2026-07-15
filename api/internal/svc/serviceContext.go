@@ -301,9 +301,35 @@ func NewServiceContext(c config.Config) *ServiceContext {
 			Options: options.Index().
 				SetName("idx_material_quote_status"),
 		},
+		{
+			Keys: bson.D{{"source_valid", 1}, {"created_at", -1}},
+			Options: options.Index().
+				SetName("idx_material_quote_source_valid"),
+		},
 	}
 	if _, err = ctx.MaterialQuoteModel.Indexes().CreateMany(context.Background(), materialQuoteIndexes, indexOpt); err != nil {
 		panic(fmt.Sprintf("[Error]创建物料报价单索引:%s", err.Error()))
+	}
+
+	materialPriceIndexes := []mongo.IndexModel{
+		{
+			Keys: bson.D{{"material", 1}, {"customer_id", 1}, {"source_valid", 1}, {"created_at", -1}},
+			Options: options.Index().
+				SetName("idx_material_price_material_customer_valid"),
+		},
+		{
+			Keys: bson.D{{"source_quote_id", 1}},
+			Options: options.Index().
+				SetName("idx_material_price_source_quote"),
+		},
+		{
+			Keys: bson.D{{"source_delivery_id", 1}},
+			Options: options.Index().
+				SetName("idx_material_price_source_delivery"),
+		},
+	}
+	if _, err = ctx.MaterialPriceModel.Indexes().CreateMany(context.Background(), materialPriceIndexes, indexOpt); err != nil {
+		panic(fmt.Sprintf("[Error]创建物料价格索引:%s", err.Error()))
 	}
 
 	//3.系统初始化步骤

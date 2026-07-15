@@ -395,15 +395,21 @@ func (l *AddLogic) Add(req *types.InboundReceiptAddRequest) (resp *types.BaseRes
 		if one.Price > 0 {
 			var update = bson.M{
 				"$set": bson.M{
-					"material":   one.Id,
-					"price":      one.Price,
-					"created_at": time.Now().Unix(),
+					"material":              one.Id,
+					"price":                 one.Price,
+					"customer_id":           "",
+					"source_type":           code.MaterialPriceSourceManual,
+					"source_quote_id":       "",
+					"source_delivery_id":    "",
+					"source_valid":          true,
+					"source_invalid_reason": "",
+					"created_at":            time.Now().Unix(),
 				},
 			}
 
 			//记录物料单价
 			opts := options.Update().SetUpsert(true) //更新时，不存在就插入
-			_, err = l.svcCtx.MaterialPriceModel.UpdateMany(l.ctx, bson.M{"material": one.Id, "price": one.Price}, update, opts)
+			_, err = l.svcCtx.MaterialPriceModel.UpdateMany(l.ctx, bson.M{"material": one.Id, "price": one.Price, "customer_id": ""}, update, opts)
 			if err != nil {
 				fmt.Printf("[Error]记录物料价格:%s\n", err.Error())
 				resp.Code = http.StatusInternalServerError

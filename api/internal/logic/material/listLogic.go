@@ -110,7 +110,10 @@ func (l *ListLogic) List(req *types.MaterialsRequest) (resp *types.MaterialsResp
 		materialsId = append(materialsId, one.Id.Hex())
 	}
 
-	cur, err = l.svcCtx.MaterialPriceModel.Find(l.ctx, bson.M{"material": bson.M{"$in": materialsId}})
+	cur, err = l.svcCtx.MaterialPriceModel.Find(l.ctx, bson.M{
+		"material":     bson.M{"$in": materialsId},
+		"source_valid": bson.M{"$ne": false},
+	})
 	if err != nil {
 		fmt.Printf("[Error]查询物料列表单价:%s\n", err.Error())
 		resp.Code = http.StatusInternalServerError
@@ -130,10 +133,15 @@ func (l *ListLogic) List(req *types.MaterialsRequest) (resp *types.MaterialsResp
 	var pricesMap = make(map[string][]types.MaterialPrice)
 	for _, one := range prices {
 		pricesMap[one.Material] = append(pricesMap[one.Material], types.MaterialPrice{
-			Price:        one.Price,
-			CustomerId:   one.CustomerId,
-			CustomerName: one.CustomerName,
-			Since:        one.CreatedAt,
+			Price:               one.Price,
+			CustomerId:          one.CustomerId,
+			CustomerName:        one.CustomerName,
+			Since:               one.CreatedAt,
+			SourceType:          one.SourceType,
+			SourceQuoteId:       one.SourceQuoteId,
+			SourceDeliveryId:    one.SourceDeliveryId,
+			SourceValid:         one.SourceValid || strings.TrimSpace(one.SourceInvalidReason) == "",
+			SourceInvalidReason: one.SourceInvalidReason,
 		})
 	}
 

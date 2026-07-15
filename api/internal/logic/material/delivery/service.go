@@ -6,6 +6,7 @@ import (
 	quoteCode "api/pkg/code"
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -79,6 +80,8 @@ func syncCustomerMaterialDelivery(ctx context.Context, svcCtx *svc.ServiceContex
 			"material_model":         material.Model,
 			"material_specification": material.Specification,
 			"material_unit":          material.Unit,
+			"source_valid":           true,
+			"source_invalid_reason":  "",
 			"updated_at":             now,
 		}
 		if existing.QuoteStatus == "" {
@@ -89,6 +92,23 @@ func syncCustomerMaterialDelivery(ctx context.Context, svcCtx *svc.ServiceContex
 			updateSet["first_delivery_order_code"] = order.Code
 			updateSet["first_delivery_quantity"] = material.Quantity
 			updateSet["first_delivery_price"] = material.Price
+		}
+
+		if !existing.SourceValid && strings.TrimSpace(existing.SourceInvalidReason) != "" {
+			updateSet["first_delivery_time"] = order.DepartureTime
+			updateSet["first_delivery_order_code"] = order.Code
+			updateSet["first_delivery_quantity"] = material.Quantity
+			updateSet["first_delivery_price"] = material.Price
+			updateSet["last_delivery_time"] = order.DepartureTime
+			updateSet["delivery_count"] = int64(1)
+			updateSet["quote_status"] = quoteCode.QuoteStatusUnquoted
+			updateSet["latest_quote_id"] = ""
+			updateSet["latest_quote_no"] = ""
+			updateSet["latest_price"] = float64(0)
+			if _, err = svcCtx.CustomerMaterialDeliveryModel.UpdateOne(ctx, filter, bson.M{"$set": updateSet}); err != nil {
+				return fmt.Errorf("鏇存柊瀹㈡埛[%s]鐗╂枡[%s]棣栨浜や粯璁板綍澶辫触:%w", order.CustomerId, material.MaterialId, err)
+			}
+			return nil
 		}
 
 		update := bson.M{
@@ -121,6 +141,7 @@ func syncCustomerMaterialDelivery(ctx context.Context, svcCtx *svc.ServiceContex
 			LastDeliveryTime:       order.DepartureTime,
 			DeliveryCount:          1,
 			QuoteStatus:            quoteCode.QuoteStatusUnquoted,
+			SourceValid:            true,
 			CreatedAt:              now,
 			UpdatedAt:              now,
 		}

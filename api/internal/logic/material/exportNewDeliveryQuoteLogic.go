@@ -121,6 +121,9 @@ func sanitizeExportFileName(name string) string {
 func (l *ExportNewDeliveryQuoteLogic) findExportDeliveries(req *types.NewCustomerMaterialExportRequest) ([]model.CustomerMaterialDelivery, error) {
 	filter := bson.M{
 		"customer_id": req.CustomerId,
+		"source_valid": bson.M{
+			"$ne": false,
+		},
 		"first_delivery_time": bson.M{
 			"$gte": req.StartTime,
 			"$lte": req.EndTime,

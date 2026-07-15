@@ -22,6 +22,8 @@ type CustomerMaterialDelivery struct {
 	LatestQuoteId          string             `json:"latest_quote_id" bson:"latest_quote_id"`                     // 最新报价单id
 	LatestQuoteNo          string             `json:"latest_quote_no" bson:"latest_quote_no"`                     // 最新报价单号
 	LatestPrice            float64            `json:"latest_price" bson:"latest_price"`                           // 最新报价或最终定价
+	SourceValid            bool               `json:"source_valid" bson:"source_valid"`                           // 来源是否仍由当前有效出库单支撑
+	SourceInvalidReason    string             `json:"source_invalid_reason" bson:"source_invalid_reason"`         // 来源失效原因
 	CreatedAt              int64              `json:"created_at" bson:"created_at"`                               // 创建时间
 	UpdatedAt              int64              `json:"updated_at" bson:"updated_at"`                               // 更新时间
 }

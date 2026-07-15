@@ -471,13 +471,18 @@ func (l *FastDepartureLogic) FastDeparture(req *types.FastOutboundRequest) (resp
 
 		update := bson.M{
 			"$set": bson.M{
-				"material":      materialId,
-				"customer_id":   customer.Id.Hex(),
-				"customer_name": customer.Name,
-				"price":         price,
-				"creator":       uid,
-				"creator_name":  name,
-				"created_at":    now,
+				"material":              materialId,
+				"customer_id":           customer.Id.Hex(),
+				"customer_name":         customer.Name,
+				"price":                 price,
+				"creator":               uid,
+				"creator_name":          name,
+				"source_type":           financeCode.MaterialPriceSourceOutbound,
+				"source_quote_id":       "",
+				"source_delivery_id":    "",
+				"source_valid":          true,
+				"source_invalid_reason": "",
+				"created_at":            now,
 			},
 		}
 		_, err = l.svcCtx.MaterialPriceModel.UpdateOne(

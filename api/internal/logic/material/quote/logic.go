@@ -89,6 +89,7 @@ func (l *quoteService) create(req *types.MaterialQuoteSaveRequest) (*types.Mater
 		SourceOrderCode:       delivery.FirstDeliveryOrderCode,
 		QuoteMode:             strings.TrimSpace(req.QuoteMode),
 		Status:                quoteCode.MaterialQuoteStatusDraft,
+		SourceValid:           true,
 		Currency:              quoteCurrency(req.Currency),
 		CostItems:             calculation.costItems,
 		SimplePrice:           calculation.simplePrice,
@@ -129,6 +130,16 @@ func (l *quoteService) update(req *types.MaterialQuoteSaveRequest) (*types.Mater
 	resp := new(types.MaterialQuoteResponse)
 	quote, ok := findQuoteById(l.ctx, l.svcCtx, req.Id, resp)
 	if !ok {
+		return resp, nil
+	}
+	if msg, e := l.validateQuoteActive(quote); e != nil {
+		fmt.Printf("[Error]校验物料报价单[%s]来源首次交付记录失败:%s\n", req.Id, e.Error())
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "服务器内部错误"
+		return resp, nil
+	} else if msg != "" {
+		resp.Code = http.StatusBadRequest
+		resp.Msg = msg
 		return resp, nil
 	}
 	if quote.Status == quoteCode.MaterialQuoteStatusPriced || quote.Status == quoteCode.MaterialQuoteStatusVoid {
@@ -212,6 +223,11 @@ func (l *quoteService) findDelivery(id string, resp *types.MaterialQuoteResponse
 	err := l.svcCtx.CustomerMaterialDeliveryModel.FindOne(l.ctx, bson.M{"_id": deliveryId}).Decode(&delivery)
 	switch err {
 	case nil:
+		if !delivery.SourceValid && strings.TrimSpace(delivery.SourceInvalidReason) != "" {
+			resp.Code = http.StatusBadRequest
+			resp.Msg = "客户新增物料记录来源已失效，请重建记录后刷新列表"
+			return delivery, false
+		}
 		return delivery, true
 	case mongo.ErrNoDocuments:
 		resp.Code = http.StatusBadRequest
@@ -225,9 +241,37 @@ func (l *quoteService) findDelivery(id string, resp *types.MaterialQuoteResponse
 	}
 }
 
+func (l *quoteService) validateQuoteActive(quote model.MaterialQuote) (string, error) {
+	if !quote.SourceValid && strings.TrimSpace(quote.SourceInvalidReason) != "" {
+		return "客户新增物料报价来源已失效，请重新生成报价", nil
+	}
+	return l.validateQuoteDeliveryActive(quote.DeliveryId)
+}
+
+func (l *quoteService) validateQuoteDeliveryActive(deliveryId string) (string, error) {
+	id, err := primitive.ObjectIDFromHex(deliveryId)
+	if err != nil {
+		return "客户新增物料记录不存在", nil
+	}
+
+	var delivery model.CustomerMaterialDelivery
+	err = l.svcCtx.CustomerMaterialDeliveryModel.FindOne(l.ctx, bson.M{"_id": id}).Decode(&delivery)
+	switch err {
+	case nil:
+		if !delivery.SourceValid && strings.TrimSpace(delivery.SourceInvalidReason) != "" {
+			return "客户新增物料记录来源已失效，请重建记录后刷新列表", nil
+		}
+		return "", nil
+	case mongo.ErrNoDocuments:
+		return "客户新增物料记录不存在", nil
+	default:
+		return "", err
+	}
+}
+
 func (l *quoteService) page(req *types.MaterialQuotePageRequest) (resp *types.MaterialQuotePageResponse, err error) {
 	resp = new(types.MaterialQuotePageResponse)
-	filter := bson.M{}
+	filter := bson.M{"source_valid": bson.M{"$ne": false}}
 	if strings.TrimSpace(req.CustomerId) != "" {
 		filter["customer_id"] = strings.TrimSpace(req.CustomerId)
 	}
@@ -293,6 +337,16 @@ func (l *quoteService) info(req *types.MaterialQuoteIdRequest) (resp *types.Mate
 	if !ok {
 		return resp, nil
 	}
+	if msg, e := l.validateQuoteActive(quote); e != nil {
+		fmt.Printf("[Error]校验物料报价单[%s]来源首次交付记录失败:%s\n", req.Id, e.Error())
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "服务器内部错误"
+		return resp, nil
+	} else if msg != "" {
+		resp.Code = http.StatusBadRequest
+		resp.Msg = msg
+		return resp, nil
+	}
 	resp.Code = http.StatusOK
 	resp.Msg = "成功"
 	resp.Data = toTypeQuote(quote)
@@ -303,6 +357,16 @@ func (l *quoteService) submit(req *types.MaterialQuoteIdRequest) (resp *types.Ma
 	resp = new(types.MaterialQuoteResponse)
 	quote, ok := findQuoteById(l.ctx, l.svcCtx, req.Id, resp)
 	if !ok {
+		return resp, nil
+	}
+	if msg, e := l.validateQuoteActive(quote); e != nil {
+		fmt.Printf("[Error]校验物料报价单[%s]来源首次交付记录失败:%s\n", req.Id, e.Error())
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "服务器内部错误"
+		return resp, nil
+	} else if msg != "" {
+		resp.Code = http.StatusBadRequest
+		resp.Msg = msg
 		return resp, nil
 	}
 	if quote.Status == quoteCode.MaterialQuoteStatusVoid {
@@ -357,6 +421,16 @@ func (l *quoteService) export(req *types.MaterialQuoteIdRequest) (fileName strin
 	if !ok {
 		resp.Code = quoteResp.Code
 		resp.Msg = quoteResp.Msg
+		return "", nil, resp, nil
+	}
+	if msg, e := l.validateQuoteActive(quote); e != nil {
+		fmt.Printf("[Error]校验物料报价单[%s]来源首次交付记录失败:%s\n", req.Id, e.Error())
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "服务器内部错误"
+		return "", nil, resp, nil
+	} else if msg != "" {
+		resp.Code = http.StatusBadRequest
+		resp.Msg = msg
 		return "", nil, resp, nil
 	}
 
@@ -426,6 +500,16 @@ func (l *quoteService) price(req *types.MaterialQuotePriceRequest) (resp *types.
 	if !ok {
 		return resp, nil
 	}
+	if msg, e := l.validateQuoteActive(quote); e != nil {
+		fmt.Printf("[Error]校验物料报价单[%s]来源首次交付记录失败:%s\n", req.Id, e.Error())
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "服务器内部错误"
+		return resp, nil
+	} else if msg != "" {
+		resp.Code = http.StatusBadRequest
+		resp.Msg = msg
+		return resp, nil
+	}
 	if quote.Status == quoteCode.MaterialQuoteStatusVoid {
 		resp.Code = http.StatusBadRequest
 		resp.Msg = "已作废的报价单不能定价"
@@ -450,13 +534,18 @@ func (l *quoteService) price(req *types.MaterialQuotePriceRequest) (resp *types.
 	totalAmount := roundMoney(req.FinalPrice)
 	priceUpdate := bson.M{
 		"$set": bson.M{
-			"material":      quote.MaterialId,
-			"customer_id":   quote.CustomerId,
-			"customer_name": quote.CustomerName,
-			"price":         req.FinalPrice,
-			"creator":       contextString(l.ctx, "uid"),
-			"creator_name":  contextString(l.ctx, "name"),
-			"created_at":    effectiveAt,
+			"material":              quote.MaterialId,
+			"customer_id":           quote.CustomerId,
+			"customer_name":         quote.CustomerName,
+			"price":                 req.FinalPrice,
+			"creator":               contextString(l.ctx, "uid"),
+			"creator_name":          contextString(l.ctx, "name"),
+			"source_type":           quoteCode.MaterialPriceSourceMaterialQuote,
+			"source_quote_id":       quote.Id.Hex(),
+			"source_delivery_id":    quote.DeliveryId,
+			"source_valid":          true,
+			"source_invalid_reason": "",
+			"created_at":            effectiveAt,
 		},
 	}
 	updateSet := bson.M{
@@ -476,7 +565,7 @@ func (l *quoteService) price(req *types.MaterialQuotePriceRequest) (resp *types.
 	if err := withTransaction(l.ctx, l.svcCtx, func(dbCtx mongo.SessionContext) error {
 		if _, err := l.svcCtx.MaterialPriceModel.UpdateOne(
 			dbCtx,
-			bson.M{"material": quote.MaterialId, "customer_id": quote.CustomerId, "price": req.FinalPrice},
+			bson.M{"source_quote_id": quote.Id.Hex()},
 			priceUpdate,
 			options.Update().SetUpsert(true),
 		); err != nil {
@@ -802,6 +891,8 @@ func toTypeQuote(one model.MaterialQuote) types.MaterialQuote {
 		ValidFrom:             one.ValidFrom,
 		ValidTo:               one.ValidTo,
 		Remark:                one.Remark,
+		SourceValid:           one.SourceValid || strings.TrimSpace(one.SourceInvalidReason) == "",
+		SourceInvalidReason:   one.SourceInvalidReason,
 		CreatorId:             one.CreatorId,
 		CreatorName:           one.CreatorName,
 		CreatedAt:             one.CreatedAt,

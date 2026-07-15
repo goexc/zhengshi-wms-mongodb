@@ -228,13 +228,18 @@ func (l *AddLogic) Add(req *types.OutboundOrderAddRequest) (resp *types.BaseResp
 		if one.Price > 0 {
 			var update = bson.M{
 				"$set": bson.M{
-					"material":      one.MaterialId,
-					"customer_id":   customer.Id.Hex(),
-					"customer_name": customer.Name,
-					"price":         one.Price,
-					"creator":       l.ctx.Value("uid").(string),
-					"creator_name":  l.ctx.Value("name").(string),
-					"created_at":    time.Now().Unix(),
+					"material":              one.MaterialId,
+					"customer_id":           customer.Id.Hex(),
+					"customer_name":         customer.Name,
+					"price":                 one.Price,
+					"creator":               l.ctx.Value("uid").(string),
+					"creator_name":          l.ctx.Value("name").(string),
+					"source_type":           financeCode.MaterialPriceSourceOutbound,
+					"source_quote_id":       "",
+					"source_delivery_id":    "",
+					"source_valid":          true,
+					"source_invalid_reason": "",
+					"created_at":            time.Now().Unix(),
 				},
 			}
 

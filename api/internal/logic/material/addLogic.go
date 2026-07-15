@@ -2,6 +2,7 @@ package material
 
 import (
 	"api/model"
+	quoteCode "api/pkg/code"
 	"context"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
@@ -143,11 +144,16 @@ func (l *AddLogic) Add(req *types.MaterialRequest) (resp *types.BaseResponse, er
 	}
 
 	_, err = l.svcCtx.MaterialPriceModel.InsertOne(l.ctx, &model.MaterialPrice{
-		Material:    oneRes.InsertedID.(primitive.ObjectID).Hex(),
-		Price:       req.Price,
-		Creator:     uid,
-		CreatorName: l.ctx.Value("name").(string),
-		CreatedAt:   time.Now().Unix(),
+		Material:            oneRes.InsertedID.(primitive.ObjectID).Hex(),
+		Price:               req.Price,
+		Creator:             uid,
+		CreatorName:         l.ctx.Value("name").(string),
+		SourceType:          quoteCode.MaterialPriceSourceManual,
+		SourceQuoteId:       "",
+		SourceDeliveryId:    "",
+		SourceValid:         true,
+		SourceInvalidReason: "",
+		CreatedAt:           time.Now().Unix(),
 	})
 	if err != nil {
 		fmt.Printf("[Error]存储物料[%s][%s]单价:%s\n", oneRes.InsertedID.(primitive.ObjectID).Hex(), req.Model, err.Error())
