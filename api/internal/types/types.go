@@ -590,8 +590,9 @@ type LoginData struct {
 }
 
 type LoginRequest struct {
-	Mobile   string `json:"mobile,optional" validate:"required,mobile" comment:"手机号码"` //手机号码
-	Password string `json:"password,optional" validate:"required,gte=6" comment:"密码"`  //账号密码
+	Mobile     string `json:"mobile,optional" validate:"required,mobile" comment:"手机号码"` //手机号码
+	Password   string `json:"password,optional" validate:"required,gte=6" comment:"密码"`  //账号密码
+	DeviceType string `json:"device_type,optional" validate:"omitempty,oneof=web app windows" comment:"客户端类型"`
 }
 
 type LoginResponse struct {

@@ -28,12 +28,16 @@ func (l *LogoutLogic) Logout() (resp *types.BaseResponse, err error) {
 	resp = new(types.BaseResponse)
 
 	uid := l.ctx.Value("uid").(string)
+	deviceType, _ := l.ctx.Value("device_type").(string)
+	if deviceType == "" {
+		deviceType = "web"
+	}
 
 	fmt.Println("uid:", uid)
 
 	//1.删除token缓存
 	if uid != "" {
-		err = l.svcCtx.Cache.DelCtx(l.ctx, fmt.Sprintf(userTokenKey, uid))
+		err = l.svcCtx.Cache.DelCtx(l.ctx, fmt.Sprintf(userTokenKey, uid, deviceType))
 		if err != nil {
 			fmt.Printf("[Error]删除用户[%s]Token缓存:%s\n", uid, err.Error())
 			resp.Code = http.StatusInternalServerError

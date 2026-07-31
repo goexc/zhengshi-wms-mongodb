@@ -14,6 +14,11 @@
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
+# WindowsApp build outputs
+WindowsApp/dist/
+WindowsApp/cmd/windowsapp/*.syso
+WindowsApp/build/windowsapp.ico
+
 # Dependency directories (remove the comment below to include it)
 # vendor/
 

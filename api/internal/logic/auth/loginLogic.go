@@ -31,7 +31,7 @@ func NewLoginLogic(ctx context.Context, svcCtx *svc.ServiceContext) *LoginLogic 
 	}
 }
 
-const userTokenKey = "token:user:%s"
+const userTokenKey = "token:user:%s:%s"
 
 func (l *LoginLogic) Login(req *types.LoginRequest) (resp *types.LoginResponse, err error) {
 	//1.响应初始化
@@ -94,7 +94,11 @@ func (l *LoginLogic) Login(req *types.LoginRequest) (resp *types.LoginResponse, 
 
 	//5.生成token
 	now := time.Now()
-	token, err := jwtx.GetToken(l.svcCtx.Config.Auth.AccessSecret, user.Id.Hex(), user.Name, now.Unix(), l.svcCtx.Config.Auth.AccessExpire)
+	deviceType := strings.TrimSpace(req.DeviceType)
+	if deviceType == "" {
+		deviceType = "web"
+	}
+	token, err := jwtx.GetToken(l.svcCtx.Config.Auth.AccessSecret, user.Id.Hex(), user.Name, deviceType, now.Unix(), l.svcCtx.Config.Auth.AccessExpire)
 	if err != nil {
 		fmt.Printf("[Error]账号[%s]生成token:%s\n", user.Name, err.Error())
 		resp.Code = http.StatusInternalServerError
@@ -104,7 +108,7 @@ func (l *LoginLogic) Login(req *types.LoginRequest) (resp *types.LoginResponse, 
 
 	logx.Infof("user id:%s", user.Id.Hex())
 	//6.缓存token
-	err = l.svcCtx.Cache.SetWithExpireCtx(l.ctx, fmt.Sprintf(userTokenKey, user.Id.Hex()), token, time.Duration(l.svcCtx.Config.Auth.AccessExpire))
+	err = l.svcCtx.Cache.SetWithExpireCtx(l.ctx, fmt.Sprintf(userTokenKey, user.Id.Hex(), deviceType), token, time.Duration(l.svcCtx.Config.Auth.AccessExpire))
 	if err != nil {
 		fmt.Printf("[Error]缓存用户[%s]Token:%s\n", user.Name, err.Error())
 		resp.Code = http.StatusInternalServerError
