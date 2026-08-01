@@ -152,6 +152,7 @@ type InboundReceipt struct {
 	ReceivingDate int64             `json:"receiving_date"`
 	TotalAmount   float64           `json:"total_amount"`
 	Materials     []InboundMaterial `json:"materials"`
+	Annex         []string          `json:"annex"`
 	Remark        string            `json:"remark"`
 }
 
@@ -165,10 +166,12 @@ type InboundFilters struct {
 	Status     string
 	Type       string
 	SupplierID string
+	CustomerID string
 }
 
 type InboundRecordMaterial struct {
 	ID                string  `json:"id"`
+	Index             int     `json:"index"`
 	Name              string  `json:"name"`
 	Model             string  `json:"model"`
 	Unit              string  `json:"unit"`
@@ -181,12 +184,19 @@ type InboundRecordMaterial struct {
 }
 
 type InboundRecord struct {
-	ID            string                  `json:"id"`
-	Code          string                  `json:"code"`
-	ReceivingDate int64                   `json:"receiving_date"`
-	Materials     []InboundRecordMaterial `json:"materials"`
-	Remark        string                  `json:"remark"`
-	CreatorName   string                  `json:"creator_name"`
+	ID               string                  `json:"id"`
+	InboundReceiptID string                  `json:"inbound_receipt_id"`
+	Code             string                  `json:"code"`
+	CarrierName      string                  `json:"carrier_name"`
+	CarrierCost      float64                 `json:"carrier_cost"`
+	OtherCost        float64                 `json:"other_cost"`
+	TotalAmount      float64                 `json:"total_amount"`
+	ReceivingDate    int64                   `json:"receiving_date"`
+	Materials        []InboundRecordMaterial `json:"materials"`
+	Annex            []string                `json:"annex"`
+	Remark           string                  `json:"remark"`
+	CreatorName      string                  `json:"creator_name"`
+	CreatedAt        int64                   `json:"created_at"`
 }
 
 type WarehouseNode struct {
@@ -202,9 +212,23 @@ type MaterialCategory struct {
 }
 
 type Supplier struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-	Code string `json:"code"`
+	ID                            string `json:"id"`
+	Type                          string `json:"type"`
+	Name                          string `json:"name"`
+	Code                          string `json:"code"`
+	Image                         string `json:"image"`
+	LegalRepresentative           string `json:"legal_representative"`
+	UnifiedSocialCreditIdentifier string `json:"unified_social_credit_identifier"`
+	Address                       string `json:"address"`
+	Contact                       string `json:"contact"`
+	Manager                       string `json:"manager"`
+	Level                         int    `json:"level"`
+	Email                         string `json:"email"`
+	Remark                        string `json:"remark"`
+	Status                        string `json:"status"`
+	CreateBy                      string `json:"create_by"`
+	CreatedAt                     int64  `json:"created_at"`
+	UpdatedAt                     int64  `json:"updated_at"`
 }
 
 type SupplierPage struct {
@@ -233,9 +257,24 @@ type ReceiveRequest struct {
 }
 
 type Customer struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-	Code string `json:"code"`
+	ID                            string  `json:"id"`
+	Type                          string  `json:"type"`
+	Name                          string  `json:"name"`
+	Code                          string  `json:"code"`
+	Image                         string  `json:"image"`
+	LegalRepresentative           string  `json:"legal_representative"`
+	UnifiedSocialCreditIdentifier string  `json:"unified_social_credit_identifier"`
+	Address                       string  `json:"address"`
+	Contact                       string  `json:"contact"`
+	Manager                       string  `json:"manager"`
+	Email                         string  `json:"email"`
+	Remark                        string  `json:"remark"`
+	Status                        string  `json:"status"`
+	ReceivableBalance             float64 `json:"receivable_balance"`
+	CreditBalance                 float64 `json:"credit_balance"`
+	CreateBy                      string  `json:"create_by"`
+	CreatedAt                     int64   `json:"created_at"`
+	UpdatedAt                     int64   `json:"updated_at"`
 }
 
 type CustomerPage struct {
@@ -244,15 +283,142 @@ type CustomerPage struct {
 }
 
 type Carrier struct {
-	ID     string `json:"id"`
-	Name   string `json:"name"`
-	Code   string `json:"code"`
-	Status string `json:"status"`
+	ID                            string `json:"id"`
+	Type                          string `json:"type"`
+	Name                          string `json:"name"`
+	Code                          string `json:"code"`
+	Image                         string `json:"image"`
+	LegalRepresentative           string `json:"legal_representative"`
+	UnifiedSocialCreditIdentifier string `json:"unified_social_credit_identifier"`
+	Address                       string `json:"address"`
+	Contact                       string `json:"contact"`
+	Manager                       string `json:"manager"`
+	Email                         string `json:"email"`
+	Remark                        string `json:"remark"`
+	Status                        string `json:"status"`
+	CreateBy                      string `json:"create_by"`
+	CreatedAt                     int64  `json:"created_at"`
+	UpdatedAt                     int64  `json:"updated_at"`
 }
 
 type CarrierPage struct {
 	Total int64     `json:"total"`
 	List  []Carrier `json:"list"`
+}
+
+type PartnerFilters struct {
+	Name    string
+	Code    string
+	Manager string
+	Contact string
+	Email   string
+	Level   int
+}
+
+type WarehouseFilters struct {
+	Type            string
+	Name            string
+	Code            string
+	Status          string
+	WarehouseID     string
+	WarehouseZoneID string
+	WarehouseRackID string
+}
+
+type Warehouse struct {
+	ID           string  `json:"id"`
+	Type         string  `json:"type"`
+	Name         string  `json:"name"`
+	Code         string  `json:"code"`
+	Address      string  `json:"address"`
+	Capacity     float64 `json:"capacity"`
+	CapacityUnit string  `json:"capacity_unit"`
+	Status       string  `json:"status"`
+	Manager      string  `json:"manager"`
+	Contact      string  `json:"contact"`
+	Image        string  `json:"image"`
+	Remark       string  `json:"remark"`
+	CreateBy     string  `json:"create_by"`
+	CreatedAt    int64   `json:"created_at"`
+	UpdatedAt    int64   `json:"updated_at"`
+}
+
+type WarehousePage struct {
+	Total int64       `json:"total"`
+	List  []Warehouse `json:"list"`
+}
+
+type WarehouseZone struct {
+	ID            string  `json:"id"`
+	WarehouseID   string  `json:"warehouse_id"`
+	WarehouseName string  `json:"warehouse_name"`
+	Name          string  `json:"name"`
+	Code          string  `json:"code"`
+	Capacity      float64 `json:"capacity"`
+	CapacityUnit  string  `json:"capacity_unit"`
+	Status        string  `json:"status"`
+	Manager       string  `json:"manager"`
+	Contact       string  `json:"contact"`
+	Remark        string  `json:"remark"`
+	CreateBy      string  `json:"create_by"`
+	CreatedAt     int64   `json:"created_at"`
+	UpdatedAt     int64   `json:"updated_at"`
+}
+
+type WarehouseZonePage struct {
+	Total int64           `json:"total"`
+	List  []WarehouseZone `json:"list"`
+}
+
+type WarehouseRack struct {
+	ID                string  `json:"id"`
+	WarehouseID       string  `json:"warehouse_id"`
+	WarehouseName     string  `json:"warehouse_name"`
+	WarehouseZoneID   string  `json:"warehouse_zone_id"`
+	WarehouseZoneName string  `json:"warehouse_zone_name"`
+	Type              string  `json:"type"`
+	Name              string  `json:"name"`
+	Code              string  `json:"code"`
+	Capacity          float64 `json:"capacity"`
+	CapacityUnit      string  `json:"capacity_unit"`
+	Status            string  `json:"status"`
+	Manager           string  `json:"manager"`
+	Contact           string  `json:"contact"`
+	Remark            string  `json:"remark"`
+	CreateBy          string  `json:"create_by"`
+	CreatedAt         int64   `json:"created_at"`
+	UpdatedAt         int64   `json:"updated_at"`
+}
+
+type WarehouseRackPage struct {
+	Total int64           `json:"total"`
+	List  []WarehouseRack `json:"list"`
+}
+
+type WarehouseBin struct {
+	ID                string  `json:"id"`
+	WarehouseID       string  `json:"warehouse_id"`
+	WarehouseName     string  `json:"warehouse_name"`
+	WarehouseZoneID   string  `json:"warehouse_zone_id"`
+	WarehouseZoneName string  `json:"warehouse_zone_name"`
+	WarehouseRackID   string  `json:"warehouse_rack_id"`
+	WarehouseRackName string  `json:"warehouse_rack_name"`
+	Name              string  `json:"name"`
+	Code              string  `json:"code"`
+	Capacity          float64 `json:"capacity"`
+	CapacityUnit      string  `json:"capacity_unit"`
+	Status            string  `json:"status"`
+	Manager           string  `json:"manager"`
+	Contact           string  `json:"contact"`
+	Remark            string  `json:"remark"`
+	CreateBy          string  `json:"create_by"`
+	CreatedAt         int64   `json:"created_at"`
+	UpdatedAt         int64   `json:"updated_at"`
+}
+
+type WarehouseBinPage struct {
+	Total int64          `json:"total"`
+	List  []WarehouseBin `json:"list"`
 }
 
 type OutboundFilters struct {
@@ -300,6 +466,23 @@ type OutboundPage struct {
 }
 
 type OutboundMaterial struct {
+	ID            string  `json:"id"`
+	OrderCode     string  `json:"order_code"`
+	MaterialID    string  `json:"material_id"`
+	Index         int     `json:"index"`
+	Name          string  `json:"name"`
+	Model         string  `json:"model"`
+	Specification string  `json:"specification"`
+	Price         float64 `json:"price"`
+	Quantity      float64 `json:"quantity"`
+	Weight        float64 `json:"weight"`
+	Unit          string  `json:"unit"`
+}
+
+type OutboundSummaryRecord struct {
+	Code          string  `json:"code"`
+	DepartureDate int64   `json:"departure_date"`
+	ReceiptDate   int64   `json:"receipt_date"`
 	ID            string  `json:"id"`
 	OrderCode     string  `json:"order_code"`
 	MaterialID    string  `json:"material_id"`
@@ -363,6 +546,47 @@ type OutboundReceiptRequest struct {
 	Code        string   `json:"code"`
 	ReceiptTime int64    `json:"receipt_time"`
 	Annex       []string `json:"annex"`
+}
+
+type MaterialPrice struct {
+	Price               float64 `json:"price"`
+	Since               int64   `json:"since"`
+	CustomerID          string  `json:"customer_id"`
+	CustomerName        string  `json:"customer_name"`
+	SourceType          string  `json:"source_type"`
+	SourceQuoteID       string  `json:"source_quote_id"`
+	SourceDeliveryID    string  `json:"source_delivery_id"`
+	SourceValid         bool    `json:"source_valid"`
+	SourceInvalidReason string  `json:"source_invalid_reason"`
+}
+
+type CustomerTransaction struct {
+	Type            string  `json:"type"`
+	TransactionType string  `json:"transaction_type"`
+	Direction       string  `json:"direction"`
+	Status          string  `json:"status"`
+	SourceType      string  `json:"source_type"`
+	SourceCode      string  `json:"source_code"`
+	Time            int64   `json:"time"`
+	Amount          float64 `json:"amount"`
+	Remark          string  `json:"remark"`
+	Annex           string  `json:"annex"`
+}
+
+type CustomerTransactionPage struct {
+	Total int64                 `json:"total"`
+	List  []CustomerTransaction `json:"list"`
+}
+
+type OutboundMaterialPrice struct {
+	MaterialID string  `json:"material_id"`
+	Price      float64 `json:"price"`
+}
+
+type OutboundReviseRequest struct {
+	Code           string                  `json:"code"`
+	CustomerID     string                  `json:"customer_id"`
+	MaterialsPrice []OutboundMaterialPrice `json:"materials_price"`
 }
 
 type ImageURL struct {
@@ -454,6 +678,7 @@ func (c *Client) InboundReceipts(ctx context.Context, page, size int, filters In
 	setTrimmedQuery(query, "status", filters.Status)
 	setTrimmedQuery(query, "type", filters.Type)
 	setTrimmedQuery(query, "supplier_id", filters.SupplierID)
+	setTrimmedQuery(query, "customer_id", filters.CustomerID)
 	return result, c.do(ctx, http.MethodGet, "/inbound/receipt", query, nil, &result)
 }
 
@@ -492,6 +717,73 @@ func (c *Client) Carriers(ctx context.Context) ([]Carrier, error) {
 	return result.List, err
 }
 
+func (c *Client) SupplierDirectory(ctx context.Context, page, size int, filters PartnerFilters) (SupplierPage, error) {
+	var result SupplierPage
+	query := partnerQuery(page, size, filters, true)
+	return result, c.do(ctx, http.MethodGet, "/supplier", query, nil, &result)
+}
+
+func (c *Client) CustomerDirectory(ctx context.Context, page, size int, filters PartnerFilters) (CustomerPage, error) {
+	var result CustomerPage
+	query := partnerQuery(page, size, filters, false)
+	return result, c.do(ctx, http.MethodGet, "/customer", query, nil, &result)
+}
+
+func (c *Client) CarrierDirectory(ctx context.Context, page, size int, filters PartnerFilters) (CarrierPage, error) {
+	var result CarrierPage
+	query := partnerQuery(page, size, filters, false)
+	return result, c.do(ctx, http.MethodGet, "/carrier", query, nil, &result)
+}
+
+func partnerQuery(page, size int, filters PartnerFilters, includeLevel bool) url.Values {
+	query := url.Values{"page": {fmt.Sprint(page)}, "size": {fmt.Sprint(size)}}
+	setTrimmedQuery(query, "name", filters.Name)
+	setTrimmedQuery(query, "code", filters.Code)
+	setTrimmedQuery(query, "manager", filters.Manager)
+	setTrimmedQuery(query, "contact", filters.Contact)
+	setTrimmedQuery(query, "email", filters.Email)
+	if includeLevel && filters.Level > 0 {
+		query.Set("level", fmt.Sprint(filters.Level))
+	}
+	return query
+}
+
+func (c *Client) Warehouses(ctx context.Context, page, size int, filters WarehouseFilters) (WarehousePage, error) {
+	var result WarehousePage
+	query := warehouseQuery(page, size, filters)
+	return result, c.do(ctx, http.MethodGet, "/warehouse", query, nil, &result)
+}
+
+func (c *Client) WarehouseZones(ctx context.Context, page, size int, filters WarehouseFilters) (WarehouseZonePage, error) {
+	var result WarehouseZonePage
+	query := warehouseQuery(page, size, filters)
+	return result, c.do(ctx, http.MethodGet, "/warehouse_zone", query, nil, &result)
+}
+
+func (c *Client) WarehouseRacks(ctx context.Context, page, size int, filters WarehouseFilters) (WarehouseRackPage, error) {
+	var result WarehouseRackPage
+	query := warehouseQuery(page, size, filters)
+	return result, c.do(ctx, http.MethodGet, "/warehouse_rack", query, nil, &result)
+}
+
+func (c *Client) WarehouseBins(ctx context.Context, page, size int, filters WarehouseFilters) (WarehouseBinPage, error) {
+	var result WarehouseBinPage
+	query := warehouseQuery(page, size, filters)
+	return result, c.do(ctx, http.MethodGet, "/warehouse_bin", query, nil, &result)
+}
+
+func warehouseQuery(page, size int, filters WarehouseFilters) url.Values {
+	query := url.Values{"page": {fmt.Sprint(page)}, "size": {fmt.Sprint(size)}}
+	setTrimmedQuery(query, "type", filters.Type)
+	setTrimmedQuery(query, "name", filters.Name)
+	setTrimmedQuery(query, "code", filters.Code)
+	setTrimmedQuery(query, "status", filters.Status)
+	setTrimmedQuery(query, "warehouse_id", filters.WarehouseID)
+	setTrimmedQuery(query, "warehouse_zone_id", filters.WarehouseZoneID)
+	setTrimmedQuery(query, "warehouse_rack_id", filters.WarehouseRackID)
+	return query
+}
+
 func (c *Client) ReceiveInbound(ctx context.Context, request ReceiveRequest) error {
 	return c.do(ctx, http.MethodPost, "/inbound/receipt/receive", nil, request, nil)
 }
@@ -522,6 +814,33 @@ func (c *Client) OutboundMaterials(ctx context.Context, orderCode string) ([]Out
 	var result []OutboundMaterial
 	query := url.Values{"order_code": {strings.TrimSpace(orderCode)}}
 	return result, c.do(ctx, http.MethodGet, "/outbound/materials", query, nil, &result)
+}
+
+func (c *Client) MaterialPrices(ctx context.Context, materialID, customerID string) ([]MaterialPrice, error) {
+	var result []MaterialPrice
+	query := url.Values{"material_id": {strings.TrimSpace(materialID)}}
+	setTrimmedQuery(query, "customer_id", customerID)
+	return result, c.do(ctx, http.MethodGet, "/material/price", query, nil, &result)
+}
+
+func (c *Client) CustomerTransactions(ctx context.Context, customerID string, page, size int) (CustomerTransactionPage, error) {
+	var result CustomerTransactionPage
+	query := url.Values{
+		"customer_id": {strings.TrimSpace(customerID)},
+		"page":        {fmt.Sprint(page)},
+		"size":        {fmt.Sprint(size)},
+	}
+	return result, c.do(ctx, http.MethodGet, "/customer/transaction", query, nil, &result)
+}
+
+func (c *Client) OutboundSummary(ctx context.Context, customerID string, startDate, endDate int64) ([]OutboundSummaryRecord, error) {
+	var result []OutboundSummaryRecord
+	query := url.Values{
+		"customer_id": {strings.TrimSpace(customerID)},
+		"start_date":  {fmt.Sprint(startDate)},
+		"end_date":    {fmt.Sprint(endDate)},
+	}
+	return result, c.do(ctx, http.MethodGet, "/outbound/summary", query, nil, &result)
 }
 
 func (c *Client) FindOutboundByCode(ctx context.Context, code string) (OutboundOrder, error) {
@@ -560,6 +879,10 @@ func (c *Client) DepartOutbound(ctx context.Context, request OutboundDepartureRe
 
 func (c *Client) ReceiptOutbound(ctx context.Context, request OutboundReceiptRequest) error {
 	return c.do(ctx, http.MethodPatch, "/outbound/receipt", nil, request, nil)
+}
+
+func (c *Client) ReviseOutbound(ctx context.Context, request OutboundReviseRequest) error {
+	return c.do(ctx, http.MethodPatch, "/outbound/revise", nil, request, nil)
 }
 
 func (c *Client) UploadImage(ctx context.Context, filePath string) (string, error) {
@@ -625,21 +948,21 @@ func (c *Client) DownloadImage(ctx context.Context, imageURL string) ([]byte, er
 	req.Header.Set("Accept", "image/*")
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("下载图纸失败: %w", err)
+		return nil, fmt.Errorf("下载图片失败: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
-		return nil, fmt.Errorf("下载图纸失败: HTTP %d", resp.StatusCode)
+		return nil, fmt.Errorf("下载图片失败: HTTP %d", resp.StatusCode)
 	}
 	data, err := io.ReadAll(io.LimitReader(resp.Body, maxImageDownloadBytes+1))
 	if err != nil {
-		return nil, fmt.Errorf("读取图纸失败: %w", err)
+		return nil, fmt.Errorf("读取图片失败: %w", err)
 	}
 	if len(data) > maxImageDownloadBytes {
-		return nil, errors.New("图纸文件超过 25 MB，无法预览")
+		return nil, errors.New("图片文件超过 25 MB，无法预览")
 	}
 	if len(data) == 0 {
-		return nil, errors.New("图纸文件为空")
+		return nil, errors.New("图片文件为空")
 	}
 	return data, nil
 }

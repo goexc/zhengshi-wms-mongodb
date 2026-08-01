@@ -63,23 +63,31 @@ type mainUI struct {
 	window  *walk.MainWindow
 	status  *walk.Label
 
-	sideMenu        *walk.ListBox
-	tabs            *walk.TabWidget
-	closeTabButton  *walk.PushButton
-	menuKeys        []string
-	syncingMenu     bool
-	materialTab     *walk.TabPage
-	inventoryTab    *walk.TabPage
-	inboundTab      *walk.TabPage
-	outboundTab     *walk.TabPage
-	systemTab       *walk.TabPage
-	outbound        *outboundUI
-	categoryReady   bool
-	categoryFailed  bool
-	warehouseReady  bool
-	warehouseFailed bool
-	supplierReady   bool
-	supplierFailed  bool
+	sideMenu          *walk.ListBox
+	tabs              *walk.TabWidget
+	closeTabButton    *walk.PushButton
+	menuKeys          []string
+	syncingMenu       bool
+	materialTab       *walk.TabPage
+	inventoryTab      *walk.TabPage
+	inboundTab        *walk.TabPage
+	outboundTab       *walk.TabPage
+	outboundReportTab *walk.TabPage
+	partnerTab        *walk.TabPage
+	warehouseTab      *walk.TabPage
+	systemTab         *walk.TabPage
+	outbound          *outboundUI
+	outboundReport    *outboundReportUI
+	partner           *partnerUI
+	warehouse         *warehouseUI
+	categoryReady     bool
+	categoryFailed    bool
+	warehouseReady    bool
+	warehouseFailed   bool
+	supplierReady     bool
+	supplierFailed    bool
+	customerReady     bool
+	customerFailed    bool
 
 	materialCategory         *walk.ComboBox
 	materialName             *walk.LineEdit
@@ -130,6 +138,7 @@ type mainUI struct {
 	inboundStatus          *walk.ComboBox
 	inboundType            *walk.ComboBox
 	inboundSupplier        *walk.ComboBox
+	inboundCustomer        *walk.ComboBox
 	inboundTable           *walk.TableView
 	inboundInfo            *walk.Label
 	inboundQuery           *walk.PushButton
@@ -139,6 +148,7 @@ type mainUI struct {
 	inboundReceive         *walk.PushButton
 	inboundSize            *walk.ComboBox
 	inboundSupplierOptions []selectOption
+	inboundCustomerOptions []selectOption
 	inboundPage            int
 	inboundRows            []api.InboundReceipt
 	inboundGeneration      int
@@ -149,6 +159,10 @@ var pageSizes = []int{10, 20, 50, 100}
 
 var pageSizeLabels = []string{"10 条/页", "20 条/页", "50 条/页", "100 条/页"}
 
+var clientVersion = "0.6.0"
+var buildTime = "development"
+var gitCommit = "unknown"
+
 type MainResult struct {
 	LoggedOut bool
 }
@@ -157,30 +171,48 @@ func RunMain(session *Session, cfg config.Config) (MainResult, error) {
 	var result MainResult
 	ui := &mainUI{
 		session: session, cfg: cfg, materialPage: 1, inventoryPage: 1, inboundPage: 1,
-		outbound: newOutboundUI(),
+		outbound:       newOutboundUI(),
+		outboundReport: newOutboundReportUI(),
+		partner:        newPartnerUI(availablePartnerKinds(session.Perms)),
+		warehouse:      newWarehouseUI(availableWarehouseKinds(session.Perms)),
 	}
 	title := fmt.Sprintf("正时 WMS · %s", session.Profile.Name)
-	pages := make([]TabPage, 0, 4)
-	menuLabels := make([]string, 0, 5)
-	if hasMenu(session.Perms.Menus, "物料", "/material") {
+	pages := make([]TabPage, 0, 8)
+	menuLabels := make([]string, 0, 9)
+	if hasMenuPath(session.Perms.Menus, "/material/list") {
 		pages = append(pages, ui.materialPageWidget())
 		menuLabels = append(menuLabels, "物料查询")
 		ui.menuKeys = append(ui.menuKeys, "material")
 	}
-	if hasMenu(session.Perms.Menus, "库存", "/inventory") {
+	if hasAnyMenuPath(session.Perms.Menus, "/inventory/index", "/inventory/record") {
 		pages = append(pages, ui.inventoryPageWidget())
 		menuLabels = append(menuLabels, "库存查询")
 		ui.menuKeys = append(ui.menuKeys, "inventory")
 	}
-	if hasMenu(session.Perms.Menus, "入库", "/inbound") {
+	if hasMenuPath(session.Perms.Menus, "/inbound/receipt") {
 		pages = append(pages, ui.inboundPageWidget())
 		menuLabels = append(menuLabels, "入库工作台")
 		ui.menuKeys = append(ui.menuKeys, "inbound")
 	}
-	if hasMenu(session.Perms.Menus, "出库", "/outbound") {
+	if hasAnyMenuPath(session.Perms.Menus, "/outbound/receipt", "/outbound/receipt2") {
 		pages = append(pages, ui.outboundPageWidget())
 		menuLabels = append(menuLabels, "出库执行")
 		ui.menuKeys = append(ui.menuKeys, "outbound")
+	}
+	if hasMenuPath(session.Perms.Menus, "/outbound/report") {
+		pages = append(pages, ui.outboundReportPageWidget())
+		menuLabels = append(menuLabels, "出库报表")
+		ui.menuKeys = append(ui.menuKeys, "outbound_report")
+	}
+	if len(ui.partner.kinds) > 0 {
+		pages = append(pages, ui.partnerPageWidget())
+		menuLabels = append(menuLabels, "合作伙伴")
+		ui.menuKeys = append(ui.menuKeys, "partner")
+	}
+	if len(ui.warehouse.kinds) > 0 {
+		pages = append(pages, ui.warehousePageWidget())
+		menuLabels = append(menuLabels, "仓储结构")
+		ui.menuKeys = append(ui.menuKeys, "warehouse")
 	}
 	pages = append(pages, TabPage{
 		AssignTo: &ui.systemTab,
@@ -194,6 +226,7 @@ func RunMain(session *Session, cfg config.Config) (MainResult, error) {
 			Label{Text: "服务地址：" + cfg.APIBaseURL},
 			Label{Text: fmt.Sprintf("已加载 %d 个顶级权限菜单。", len(session.Perms.Menus))},
 			Label{Text: "客户端按账号权限创建功能入口；所有入库和出库操作仍由服务端权限及状态规则最终校验。"},
+			Label{Text: fmt.Sprintf("客户端版本：v%s    构建时间：%s    提交：%s", clientVersion, buildTime, gitCommit)},
 			VSpacer{},
 		},
 	})
@@ -206,6 +239,26 @@ func RunMain(session *Session, cfg config.Config) (MainResult, error) {
 		Size:     Size{Width: 1480, Height: 880},
 		Font:     Font{Family: "Microsoft YaHei UI", PointSize: 9},
 		Layout:   VBox{Margins: Margins{Left: 16, Top: 12, Right: 16, Bottom: 10}, Spacing: 10},
+		MenuItems: []MenuItem{
+			Menu{
+				Text: "工作区",
+				Items: []MenuItem{
+					Action{
+						Text: "刷新当前页", Shortcut: Shortcut{Key: walk.KeyF5},
+						OnTriggered: ui.refreshCurrentPage,
+					},
+					Action{
+						Text: "定位到筛选条件", Shortcut: Shortcut{Modifiers: walk.ModControl, Key: walk.KeyF},
+						OnTriggered: ui.focusCurrentPageSearch,
+					},
+					Separator{},
+					Action{
+						Text: "关闭当前标签", Shortcut: Shortcut{Modifiers: walk.ModControl, Key: walk.KeyW},
+						OnTriggered: ui.closeCurrentTab,
+					},
+				},
+			},
+		},
 		Children: []Widget{
 			Composite{
 				Layout: HBox{Spacing: 10},
@@ -282,11 +335,19 @@ func RunMain(session *Session, cfg config.Config) (MainResult, error) {
 	if err != nil {
 		return result, err
 	}
+	if err := ui.installTabCloseHandler(); err != nil {
+		ui.window.Dispose()
+		return result, err
+	}
+	ui.window.Disposing().Attach(ui.disposeDetachedTabs)
 	ui.syncNavigationFromTab()
 	ui.initializePage("material")
 	ui.initializePage("inventory")
 	ui.initializePage("inbound")
 	ui.initializePage("outbound")
+	ui.initializePage("outbound_report")
+	ui.initializePage("partner")
+	ui.initializePage("warehouse")
 	ui.loadFilterOptions()
 	ui.window.Run()
 	return result, nil
@@ -317,6 +378,12 @@ func (ui *mainUI) openTab(key string) {
 			return
 		}
 		created = true
+	} else if ui.tabs.Pages().Index(page) < 0 {
+		if err := ui.tabs.Pages().Insert(ui.tabInsertionIndex(key), page); err != nil {
+			walk.MsgBox(ui.window, "无法恢复页面", err.Error(), walk.MsgBoxIconError)
+			return
+		}
+		created = true
 	}
 	targetIndex := ui.tabs.Pages().Index(page)
 	if created && ui.tabs.CurrentIndex() == targetIndex && ui.tabs.Pages().Len() > 1 {
@@ -335,7 +402,13 @@ func (ui *mainUI) closeCurrentTab() {
 	if ui.tabs == nil {
 		return
 	}
-	index := ui.tabs.CurrentIndex()
+	ui.closeTabAt(ui.tabs.CurrentIndex())
+}
+
+func (ui *mainUI) closeTabAt(index int) {
+	if ui.tabs == nil {
+		return
+	}
 	if index < 0 || index >= ui.tabs.Pages().Len() {
 		return
 	}
@@ -343,14 +416,25 @@ func (ui *mainUI) closeCurrentTab() {
 	if page == ui.systemTab {
 		return
 	}
-	key := ui.keyForTab(page)
 	if err := ui.tabs.Pages().RemoveAt(index); err != nil {
 		walk.MsgBox(ui.window, "无法关闭页面", err.Error(), walk.MsgBoxIconError)
 		return
 	}
-	ui.releasePage(key)
-	page.Dispose()
 	ui.syncNavigationFromTab()
+}
+
+func (ui *mainUI) disposeDetachedTabs() {
+	if ui.tabs == nil {
+		return
+	}
+	for _, page := range []*walk.TabPage{
+		ui.materialTab, ui.inventoryTab, ui.inboundTab, ui.outboundTab,
+		ui.outboundReportTab, ui.partnerTab, ui.warehouseTab,
+	} {
+		if page != nil && ui.tabs.Pages().Index(page) < 0 {
+			page.Dispose()
+		}
+	}
 }
 
 func (ui *mainUI) createTab(key string) (*walk.TabPage, error) {
@@ -364,6 +448,12 @@ func (ui *mainUI) createTab(key string) (*walk.TabPage, error) {
 		pageDecl = ui.inboundPageWidget()
 	case "outbound":
 		pageDecl = ui.outboundPageWidget()
+	case "outbound_report":
+		pageDecl = ui.outboundReportPageWidget()
+	case "partner":
+		pageDecl = ui.partnerPageWidget()
+	case "warehouse":
+		pageDecl = ui.warehousePageWidget()
 	default:
 		return nil, fmt.Errorf("未知工作页：%s", key)
 	}
@@ -430,6 +520,12 @@ func (ui *mainUI) tabForKey(key string) *walk.TabPage {
 		return ui.inboundTab
 	case "outbound":
 		return ui.outboundTab
+	case "outbound_report":
+		return ui.outboundReportTab
+	case "partner":
+		return ui.partnerTab
+	case "warehouse":
+		return ui.warehouseTab
 	case "system":
 		return ui.systemTab
 	default:
@@ -447,6 +543,12 @@ func (ui *mainUI) keyForTab(page *walk.TabPage) string {
 		return "inbound"
 	case ui.outboundTab:
 		return "outbound"
+	case ui.outboundReportTab:
+		return "outbound_report"
+	case ui.partnerTab:
+		return "partner"
+	case ui.warehouseTab:
+		return "warehouse"
 	case ui.systemTab:
 		return "system"
 	default:
@@ -497,6 +599,7 @@ func (ui *mainUI) initializePage(key string) {
 		}
 		ui.inboundGeneration++
 		ui.applySupplierOptions()
+		ui.applyCustomerOptions()
 		ui.inboundSearch.KeyDown().Attach(func(key walk.Key) {
 			if key == walk.KeyReturn {
 				ui.inboundPage = 1
@@ -506,6 +609,12 @@ func (ui *mainUI) initializePage(key string) {
 		ui.loadInbound()
 	case "outbound":
 		ui.initializeOutboundPage()
+	case "outbound_report":
+		ui.initializeOutboundReportPage()
+	case "partner":
+		ui.initializePartnerPage()
+	case "warehouse":
+		ui.initializeWarehousePage()
 	}
 }
 
@@ -570,6 +679,7 @@ func (ui *mainUI) releasePage(key string) {
 		ui.inboundStatus = nil
 		ui.inboundType = nil
 		ui.inboundSupplier = nil
+		ui.inboundCustomer = nil
 		ui.inboundTable = nil
 		ui.inboundInfo = nil
 		ui.inboundQuery = nil
@@ -582,6 +692,12 @@ func (ui *mainUI) releasePage(key string) {
 		ui.inboundRows = nil
 	case "outbound":
 		ui.releaseOutboundPage()
+	case "outbound_report":
+		ui.releaseOutboundReportPage()
+	case "partner":
+		ui.releasePartnerPage()
+	case "warehouse":
+		ui.releaseWarehousePage()
 	}
 }
 
@@ -622,12 +738,24 @@ func (ui *mainUI) applySupplierOptions() {
 	ui.inboundSupplier.SetCurrentIndex(0)
 }
 
+func (ui *mainUI) applyCustomerOptions() {
+	if ui.inboundCustomer == nil || !ui.customerReady {
+		return
+	}
+	label := "全部客户"
+	if ui.customerFailed {
+		label = "客户加载失败"
+	}
+	_ = ui.inboundCustomer.SetModel(optionLabels(label, ui.inboundCustomerOptions))
+	ui.inboundCustomer.SetCurrentIndex(0)
+}
+
 func (ui *mainUI) inboundPageWidget() TabPage {
 	statuses := []string{"全部状态", "待审核", "审核不通过", "审核通过", "未发货", "在途", "部分入库", "作废", "入库完成"}
 	types := []string{"全部类型", "采购入库", "外协入库", "生产入库", "退货入库"}
 	return TabPage{
 		AssignTo: &ui.inboundTab,
-		Title:    "入库工作台",
+		Title:    closableTabTitle("入库工作台"),
 		Layout:   VBox{Margins: Margins{Left: 14, Top: 14, Right: 14, Bottom: 12}, Spacing: 10},
 		Children: []Widget{
 			Label{Text: "入库工作台", Font: Font{Family: "Microsoft YaHei UI", PointSize: 15, Bold: true}},
@@ -644,6 +772,12 @@ func (ui *mainUI) inboundPageWidget() TabPage {
 					ComboBox{AssignTo: &ui.inboundType, Model: types, CurrentIndex: 0, MinSize: Size{Width: 130, Height: 28}},
 					Label{Text: "供应商"},
 					ComboBox{AssignTo: &ui.inboundSupplier, Model: []string{"全部供应商（正在加载）"}, CurrentIndex: 0, MinSize: Size{Width: 190, Height: 28}},
+					Label{Text: "客户"},
+					ComboBox{
+						AssignTo: &ui.inboundCustomer, Model: []string{"全部客户（正在加载）"}, CurrentIndex: 0,
+						MinSize: Size{Width: 190, Height: 28}, ToolTipText: "退货入库按客户筛选；全部类型时也可单独使用",
+					},
+					HSpacer{ColumnSpan: 6},
 					Composite{
 						ColumnSpan: 8,
 						Layout:     HBox{Spacing: 8},
@@ -733,6 +867,7 @@ func (ui *mainUI) loadInbound() {
 		filters.Type = ui.inboundType.Text()
 	}
 	filters.SupplierID = selectedOptionID(ui.inboundSupplier, ui.inboundSupplierOptions)
+	filters.CustomerID = selectedOptionID(ui.inboundCustomer, ui.inboundCustomerOptions)
 	ui.inboundInfo.SetText("正在加载线上入库单……")
 	ui.inboundPrev.SetEnabled(false)
 	ui.inboundNext.SetEnabled(false)
@@ -792,6 +927,7 @@ func (ui *mainUI) resetInboundFilters() {
 	ui.inboundStatus.SetCurrentIndex(0)
 	ui.inboundType.SetCurrentIndex(0)
 	ui.inboundSupplier.SetCurrentIndex(0)
+	ui.inboundCustomer.SetCurrentIndex(0)
 	ui.inboundPage = 1
 	ui.loadInbound()
 }
@@ -801,7 +937,7 @@ func (ui *mainUI) showInboundDetail() {
 	if !ok {
 		return
 	}
-	ShowInboundDetail(ui.window, ui.session.Client, receipt)
+	ShowInboundDetail(ui.window, ui.session.Client, config.ImageBaseURL(), receipt)
 }
 
 func (ui *mainUI) receiveSelectedInbound() {
@@ -830,10 +966,37 @@ func hasMenu(menus []api.Menu, namePart, pathPart string) bool {
 	return false
 }
 
+func hasMenuPath(menus []api.Menu, path string) bool {
+	path = normalizeMenuPath(path)
+	for _, menu := range menus {
+		if normalizeMenuPath(menu.Path) == path || hasMenuPath(menu.Children, path) {
+			return true
+		}
+	}
+	return false
+}
+
+func hasAnyMenuPath(menus []api.Menu, paths ...string) bool {
+	for _, path := range paths {
+		if hasMenuPath(menus, path) {
+			return true
+		}
+	}
+	return false
+}
+
+func normalizeMenuPath(path string) string {
+	path = strings.TrimSpace(path)
+	if len(path) > 1 {
+		path = strings.TrimRight(path, "/")
+	}
+	return strings.ToLower(path)
+}
+
 func (ui *mainUI) materialPageWidget() TabPage {
 	return TabPage{
 		AssignTo: &ui.materialTab,
-		Title:    "物料查询",
+		Title:    closableTabTitle("物料查询"),
 		Layout:   VBox{Margins: Margins{Left: 14, Top: 14, Right: 14, Bottom: 12}, Spacing: 10},
 		Children: []Widget{
 			Label{Text: "物料查询", Font: Font{Family: "Microsoft YaHei UI", PointSize: 15, Bold: true}},
@@ -888,7 +1051,7 @@ func (ui *mainUI) materialPageWidget() TabPage {
 					{Title: "分类", DataMember: "Category", Width: 100},
 					{Title: "名称", DataMember: "Name", Width: 190},
 					{Title: "型号", DataMember: "Model", Width: 130},
-					{Title: "图纸", DataMember: "HasDrawing", Width: 72, Alignment: AlignCenter},
+					{Title: "图纸", DataMember: "HasDrawing", Width: 56, Alignment: AlignCenter},
 					{Title: "材质", DataMember: "Material", Width: 100},
 					{Title: "规格", DataMember: "Specification", Width: 140},
 					{Title: "表面处理", DataMember: "Surface", Width: 100},
@@ -949,7 +1112,7 @@ func (ui *mainUI) inventoryPageWidget() TabPage {
 	modes := []string{"当前库存", "库存批次历史"}
 	return TabPage{
 		AssignTo: &ui.inventoryTab,
-		Title:    "库存查询",
+		Title:    closableTabTitle("库存查询"),
 		Layout:   VBox{Margins: Margins{Left: 14, Top: 14, Right: 14, Bottom: 12}, Spacing: 10},
 		Children: []Widget{
 			Label{Text: "库存查询", Font: Font{Family: "Microsoft YaHei UI", PointSize: 15, Bold: true}},
@@ -1210,15 +1373,18 @@ func (ui *mainUI) loadFilterOptions() {
 	loadCategories := ui.materialCategory != nil
 	loadWarehouses := ui.inventoryWarehouse != nil
 	loadSuppliers := ui.inboundSupplier != nil
+	loadCustomers := ui.inboundCustomer != nil
 	go func() {
 		var (
 			categories  []api.MaterialCategory
 			warehouses  []api.WarehouseNode
 			suppliers   []api.Supplier
+			customers   []api.Customer
 			errorLabels []string
 			categoryOK  = !loadCategories
 			warehouseOK = !loadWarehouses
 			supplierOK  = !loadSuppliers
+			customerOK  = !loadCustomers
 		)
 
 		if loadCategories {
@@ -1243,6 +1409,14 @@ func (ui *mainUI) loadFilterOptions() {
 			supplierOK = err == nil
 			if err != nil {
 				errorLabels = append(errorLabels, "供应商")
+			}
+		}
+		if loadCustomers {
+			var err error
+			customers, err = ui.session.Client.Customers(context.Background())
+			customerOK = err == nil
+			if err != nil {
+				errorLabels = append(errorLabels, "客户")
 			}
 		}
 
@@ -1278,9 +1452,23 @@ func (ui *mainUI) loadFilterOptions() {
 				}
 				ui.applySupplierOptions()
 			}
+			if loadCustomers {
+				ui.customerReady = true
+				ui.customerFailed = !customerOK
+				if customerOK {
+					ui.inboundCustomerOptions = make([]selectOption, 0, len(customers))
+					for _, customer := range customers {
+						ui.inboundCustomerOptions = append(ui.inboundCustomerOptions, selectOption{
+							ID: customer.ID, Label: businessOptionLabel(customer.Name, customer.Code),
+						})
+					}
+				}
+				ui.applyCustomerOptions()
+			}
 			if len(errorLabels) == 0 {
-				ui.status.SetText(fmt.Sprintf("已连接线上 API · 分类 %d · 仓库 %d · 供应商 %d · v0.3.0",
-					len(ui.materialCategoryOptions), len(ui.inventoryWarehouseNodes), len(ui.inboundSupplierOptions)))
+				ui.status.SetText(fmt.Sprintf("已连接线上 API · 分类 %d · 仓库 %d · 供应商 %d · 客户 %d · v%s",
+					len(ui.materialCategoryOptions), len(ui.inventoryWarehouseNodes), len(ui.inboundSupplierOptions),
+					len(ui.inboundCustomerOptions), clientVersion))
 			} else {
 				ui.status.SetText("已连接线上 API · 以下筛选选项加载失败，可稍后重启重试：" + strings.Join(errorLabels, "、"))
 			}

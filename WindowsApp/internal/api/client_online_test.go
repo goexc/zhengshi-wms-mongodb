@@ -48,8 +48,12 @@ func TestOnlineReadOnlyWindowsContracts(t *testing.T) {
 		t.Fatal(err)
 	}
 	var drawingReference string
+	var firstMaterialID string
 	var withDrawing, withoutDrawing int
 	for _, material := range materials.List {
+		if firstMaterialID == "" {
+			firstMaterialID = material.ID
+		}
 		if strings.TrimSpace(material.Image) == "" {
 			withoutDrawing++
 			continue
@@ -69,6 +73,20 @@ func TestOnlineReadOnlyWindowsContracts(t *testing.T) {
 	if _, err = client.DownloadImage(ctx, imageURL); err != nil {
 		t.Fatal(err)
 	}
+	if firstMaterialID != "" {
+		if _, err = client.MaterialPrices(ctx, firstMaterialID, ""); err != nil {
+			t.Fatal(err)
+		}
+	}
+	inbound, err := client.InboundReceipts(ctx, 1, 5, InboundFilters{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(inbound.List) > 0 {
+		if _, err = client.InboundRecords(ctx, inbound.List[0].ID); err != nil {
+			t.Fatal(err)
+		}
+	}
 	if _, err = client.OutboundOrders(ctx, 1, 5, OutboundFilters{IsPack: -1, IsWeigh: -1}); err != nil {
 		t.Fatal(err)
 	}
@@ -86,5 +104,46 @@ func TestOnlineReadOnlyWindowsContracts(t *testing.T) {
 	}
 	if _, err = client.WarehouseTree(ctx); err != nil {
 		t.Fatal(err)
+	}
+	if _, err = client.SupplierDirectory(ctx, 1, 5, PartnerFilters{
+		Email: "audit@example.com", Level: 1,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	customersPage, err := client.CustomerDirectory(ctx, 1, 5, PartnerFilters{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = client.CustomerDirectory(ctx, 1, 5, PartnerFilters{
+		Email: "audit@example.com",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = client.CarrierDirectory(ctx, 1, 5, PartnerFilters{
+		Email: "audit@example.com",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = client.Warehouses(ctx, 1, 5, WarehouseFilters{Type: "生产仓库"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = client.WarehouseZones(ctx, 1, 5, WarehouseFilters{}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = client.WarehouseRacks(ctx, 1, 5, WarehouseFilters{Type: "标准货架"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = client.WarehouseBins(ctx, 1, 5, WarehouseFilters{}); err != nil {
+		t.Fatal(err)
+	}
+	if len(customersPage.List) > 0 {
+		if _, err = client.CustomerTransactions(ctx, customersPage.List[0].ID, 1, 20); err != nil {
+			t.Fatal(err)
+		}
+		end := time.Now().Unix()
+		start := time.Now().AddDate(-1, 0, 0).Unix()
+		if _, err = client.OutboundSummary(ctx, customersPage.List[0].ID, start, end); err != nil {
+			t.Fatal(err)
+		}
 	}
 }

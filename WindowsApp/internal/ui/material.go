@@ -27,9 +27,9 @@ func hasMaterialDrawing(material api.Material) bool {
 
 func materialDrawingStatus(material api.Material) string {
 	if hasMaterialDrawing(material) {
-		return "有图纸"
+		return "✔"
 	}
-	return "无图纸"
+	return "✘"
 }
 
 func materialInfoText(material api.Material) string {
@@ -55,7 +55,7 @@ func materialInfoText(material api.Material) string {
 
 func ShowMaterialDetail(owner walk.Form, client *api.Client, imageBaseURL string, material api.Material) {
 	if !hasMaterialDrawing(material) {
-		showMaterialWithoutDrawing(owner, material)
+		showMaterialWithoutDrawing(owner, client, material)
 		return
 	}
 
@@ -75,6 +75,7 @@ func ShowMaterialDetail(owner walk.Form, client *api.Client, imageBaseURL string
 	var rotateLeftButton *walk.PushButton
 	var rotateRightButton *walk.PushButton
 	var zoomLabel *walk.Label
+	var priceButton *walk.PushButton
 	var closeButton *walk.PushButton
 	var currentBitmap *walk.Bitmap
 	var closed atomic.Bool
@@ -220,6 +221,11 @@ func ShowMaterialDetail(owner walk.Form, client *api.Client, imageBaseURL string
 				Children: []Widget{
 					Label{Text: "按住 Ctrl 滚动鼠标滚轮缩放；普通滚轮和滚动条用于浏览图纸。", TextColor: walk.RGB(90, 90, 90)},
 					HSpacer{},
+					PushButton{
+						AssignTo: &priceButton, Text: "历史价格", MinSize: Size{Width: 88, Height: 30},
+						ToolTipText: "只读查看该物料的客户历史价格",
+						OnClicked:   func() { ShowMaterialPriceHistory(dlg, client, material) },
+					},
 					PushButton{AssignTo: &closeButton, Text: "关闭", MinSize: Size{Width: 88, Height: 30}, OnClicked: func() { dlg.Accept() }},
 				},
 			},
@@ -634,8 +640,9 @@ func materialQuantityText(material api.Material) string {
 	return fmt.Sprintf("%g", material.Quantity)
 }
 
-func showMaterialWithoutDrawing(owner walk.Form, material api.Material) {
+func showMaterialWithoutDrawing(owner walk.Form, client *api.Client, material api.Material) {
 	var dlg *walk.Dialog
+	var priceButton *walk.PushButton
 	var closeButton *walk.PushButton
 	titlePart := strings.TrimSpace(material.Model)
 	if titlePart == "" {
@@ -680,6 +687,10 @@ func showMaterialWithoutDrawing(owner walk.Form, material api.Material) {
 				Layout: HBox{},
 				Children: []Widget{
 					HSpacer{},
+					PushButton{
+						AssignTo: &priceButton, Text: "历史价格", MinSize: Size{Width: 88, Height: 30},
+						OnClicked: func() { ShowMaterialPriceHistory(dlg, client, material) },
+					},
 					PushButton{AssignTo: &closeButton, Text: "关闭", MinSize: Size{Width: 88, Height: 30}, OnClicked: func() { dlg.Accept() }},
 				},
 			},

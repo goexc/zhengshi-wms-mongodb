@@ -13,10 +13,10 @@ import (
 )
 
 func TestMaterialDrawingStatus(t *testing.T) {
-	if got := materialDrawingStatus(api.Material{Image: "drawing.png"}); got != "有图纸" {
+	if got := materialDrawingStatus(api.Material{Image: "drawing.png"}); got != "✔" {
 		t.Fatalf("drawing status = %q", got)
 	}
-	if got := materialDrawingStatus(api.Material{Image: "  "}); got != "无图纸" {
+	if got := materialDrawingStatus(api.Material{Image: "  "}); got != "✘" {
 		t.Fatalf("empty drawing status = %q", got)
 	}
 }

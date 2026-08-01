@@ -23,6 +23,12 @@ func TestHasMenuFindsNestedBusinessModule(t *testing.T) {
 	if hasMenu(menus, "物料", "/material") {
 		t.Fatal("unexpected material permission")
 	}
+	if !hasMenuPath(menus, "/inventory/index/") {
+		t.Fatal("expected exact normalized inventory path")
+	}
+	if hasMenuPath(menus, "/inventory") {
+		t.Fatal("parent-like path must not match an exact leaf permission")
+	}
 }
 
 func TestFlattenCategoryOptionsKeepsHierarchyInLabel(t *testing.T) {
@@ -58,21 +64,30 @@ func TestWorkspaceTabMappings(t *testing.T) {
 	inventory := new(walk.TabPage)
 	inbound := new(walk.TabPage)
 	outbound := new(walk.TabPage)
+	outboundReport := new(walk.TabPage)
+	partner := new(walk.TabPage)
+	warehouse := new(walk.TabPage)
 	system := new(walk.TabPage)
 	ui := &mainUI{
-		materialTab:  material,
-		inventoryTab: inventory,
-		inboundTab:   inbound,
-		outboundTab:  outbound,
-		systemTab:    system,
+		materialTab:       material,
+		inventoryTab:      inventory,
+		inboundTab:        inbound,
+		outboundTab:       outbound,
+		outboundReportTab: outboundReport,
+		partnerTab:        partner,
+		warehouseTab:      warehouse,
+		systemTab:         system,
 	}
 
 	for key, page := range map[string]*walk.TabPage{
-		"material":  material,
-		"inventory": inventory,
-		"inbound":   inbound,
-		"outbound":  outbound,
-		"system":    system,
+		"material":        material,
+		"inventory":       inventory,
+		"inbound":         inbound,
+		"outbound":        outbound,
+		"outbound_report": outboundReport,
+		"partner":         partner,
+		"warehouse":       warehouse,
+		"system":          system,
 	} {
 		if got := ui.tabForKey(key); got != page {
 			t.Fatalf("tabForKey(%q) = %p, want %p", key, got, page)
@@ -83,5 +98,29 @@ func TestWorkspaceTabMappings(t *testing.T) {
 	}
 	if got := stringIndex([]string{"material", "inventory"}, "inventory"); got != 1 {
 		t.Fatalf("stringIndex = %d", got)
+	}
+}
+
+func TestAvailableReadOnlyKindsRequireExactMenuAndListButton(t *testing.T) {
+	perms := api.Perms{
+		Menus: []api.Menu{
+			{Path: "/business_partner/supplier"},
+			{Path: "/business_partner/customer"},
+			{Path: "/warehouse/index"},
+			{Path: "/warehouse/bin"},
+		},
+		Buttons: []api.Button{
+			{Perms: "business_partner:supplier:list"},
+			{Perms: "warehouse:warehouse:list"},
+			{Perms: "warehouse:bin:list"},
+		},
+	}
+	partners := availablePartnerKinds(perms)
+	if len(partners) != 1 || partners[0].Key != "supplier" {
+		t.Fatalf("partner kinds = %#v", partners)
+	}
+	warehouses := availableWarehouseKinds(perms)
+	if len(warehouses) != 2 || warehouses[0].Key != "warehouse" || warehouses[1].Key != "bin" {
+		t.Fatalf("warehouse kinds = %#v", warehouses)
 	}
 }

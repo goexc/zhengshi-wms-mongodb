@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/lxn/walk"
@@ -28,19 +30,36 @@ type inboundMaterialDetailRow struct {
 	Status    string
 }
 
-type inboundRecordRow struct {
-	BatchCode string
-	Time      string
-	Material  string
-	Quantity  string
-	Location  string
-	Operator  string
-	Remark    string
+type inboundBatchRow struct {
+	BatchCode   string
+	Time        string
+	Carrier     string
+	CarrierCost string
+	OtherCost   string
+	Total       string
+	Attachments string
+	Operator    string
+	Remark      string
 }
 
-func ShowInboundDetail(owner walk.Form, client *api.Client, receipt api.InboundReceipt) {
+type inboundBatchMaterialRow struct {
+	Index    string
+	Material string
+	Model    string
+	Quantity string
+	Status   string
+	Location string
+}
+
+func ShowInboundDetail(owner walk.Form, client *api.Client, imageBaseURL string, receipt api.InboundReceipt) {
 	var dlg *walk.Dialog
-	var recordsTable *walk.TableView
+	var batchesTable, batchMaterialsTable *walk.TableView
+	var receiptAttachmentButton, batchAttachmentButton *walk.PushButton
+	var recordInfo *walk.Label
+	var records []api.InboundRecord
+	var updateSelectedBatch func()
+	var closed atomic.Bool
+	ctx, cancel := context.WithCancel(context.Background())
 	materialRows := make([]inboundMaterialDetailRow, 0, len(receipt.Materials))
 	for _, material := range receipt.Materials {
 		remaining := material.EstimatedQuantity - material.ActualQuantity
@@ -59,14 +78,14 @@ func ShowInboundDetail(owner walk.Form, client *api.Client, receipt api.InboundR
 		business = receipt.CustomerName
 	}
 	header := fmt.Sprintf(
-		"单号：%s    类型：%s    状态：%s\r\n供应商/客户：%s\r\n备注：%s",
-		receipt.Code, receipt.Type, receipt.Status, business, receipt.Remark,
+		"单号：%s    类型：%s    状态：%s\r\n供应商/客户：%s    附件：%d 张\r\n备注：%s",
+		receipt.Code, receipt.Type, receipt.Status, business, len(receipt.Annex), receipt.Remark,
 	)
 	err := Dialog{
 		AssignTo: &dlg,
 		Title:    "入库详情 - " + receipt.Code,
-		MinSize:  Size{Width: 760, Height: 580},
-		Size:     Size{Width: 860, Height: 680},
+		MinSize:  Size{Width: 900, Height: 680},
+		Size:     Size{Width: 1080, Height: 780},
 		Layout:   VBox{Margins: Margins{Left: 14, Top: 14, Right: 14, Bottom: 14}},
 		Children: []Widget{
 			TextEdit{Text: header, ReadOnly: true, MinSize: Size{Height: 70}, MaxSize: Size{Height: 90}},
@@ -74,7 +93,7 @@ func ShowInboundDetail(owner walk.Form, client *api.Client, receipt api.InboundR
 			TableView{
 				Model:            materialRows,
 				AlternatingRowBG: true,
-				MinSize:          Size{Height: 210},
+				MinSize:          Size{Height: 160},
 				Columns: []TableViewColumn{
 					{Title: "序号", DataMember: "Index", Width: 55},
 					{Title: "物料", DataMember: "Name", Width: 185},
@@ -85,107 +104,198 @@ func ShowInboundDetail(owner walk.Form, client *api.Client, receipt api.InboundR
 					{Title: "状态", DataMember: "Status", Width: 95},
 				},
 			},
-			Label{Text: "批次收货记录", Font: Font{Bold: true}},
-			TableView{
-				AssignTo:         &recordsTable,
-				Model:            []inboundRecordRow{},
-				AlternatingRowBG: true,
-				MinSize:          Size{Height: 220},
-				Columns: []TableViewColumn{
-					{Title: "批次编号", DataMember: "BatchCode", Width: 130},
-					{Title: "时间", DataMember: "Time", Width: 125},
-					{Title: "物料", DataMember: "Material", Width: 135},
-					{Title: "数量", DataMember: "Quantity", Width: 75},
-					{Title: "仓储位置", DataMember: "Location", Width: 180},
-					{Title: "操作人", DataMember: "Operator", Width: 80},
-					{Title: "备注", DataMember: "Remark", Width: 140},
+			Label{AssignTo: &recordInfo, Text: "正在加载收货批次……", TextColor: walk.RGB(80, 80, 80)},
+			VSplitter{
+				StretchFactor: 1,
+				Children: []Widget{
+					GroupBox{
+						Title:         "收货批次",
+						StretchFactor: 1,
+						Layout:        VBox{Margins: Margins{Left: 8, Top: 8, Right: 8, Bottom: 8}},
+						Children: []Widget{TableView{
+							AssignTo: &batchesTable, Model: []inboundBatchRow{}, AlternatingRowBG: true,
+							ColumnsOrderable: true, StretchFactor: 1,
+							Accessibility: Accessibility{Name: "入库收货批次列表", Description: "选择批次后查看物料和附件"},
+							OnCurrentIndexChanged: func() {
+								if updateSelectedBatch != nil {
+									updateSelectedBatch()
+								}
+							},
+							Columns: []TableViewColumn{
+								{Title: "批次编号", DataMember: "BatchCode", Width: 130},
+								{Title: "收货时间", DataMember: "Time", Width: 125},
+								{Title: "承运商", DataMember: "Carrier", Width: 110},
+								{Title: "运费", DataMember: "CarrierCost", Width: 75},
+								{Title: "其他费用", DataMember: "OtherCost", Width: 75},
+								{Title: "批次总额", DataMember: "Total", Width: 85},
+								{Title: "附件", DataMember: "Attachments", Width: 60},
+								{Title: "操作人", DataMember: "Operator", Width: 85},
+								{Title: "备注", DataMember: "Remark", Width: 150},
+							},
+						}},
+					},
+					GroupBox{
+						Title:         "当前批次物料及库位",
+						StretchFactor: 1,
+						Layout:        VBox{Margins: Margins{Left: 8, Top: 8, Right: 8, Bottom: 8}},
+						Children: []Widget{TableView{
+							AssignTo: &batchMaterialsTable, Model: []inboundBatchMaterialRow{}, AlternatingRowBG: true,
+							ColumnsOrderable: true, StretchFactor: 1,
+							Accessibility: Accessibility{Name: "当前收货批次物料列表"},
+							Columns: []TableViewColumn{
+								{Title: "序号", DataMember: "Index", Width: 55},
+								{Title: "物料", DataMember: "Material", Width: 190},
+								{Title: "型号", DataMember: "Model", Width: 110},
+								{Title: "数量", DataMember: "Quantity", Width: 95},
+								{Title: "状态", DataMember: "Status", Width: 90},
+								{Title: "仓储位置", DataMember: "Location", Width: 260},
+							},
+						}},
+					},
 				},
 			},
-			Composite{Layout: HBox{}, Children: []Widget{HSpacer{}, PushButton{Text: "关闭", OnClicked: func() { dlg.Accept() }}}},
+			Composite{Layout: HBox{Spacing: 8}, Children: []Widget{
+				PushButton{
+					AssignTo: &batchAttachmentButton, Text: "当前批次附件", Enabled: false,
+					MinSize: Size{Width: 120, Height: 30}, Accessibility: Accessibility{Name: "查看当前收货批次图片附件"},
+					OnClicked: func() {
+						index := batchesTable.CurrentIndex()
+						if index >= 0 && index < len(records) {
+							ShowOrderAttachments(dlg, client, imageBaseURL, "收货批次 "+records[index].Code, records[index].Annex)
+						}
+					},
+				},
+				HSpacer{},
+				PushButton{
+					AssignTo: &receiptAttachmentButton, Text: fmt.Sprintf("入库单附件 (%d)", len(receipt.Annex)),
+					Enabled: len(receipt.Annex) > 0, MinSize: Size{Width: 110, Height: 30},
+					Accessibility: Accessibility{Name: "查看入库单图片附件"},
+					OnClicked: func() {
+						ShowOrderAttachments(dlg, client, imageBaseURL, "入库单 "+receipt.Code, receipt.Annex)
+					},
+				},
+				PushButton{Text: "关闭", MinSize: Size{Width: 88, Height: 30}, OnClicked: func() { dlg.Accept() }},
+			}},
 		},
 	}.Create(owner)
 	if err != nil {
+		cancel()
 		walk.MsgBox(owner, "详情窗口错误", err.Error(), walk.MsgBoxIconError)
 		return
 	}
+	dlg.Disposing().Attach(func() {
+		closed.Store(true)
+		cancel()
+	})
+	updateSelectedBatch = func() {
+		index := batchesTable.CurrentIndex()
+		if index < 0 || index >= len(records) {
+			_ = batchMaterialsTable.SetModel([]inboundBatchMaterialRow{})
+			batchAttachmentButton.SetEnabled(false)
+			batchAttachmentButton.SetText("当前批次附件")
+			return
+		}
+		record := records[index]
+		_ = batchMaterialsTable.SetModel(inboundBatchMaterialRows(record))
+		batchAttachmentButton.SetEnabled(len(record.Annex) > 0)
+		batchAttachmentButton.SetText(fmt.Sprintf("当前批次附件 (%d)", len(record.Annex)))
+	}
 	go func() {
-		records, requestErr := client.InboundRecords(context.Background(), receipt.ID)
+		loaded, requestErr := client.InboundRecords(ctx, receipt.ID)
+		if closed.Load() || ctx.Err() != nil {
+			return
+		}
 		dlg.Synchronize(func() {
-			if requestErr != nil {
-				walk.MsgBox(dlg, "收货记录查询失败", requestErr.Error(), walk.MsgBoxIconError)
+			if closed.Load() {
 				return
 			}
-			rows := make([]inboundRecordRow, 0)
-			for _, record := range records {
-				for _, material := range record.Materials {
-					location := strings.Trim(strings.Join([]string{
-						material.WarehouseName, material.WarehouseZoneName,
-						material.WarehouseRackName, material.WarehouseBinName,
-					}, " / "), " /")
-					rows = append(rows, inboundRecordRow{
-						BatchCode: record.Code,
-						Time:      time.Unix(record.ReceivingDate, 0).Format("2006-01-02 15:04"),
-						Material:  material.Name,
-						Quantity:  fmt.Sprintf("%g %s", material.ActualQuantity, material.Unit),
-						Location:  location,
-						Operator:  record.CreatorName,
-						Remark:    record.Remark,
-					})
-				}
+			if requestErr != nil {
+				recordInfo.SetText("收货批次加载失败：" + requestErr.Error() + "。请关闭后重试。")
+				return
 			}
-			if err := recordsTable.SetModel(rows); err != nil {
-				walk.MsgBox(dlg, "收货记录展示失败", err.Error(), walk.MsgBoxIconError)
+			records = loaded
+			if err := batchesTable.SetModel(inboundBatchRows(records)); err != nil {
+				recordInfo.SetText("收货批次展示失败：" + err.Error())
+				return
 			}
+			if len(records) == 0 {
+				recordInfo.SetText("暂无收货批次。")
+				updateSelectedBatch()
+				return
+			}
+			recordInfo.SetText(fmt.Sprintf("共 %d 个收货批次；选择批次可查看物料、库位和附件。", len(records)))
+			_ = batchesTable.SetCurrentIndex(0)
+			updateSelectedBatch()
 		})
 	}()
 	dlg.Run()
 }
 
-func ReceiveInbound(owner walk.Form, client *api.Client, receipt api.InboundReceipt) bool {
-	tree, err := client.WarehouseTree(context.Background())
-	if err != nil {
-		walk.MsgBox(owner, "无法加载仓储位置", err.Error(), walk.MsgBoxIconError)
-		return false
+func inboundBatchRows(records []api.InboundRecord) []inboundBatchRow {
+	rows := make([]inboundBatchRow, 0, len(records))
+	for _, record := range records {
+		rows = append(rows, inboundBatchRow{
+			BatchCode: record.Code, Time: formatUnixMinute(record.ReceivingDate),
+			Carrier:     displayMaterialValue(record.CarrierName),
+			CarrierCost: fmt.Sprintf("%.2f", record.CarrierCost), OtherCost: fmt.Sprintf("%.2f", record.OtherCost),
+			Total: fmt.Sprintf("%.2f", record.TotalAmount), Attachments: fmt.Sprint(len(record.Annex)),
+			Operator: record.CreatorName, Remark: record.Remark,
+		})
 	}
-	carriers, carrierErr := client.Carriers(context.Background())
-	if carrierErr != nil {
-		walk.MsgBox(owner, "承运商加载失败", "仍可继续收货，但不能选择承运商：\r\n"+carrierErr.Error(), walk.MsgBoxIconWarning)
-		carriers = nil
-	}
-	options := flattenPositions(tree)
-	if len(options) == 0 {
-		walk.MsgBox(owner, "没有可用库位", "线上仓库树没有可选择的仓储位置。", walk.MsgBoxIconWarning)
-		return false
-	}
-	labels := make([]string, len(options))
-	for index := range options {
-		labels[index] = options[index].Label
-	}
-	carrierLabels := make([]string, 1, len(carriers)+1)
-	carrierLabels[0] = "不选择承运商"
-	for _, carrier := range carriers {
-		label := carrier.Name
-		if carrier.Code != "" {
-			label += "（" + carrier.Code + "）"
-		}
-		carrierLabels = append(carrierLabels, label)
-	}
+	return rows
+}
 
+func inboundBatchMaterialRows(record api.InboundRecord) []inboundBatchMaterialRow {
+	rows := make([]inboundBatchMaterialRow, 0, len(record.Materials))
+	for _, material := range record.Materials {
+		location := strings.Trim(strings.Join([]string{
+			material.WarehouseName, material.WarehouseZoneName,
+			material.WarehouseRackName, material.WarehouseBinName,
+		}, " / "), " /")
+		rows = append(rows, inboundBatchMaterialRow{
+			Index: fmt.Sprint(material.Index + 1), Material: material.Name, Model: material.Model,
+			Quantity: fmt.Sprintf("%g %s", material.ActualQuantity, material.Unit),
+			Status:   material.Status, Location: location,
+		})
+	}
+	return rows
+}
+
+func ReceiveInbound(owner walk.Form, client *api.Client, receipt api.InboundReceipt) bool {
 	var dlg *walk.Dialog
 	var batchEdit, remarkEdit, carrierCostEdit, otherCostEdit *walk.LineEdit
 	var positionCombo, carrierCombo *walk.ComboBox
-	var submitButton *walk.PushButton
+	var dependencyLabel *walk.Label
+	var retryButton, submitButton, cancelButton *walk.PushButton
+	var options []positionOption
+	var carriers []api.Carrier
+	var warehouseReady bool
+	var operationBusy bool
+	var dependencyGeneration int
+	var dependencyCancel context.CancelFunc
+	var closed atomic.Bool
 	quantityEdits := make([]*walk.LineEdit, len(receipt.Materials))
 	children := []Widget{
 		Label{Text: "线上生产环境写操作", Font: Font{Bold: true}, TextColor: walk.RGB(190, 45, 35)},
 		Label{Text: "入库单：" + receipt.Code + "。提交后会实际增加线上库存。"},
+		Composite{Layout: HBox{Spacing: 8}, Children: []Widget{
+			Label{
+				AssignTo: &dependencyLabel, Text: "正在加载仓储位置和承运商……",
+				TextColor: walk.RGB(75, 75, 75), Accessibility: Accessibility{Name: "收货依赖数据加载状态"},
+			},
+			HSpacer{},
+			PushButton{
+				AssignTo: &retryButton, Text: "重新加载", Visible: false, MinSize: Size{Width: 88, Height: 30},
+				Accessibility: Accessibility{Name: "重新加载仓储位置和承运商"},
+			},
+		}},
 		Composite{Layout: Grid{Columns: 2, Spacing: 8}, Children: []Widget{
 			Label{Text: "批次编号"},
 			LineEdit{AssignTo: &batchEdit, Text: "WIN-" + time.Now().Format("20060102-150405")},
 			Label{Text: "统一仓储位置"},
-			ComboBox{AssignTo: &positionCombo, Model: labels, CurrentIndex: 0},
+			ComboBox{AssignTo: &positionCombo, Model: []string{"正在加载仓储位置……"}, CurrentIndex: 0, Enabled: false},
 			Label{Text: "承运商"},
-			ComboBox{AssignTo: &carrierCombo, Model: carrierLabels, CurrentIndex: 0},
+			ComboBox{AssignTo: &carrierCombo, Model: []string{"正在加载承运商……"}, CurrentIndex: 0, Enabled: false},
 			Label{Text: "运费"},
 			LineEdit{AssignTo: &carrierCostEdit, Text: "0", CueBanner: "非负数字"},
 			Label{Text: "其他费用"},
@@ -212,12 +322,12 @@ func ReceiveInbound(owner walk.Form, client *api.Client, receipt api.InboundRece
 	})
 	children = append(children, Composite{Layout: HBox{}, Children: []Widget{
 		HSpacer{},
-		PushButton{Text: "取消", OnClicked: func() { dlg.Cancel() }},
-		PushButton{AssignTo: &submitButton, Text: "核对并提交"},
+		PushButton{AssignTo: &cancelButton, Text: "取消", OnClicked: func() { dlg.Cancel() }},
+		PushButton{AssignTo: &submitButton, Text: "核对并提交", Enabled: false},
 	}})
 
 	var success bool
-	err = Dialog{
+	err := Dialog{
 		AssignTo: &dlg,
 		Title:    "批次收货 - " + receipt.Code,
 		MinSize:  Size{Width: 680, Height: 500},
@@ -229,15 +339,131 @@ func ReceiveInbound(owner walk.Form, client *api.Client, receipt api.InboundRece
 		walk.MsgBox(owner, "收货窗口错误", err.Error(), walk.MsgBoxIconError)
 		return false
 	}
+	setSubmitAvailability := func() {
+		submitButton.SetEnabled(warehouseReady && !operationBusy)
+	}
+
+	var loadDependencies func()
+	loadDependencies = func() {
+		if operationBusy || closed.Load() {
+			return
+		}
+		if dependencyCancel != nil {
+			dependencyCancel()
+		}
+		ctx, cancel := context.WithCancel(context.Background())
+		dependencyCancel = cancel
+		dependencyGeneration++
+		generation := dependencyGeneration
+		warehouseReady = false
+		setSubmitAvailability()
+		retryButton.SetVisible(false)
+		positionCombo.SetEnabled(false)
+		carrierCombo.SetEnabled(false)
+		_ = positionCombo.SetModel([]string{"正在加载仓储位置……"})
+		_ = positionCombo.SetCurrentIndex(0)
+		_ = carrierCombo.SetModel([]string{"正在加载承运商……"})
+		_ = carrierCombo.SetCurrentIndex(0)
+		dependencyLabel.SetText("正在加载仓储位置和承运商……")
+
+		go func() {
+			var tree []api.WarehouseNode
+			var loadedCarriers []api.Carrier
+			var treeErr, carrierErr error
+			var wait sync.WaitGroup
+			wait.Add(2)
+			go func() {
+				defer wait.Done()
+				tree, treeErr = client.WarehouseTree(ctx)
+			}()
+			go func() {
+				defer wait.Done()
+				loadedCarriers, carrierErr = client.Carriers(ctx)
+			}()
+			wait.Wait()
+			if ctx.Err() != nil || closed.Load() {
+				return
+			}
+			loadedOptions := flattenPositions(tree)
+			if treeErr == nil && len(loadedOptions) == 0 {
+				treeErr = fmt.Errorf("线上仓库树没有可选择的仓储位置")
+			}
+			dlg.Synchronize(func() {
+				if closed.Load() || generation != dependencyGeneration {
+					return
+				}
+				carriers = loadedCarriers
+				carrierLabels := make([]string, 1, len(carriers)+1)
+				carrierLabels[0] = "不选择承运商"
+				if carrierErr != nil {
+					carriers = nil
+					carrierLabels = []string{"不选择承运商（加载失败）"}
+				}
+				for _, carrier := range carriers {
+					carrierLabels = append(carrierLabels, businessOptionLabel(carrier.Name, carrier.Code))
+				}
+				_ = carrierCombo.SetModel(carrierLabels)
+				_ = carrierCombo.SetCurrentIndex(0)
+				carrierCombo.SetEnabled(carrierErr == nil && len(carriers) > 0)
+
+				if treeErr != nil {
+					options = nil
+					_ = positionCombo.SetModel([]string{"仓储位置加载失败"})
+					_ = positionCombo.SetCurrentIndex(0)
+					positionCombo.SetEnabled(false)
+					dependencyLabel.SetText("仓储位置加载失败：" + treeErr.Error() + "。请重新加载后再提交。")
+					retryButton.SetVisible(true)
+					setSubmitAvailability()
+					return
+				}
+
+				options = loadedOptions
+				labels := make([]string, len(options))
+				for index := range options {
+					labels[index] = options[index].Label
+				}
+				_ = positionCombo.SetModel(labels)
+				_ = positionCombo.SetCurrentIndex(0)
+				positionCombo.SetEnabled(true)
+				warehouseReady = true
+				if carrierErr != nil {
+					dependencyLabel.SetText("仓储位置已加载；承运商加载失败，可不选承运商继续，或点击重新加载。")
+					retryButton.SetVisible(true)
+				} else {
+					dependencyLabel.SetText(fmt.Sprintf("已加载 %d 个仓储位置、%d 个承运商。", len(options), len(carriers)))
+					retryButton.SetVisible(false)
+				}
+				setSubmitAvailability()
+			})
+		}()
+	}
+	retryButton.Clicked().Attach(loadDependencies)
+	dlg.Disposing().Attach(func() {
+		closed.Store(true)
+		if dependencyCancel != nil {
+			dependencyCancel()
+		}
+	})
+	dlg.Closing().Attach(func(canceled *bool, _ walk.CloseReason) {
+		if operationBusy {
+			*canceled = true
+			walk.MsgBox(dlg, "正在提交", "收货请求正在提交和复核，请等待结果，避免产生未知状态。", walk.MsgBoxIconInformation)
+		}
+	})
 
 	submitButton.Clicked().Attach(func() {
+		positionIndex := positionCombo.CurrentIndex()
+		if !warehouseReady || positionIndex < 0 || positionIndex >= len(options) {
+			walk.MsgBox(dlg, "仓储位置不可用", "请先成功加载并选择仓储位置。", walk.MsgBoxIconWarning)
+			return
+		}
 		carrierID := ""
 		if carrierCombo.CurrentIndex() > 0 && carrierCombo.CurrentIndex()-1 < len(carriers) {
 			carrierID = carriers[carrierCombo.CurrentIndex()-1].ID
 		}
 		request, summary, validationErr := buildReceiveRequest(
 			receipt, batchEdit.Text(), remarkEdit.Text(), carrierID,
-			carrierCostEdit.Text(), otherCostEdit.Text(), options[positionCombo.CurrentIndex()], quantityEdits,
+			carrierCostEdit.Text(), otherCostEdit.Text(), options[positionIndex], quantityEdits,
 		)
 		if validationErr != nil {
 			walk.MsgBox(dlg, "数据不完整", validationErr.Error(), walk.MsgBoxIconWarning)
@@ -246,7 +472,10 @@ func ReceiveInbound(owner walk.Form, client *api.Client, receipt api.InboundRece
 		if walk.MsgBox(dlg, "确认线上批次收货", summary+"\r\n\r\n该操作将实际写入线上库存，是否继续？", walk.MsgBoxYesNo|walk.MsgBoxIconWarning) != walk.DlgCmdYes {
 			return
 		}
-		submitButton.SetEnabled(false)
+		operationBusy = true
+		setSubmitAvailability()
+		cancelButton.SetEnabled(false)
+		retryButton.SetEnabled(false)
 		submitButton.SetText("正在提交，请勿关闭……")
 		go func() {
 			requestErr := client.ReceiveInbound(context.Background(), request)
@@ -255,7 +484,10 @@ func ReceiveInbound(owner walk.Form, client *api.Client, receipt api.InboundRece
 				verifyErr = verifyInbound(client, request)
 			}
 			dlg.Synchronize(func() {
-				submitButton.SetEnabled(true)
+				operationBusy = false
+				setSubmitAvailability()
+				cancelButton.SetEnabled(true)
+				retryButton.SetEnabled(true)
 				submitButton.SetText("核对并提交")
 				if requestErr != nil {
 					walk.MsgBox(dlg, "提交未完成", "服务端未确认收货成功：\r\n"+requestErr.Error()+"\r\n\r\n客户端不会自动重试，请按批次编号查询后再决定。", walk.MsgBoxIconError)
@@ -273,6 +505,7 @@ func ReceiveInbound(owner walk.Form, client *api.Client, receipt api.InboundRece
 			})
 		}()
 	})
+	loadDependencies()
 	dlg.Run()
 	return success
 }

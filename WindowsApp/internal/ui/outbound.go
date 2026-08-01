@@ -10,6 +10,7 @@ import (
 	. "github.com/lxn/walk/declarative"
 
 	"zhengshi-wms-windowsapp/internal/api"
+	"zhengshi-wms-windowsapp/internal/config"
 )
 
 type outboundStage struct {
@@ -59,28 +60,30 @@ type outboundMaterialRow struct {
 }
 
 type outboundUI struct {
-	search     *walk.LineEdit
-	stage      *walk.ComboBox
-	orderType  *walk.ComboBox
-	supplier   *walk.ComboBox
-	customer   *walk.ComboBox
-	startDate  *walk.LineEdit
-	endDate    *walk.LineEdit
-	table      *walk.TableView
-	materials  *walk.TableView
-	info       *walk.Label
-	actionHint *walk.Label
-	query      *walk.PushButton
-	reset      *walk.PushButton
-	prev       *walk.PushButton
-	next       *walk.PushButton
-	pageSize   *walk.ComboBox
-	confirm    *walk.PushButton
-	pick       *walk.PushButton
-	pack       *walk.PushButton
-	weigh      *walk.PushButton
-	departure  *walk.PushButton
-	receipt    *walk.PushButton
+	search      *walk.LineEdit
+	stage       *walk.ComboBox
+	orderType   *walk.ComboBox
+	supplier    *walk.ComboBox
+	customer    *walk.ComboBox
+	startDate   *walk.LineEdit
+	endDate     *walk.LineEdit
+	table       *walk.TableView
+	materials   *walk.TableView
+	info        *walk.Label
+	actionHint  *walk.Label
+	query       *walk.PushButton
+	reset       *walk.PushButton
+	prev        *walk.PushButton
+	next        *walk.PushButton
+	pageSize    *walk.ComboBox
+	attachments *walk.PushButton
+	revise      *walk.PushButton
+	confirm     *walk.PushButton
+	pick        *walk.PushButton
+	pack        *walk.PushButton
+	weigh       *walk.PushButton
+	departure   *walk.PushButton
+	receipt     *walk.PushButton
 
 	page               int
 	total              int64
@@ -118,7 +121,7 @@ func (ui *mainUI) outboundPageWidget() TabPage {
 	}
 	return TabPage{
 		AssignTo: &ui.outboundTab,
-		Title:    "出库执行",
+		Title:    closableTabTitle("出库执行"),
 		Layout:   VBox{Margins: Margins{Left: 14, Top: 14, Right: 14, Bottom: 12}, Spacing: 8},
 		Children: []Widget{
 			Label{Text: "出库执行", Font: Font{Family: "Microsoft YaHei UI", PointSize: 15, Bold: true}},
@@ -239,43 +242,61 @@ func (ui *mainUI) outboundPageWidget() TabPage {
 				TextColor: walk.RGB(85, 85, 85),
 			},
 			Composite{
-				Layout: HBox{Spacing: 6},
+				Layout: VBox{Spacing: 6},
 				Children: []Widget{
-					Label{AssignTo: &state.info, Text: "尚未加载"},
-					HSpacer{},
-					PushButton{AssignTo: &state.confirm, Text: "确认并分配库存", OnClicked: ui.confirmSelectedOutbound},
-					PushButton{AssignTo: &state.pick, Text: "确认拣货", OnClicked: ui.pickSelectedOutbound},
-					PushButton{AssignTo: &state.pack, Text: "确认打包", OnClicked: ui.packSelectedOutbound},
-					PushButton{AssignTo: &state.weigh, Text: "确认称重", OnClicked: ui.weighSelectedOutbound},
-					PushButton{AssignTo: &state.departure, Text: "确认出库", OnClicked: ui.departSelectedOutbound},
-					PushButton{AssignTo: &state.receipt, Text: "确认签收", OnClicked: ui.receiptSelectedOutbound},
-					Label{Text: "每页"},
-					ComboBox{
-						AssignTo: &state.pageSize, Model: outboundPageSizeLabels, CurrentIndex: 1,
-						MinSize: Size{Width: 92},
-						OnCurrentIndexChanged: func() {
-							if ui.window != nil && state.pageSize != nil && state.pageSize.CurrentIndex() >= 0 {
-								state.page = 1
+					Composite{Layout: HBox{Spacing: 6}, Children: []Widget{
+						Label{Text: "当前单据操作", Font: Font{Bold: true}},
+						PushButton{
+							AssignTo: &state.attachments, Text: "查看附件", Enabled: false,
+							MinSize:       Size{Width: 88, Height: 30},
+							Accessibility: Accessibility{Name: "查看选中出库单的图片附件"},
+							OnClicked:     ui.showSelectedOutboundAttachments,
+						},
+						PushButton{
+							AssignTo: &state.revise, Text: "核价/调价", Enabled: false,
+							Visible: hasButton(ui.session.Perms.Buttons, "outbound:order:revise"),
+							MinSize: Size{Width: 88, Height: 30}, Accessibility: Accessibility{Name: "核价或调整出库单物料价格"},
+							OnClicked: ui.reviseSelectedOutbound,
+						},
+						HSpacer{},
+						PushButton{AssignTo: &state.confirm, Text: "确认并分配库存", OnClicked: ui.confirmSelectedOutbound},
+						PushButton{AssignTo: &state.pick, Text: "确认拣货", OnClicked: ui.pickSelectedOutbound},
+						PushButton{AssignTo: &state.pack, Text: "确认打包", OnClicked: ui.packSelectedOutbound},
+						PushButton{AssignTo: &state.weigh, Text: "确认称重", OnClicked: ui.weighSelectedOutbound},
+						PushButton{AssignTo: &state.departure, Text: "确认出库", OnClicked: ui.departSelectedOutbound},
+						PushButton{AssignTo: &state.receipt, Text: "确认签收", OnClicked: ui.receiptSelectedOutbound},
+					}},
+					Composite{Layout: HBox{Spacing: 6}, Children: []Widget{
+						Label{AssignTo: &state.info, Text: "尚未加载"},
+						HSpacer{},
+						Label{Text: "每页"},
+						ComboBox{
+							AssignTo: &state.pageSize, Model: outboundPageSizeLabels, CurrentIndex: 1,
+							MinSize: Size{Width: 92},
+							OnCurrentIndexChanged: func() {
+								if ui.window != nil && state.pageSize != nil && state.pageSize.CurrentIndex() >= 0 {
+									state.page = 1
+									ui.loadOutbound()
+								}
+							},
+						},
+						PushButton{
+							AssignTo: &state.prev, Text: "上一页",
+							OnClicked: func() {
+								if state.page > 1 {
+									state.page--
+									ui.loadOutbound()
+								}
+							},
+						},
+						PushButton{
+							AssignTo: &state.next, Text: "下一页",
+							OnClicked: func() {
+								state.page++
 								ui.loadOutbound()
-							}
+							},
 						},
-					},
-					PushButton{
-						AssignTo: &state.prev, Text: "上一页",
-						OnClicked: func() {
-							if state.page > 1 {
-								state.page--
-								ui.loadOutbound()
-							}
-						},
-					},
-					PushButton{
-						AssignTo: &state.next, Text: "下一页",
-						OnClicked: func() {
-							state.page++
-							ui.loadOutbound()
-						},
-					},
+					}},
 				},
 			},
 		},
@@ -643,12 +664,33 @@ func (ui *mainUI) setOutboundActionButtons(order *api.OutboundOrder) {
 	if order != nil {
 		value = *order
 	}
+	if state.attachments != nil {
+		state.attachments.SetEnabled(enabled && len(value.Annex) > 0)
+		if len(value.Annex) > 0 {
+			state.attachments.SetText(fmt.Sprintf("查看附件 (%d)", len(value.Annex)))
+		} else {
+			state.attachments.SetText("查看附件")
+		}
+	}
 	state.confirm.SetEnabled(enabled && hasButton(ui.session.Perms.Buttons, "outbound:order:confirm") && canConfirmOutbound(value))
 	state.pick.SetEnabled(enabled && hasButton(ui.session.Perms.Buttons, "outbound:order:pick") && canPickOutbound(value))
 	state.pack.SetEnabled(enabled && hasButton(ui.session.Perms.Buttons, "outbound:order:pack") && canPackOutbound(value))
 	state.weigh.SetEnabled(enabled && hasButton(ui.session.Perms.Buttons, "outbound:order:weigh") && canWeighOutbound(value))
 	state.departure.SetEnabled(enabled && hasButton(ui.session.Perms.Buttons, "outbound:order:departure") && canDepartOutbound(value))
 	state.receipt.SetEnabled(enabled && hasButton(ui.session.Perms.Buttons, "outbound:order:receipt") && canReceiptOutbound(value))
+	if state.revise != nil {
+		state.revise.SetEnabled(enabled && hasButton(ui.session.Perms.Buttons, "outbound:order:revise") && strings.TrimSpace(value.CustomerID) != "")
+	}
+}
+
+func (ui *mainUI) showSelectedOutboundAttachments() {
+	order, ok := ui.selectedOutbound()
+	if !ok {
+		return
+	}
+	ShowOrderAttachments(
+		ui.window, ui.session.Client, config.ImageBaseURL(), "出库单 "+order.Code, order.Annex,
+	)
 }
 
 func (ui *mainUI) setOutboundOperationBusy(busy bool, message string) {
