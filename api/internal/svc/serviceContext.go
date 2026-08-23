@@ -151,12 +151,21 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	if _, err = ctx.OutboundOrderModel.Indexes().CreateMany(context.Background(), outboundIndexes, largeIndexOpt); err != nil {
 		panic(fmt.Sprintf("[Error]创建出库单交付查询索引:%s", err.Error()))
 	}
-	_, err = ctx.OutboundMaterialModel.Indexes().CreateOne(context.Background(), mongo.IndexModel{
-		Keys: bson.D{{"order_code", 1}, {"material_id", 1}},
-		Options: options.Index().
-			SetName("idx_outbound_material_order_material").
-			SetBackground(true),
-	}, largeIndexOpt)
+	outboundMaterialIndexes := []mongo.IndexModel{
+		{
+			Keys: bson.D{{"order_code", 1}, {"material_id", 1}},
+			Options: options.Index().
+				SetName("idx_outbound_material_order_material").
+				SetBackground(true),
+		},
+		{
+			Keys: bson.D{{"model", 1}, {"order_code", 1}},
+			Options: options.Index().
+				SetName("idx_outbound_material_model_order").
+				SetBackground(true),
+		},
+	}
+	_, err = ctx.OutboundMaterialModel.Indexes().CreateMany(context.Background(), outboundMaterialIndexes, largeIndexOpt)
 	if err != nil {
 		panic(fmt.Sprintf("[Error]创建出库单物料索引:%s", err.Error()))
 	}

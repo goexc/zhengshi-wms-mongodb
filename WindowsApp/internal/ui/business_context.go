@@ -41,7 +41,7 @@ func ShowMaterialPriceHistory(owner walk.Form, client *api.Client, material api.
 			Label{Text: material.Name, Font: Font{Family: "Microsoft YaHei UI", PointSize: 15, Bold: true}},
 			Label{
 				Text:      "只读展示现有物料价格记录；价格来源和有效性均由服务端返回。",
-				TextColor: walk.RGB(80, 80, 80),
+				TextColor: secondaryTextColor(),
 			},
 			TableView{
 				AssignTo: &table, Model: []materialPriceRow{}, AlternatingRowBG: true,
@@ -57,7 +57,7 @@ func ShowMaterialPriceHistory(owner walk.Form, client *api.Client, material api.
 				},
 			},
 			Composite{Layout: HBox{Spacing: 8}, Children: []Widget{
-				Label{AssignTo: &info, Text: "尚未加载", TextColor: walk.RGB(80, 80, 80)},
+				Label{AssignTo: &info, Text: "尚未加载", TextColor: secondaryTextColor()},
 				HSpacer{},
 				PushButton{AssignTo: &refresh, Text: "刷新", MinSize: Size{Width: 88, Height: 30}},
 				PushButton{
@@ -79,7 +79,7 @@ func ShowMaterialPriceHistory(owner walk.Form, client *api.Client, material api.
 	load := func() {
 		info.SetText("正在加载历史价格……")
 		refresh.SetEnabled(false)
-		go func() {
+		guardedGo(func() {
 			prices, requestErr := client.MaterialPrices(ctx, material.ID, "")
 			if closed.Load() || ctx.Err() != nil {
 				return
@@ -104,7 +104,7 @@ func ShowMaterialPriceHistory(owner walk.Form, client *api.Client, material api.
 					info.SetText(fmt.Sprintf("共 %d 条历史价格。", len(rows)))
 				}
 			})
-		}()
+		})
 	}
 	refresh.Clicked().Attach(load)
 	load()
@@ -187,7 +187,7 @@ func ShowCustomerTransactions(owner walk.Form, client *api.Client, imageBaseURL,
 		Layout:        VBox{Margins: Margins{Left: 16, Top: 16, Right: 16, Bottom: 14}, Spacing: 10},
 		Children: []Widget{
 			Label{Text: customerName, Font: Font{Family: "Microsoft YaHei UI", PointSize: 15, Bold: true}},
-			Label{Text: "只读查询客户交易流水，不在 Windows 客户端新增或修改财务记录。", TextColor: walk.RGB(80, 80, 80)},
+			Label{Text: "只读查询客户交易流水，不在 Windows 客户端新增或修改财务记录。", TextColor: secondaryTextColor()},
 			TableView{
 				AssignTo: &table, Model: []customerTransactionRow{}, AlternatingRowBG: true,
 				ColumnsOrderable: true, StretchFactor: 1,
@@ -209,7 +209,7 @@ func ShowCustomerTransactions(owner walk.Form, client *api.Client, imageBaseURL,
 				},
 			},
 			Composite{Layout: HBox{Spacing: 8}, Children: []Widget{
-				Label{AssignTo: &info, Text: "尚未加载", TextColor: walk.RGB(80, 80, 80)},
+				Label{AssignTo: &info, Text: "尚未加载", TextColor: secondaryTextColor()},
 				HSpacer{},
 				PushButton{AssignTo: &attachment, Text: "查看附件", Enabled: false, MinSize: Size{Width: 92, Height: 30}},
 				PushButton{AssignTo: &refreshButton, Text: "刷新", MinSize: Size{Width: 80, Height: 30}},
@@ -267,7 +267,7 @@ func ShowCustomerTransactions(owner walk.Form, client *api.Client, imageBaseURL,
 		refreshButton.SetEnabled(false)
 		prevButton.SetEnabled(false)
 		nextButton.SetEnabled(false)
-		go func() {
+		guardedGo(func() {
 			result, requestErr := client.CustomerTransactions(ctx, customerID, currentPage, size)
 			if ctx.Err() != nil || closed.Load() {
 				return
@@ -292,7 +292,7 @@ func ShowCustomerTransactions(owner walk.Form, client *api.Client, imageBaseURL,
 				nextButton.SetEnabled(int64(currentPage*size) < total)
 				updateAttachment()
 			})
-		}()
+		})
 	}
 	refreshButton.Clicked().Attach(load)
 	pageSize.CurrentIndexChanged().Attach(func() {

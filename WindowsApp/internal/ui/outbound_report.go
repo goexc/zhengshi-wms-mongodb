@@ -40,6 +40,7 @@ type outboundReportUI struct {
 	reset          *walk.PushButton
 	exportOrder    *walk.PushButton
 	exportMaterial *walk.PushButton
+	detail         *walk.PushButton
 
 	customerOptions  []selectOption
 	rows             []api.OutboundSummaryRecord
@@ -64,7 +65,7 @@ func (ui *mainUI) outboundReportPageWidget() TabPage {
 			Label{Text: "出库报表", Font: Font{Family: "Microsoft YaHei UI", PointSize: 15, Bold: true}},
 			Label{
 				Text:      "按客户和签收日期查询服务端汇总记录；统计、分组与 Excel 导出仅改变呈现方式。",
-				TextColor: walk.RGB(85, 85, 85),
+				TextColor: secondaryTextColor(),
 			},
 			GroupBox{
 				Title:  "筛选条件",
@@ -98,7 +99,7 @@ func (ui *mainUI) outboundReportPageWidget() TabPage {
 						Children: []Widget{
 							Label{
 								Text:      "日期按 Web 端现有时间戳口径提交；客户端不扩展查询边界。",
-								TextColor: walk.RGB(90, 90, 90),
+								TextColor: secondaryTextColor(),
 							},
 							HSpacer{},
 							PushButton{
@@ -124,6 +125,11 @@ func (ui *mainUI) outboundReportPageWidget() TabPage {
 					},
 					HSpacer{},
 					PushButton{
+						AssignTo: &state.detail, Text: "查看出库单", Enabled: false,
+						MinSize: Size{Width: 104, Height: 30}, Accessibility: Accessibility{Name: "查看当前报表行对应的出库单"},
+						OnClicked: ui.showSelectedOutboundReportOrder,
+					},
+					PushButton{
 						AssignTo: &state.exportOrder, Text: "按单据导出", Enabled: false,
 						MinSize:       Size{Width: 110, Height: 30},
 						Accessibility: Accessibility{Name: "按出库单分组导出 Excel"},
@@ -146,6 +152,8 @@ func (ui *mainUI) outboundReportPageWidget() TabPage {
 					Name:        "出库报表明细",
 					Description: "每行是一条服务端返回的出库物料签收记录",
 				},
+				OnCurrentIndexChanged: ui.updateOutboundReportDetailButton,
+				OnItemActivated:       ui.showSelectedOutboundReportOrder,
 				Columns: []TableViewColumn{
 					{Title: "产品型号", DataMember: "Model", Width: 150},
 					{Title: "名称", DataMember: "Name", Width: 150},
@@ -159,7 +167,7 @@ func (ui *mainUI) outboundReportPageWidget() TabPage {
 					{Title: "金额", DataMember: "Amount", Width: 105},
 				},
 			},
-			Label{AssignTo: &state.info, Text: "尚未查询", TextColor: walk.RGB(85, 85, 85)},
+			Label{AssignTo: &state.info, Text: "尚未查询", TextColor: secondaryTextColor()},
 		},
 	}
 }
@@ -196,7 +204,7 @@ func (ui *mainUI) releaseOutboundReportPage() {
 func (ui *mainUI) loadOutboundReportCustomers() {
 	state := ui.outboundReport
 	generation := state.generation
-	go func() {
+	guardedGo(func() {
 		customers, requestErr := ui.session.Client.Customers(context.Background())
 		ui.window.Synchronize(func() {
 			if state != ui.outboundReport || generation != state.generation || state.customer == nil {
@@ -217,7 +225,7 @@ func (ui *mainUI) loadOutboundReportCustomers() {
 			state.customer.SetCurrentIndex(0)
 			state.info.SetText("客户列表已加载，请选择客户后查询。")
 		})
-	}()
+	})
 }
 
 func (ui *mainUI) refreshOutboundReportPage() {
@@ -278,6 +286,7 @@ func (ui *mainUI) resetOutboundReportFilters() {
 	state.info.SetText("筛选条件已重置。")
 	state.exportOrder.SetEnabled(false)
 	state.exportMaterial.SetEnabled(false)
+	state.detail.SetEnabled(false)
 }
 
 func (ui *mainUI) loadOutboundReport() {
@@ -322,7 +331,7 @@ func (ui *mainUI) loadOutboundReport() {
 	state.exportOrder.SetEnabled(false)
 	state.exportMaterial.SetEnabled(false)
 
-	go func() {
+	guardedGo(func() {
 		records, requestErr := ui.session.Client.OutboundSummary(ctx, customerID, start, end)
 		if ctx.Err() != nil {
 			return
@@ -334,7 +343,7 @@ func (ui *mainUI) loadOutboundReport() {
 			state.query.SetEnabled(true)
 			state.reset.SetEnabled(true)
 			if requestErr != nil {
-				state.info.SetText("加载失败：" + requestErr.Error() + "。请核对客户和日期后重试。")
+				state.info.SetText(requestFailureText(requestErr) + "。请核对客户和日期后重试。")
 				return
 			}
 			sort.SliceStable(records, func(i, j int) bool {
@@ -375,8 +384,9 @@ func (ui *mainUI) loadOutboundReport() {
 			}
 			state.exportOrder.SetEnabled(len(records) > 0)
 			state.exportMaterial.SetEnabled(len(records) > 0)
+			ui.updateOutboundReportDetailButton()
 		})
-	}()
+	})
 }
 
 func parseRequiredReportDate(text, field string) (int64, error) {

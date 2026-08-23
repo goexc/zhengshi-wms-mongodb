@@ -25,7 +25,7 @@ func (ui *mainUI) confirmSelectedOutbound() {
 	}
 	materials := append([]api.OutboundMaterial(nil), ui.outbound.selectedMaterials...)
 	ui.setOutboundOperationBusy(true, "正在重新查询订单物料及可用库存……")
-	go func() {
+	guardedGo(func() {
 		var err error
 		if len(materials) == 0 {
 			materials, err = ui.session.Client.OutboundMaterials(context.Background(), order.Code)
@@ -44,7 +44,7 @@ func (ui *mainUI) confirmSelectedOutbound() {
 			ShowOutboundConfirm(ui.window, ui.session.Client, order, allocations)
 			ui.loadOutbound()
 		})
-	}()
+	})
 }
 
 func loadOutboundAllocationData(ctx context.Context, client *api.Client, materials []api.OutboundMaterial) ([]outboundAllocationData, error) {
@@ -157,7 +157,7 @@ func ShowOutboundConfirm(owner walk.Form, client *api.Client, order api.Outbound
 		}
 		submit.SetEnabled(false)
 		submit.SetText("正在提交，请勿关闭……")
-		go func() {
+		guardedGo(func() {
 			current, preflightErr := client.FindOutboundByCode(context.Background(), order.Code)
 			if preflightErr == nil && !canConfirmOutbound(current) {
 				preflightErr = fmt.Errorf("服务端最新状态为“%s”，已停止提交", current.Status)
@@ -197,7 +197,7 @@ func ShowOutboundConfirm(owner walk.Form, client *api.Client, order api.Outbound
 				}
 				dlg.Accept()
 			})
-		}()
+		})
 	})
 	dlg.Run()
 	return success
@@ -344,7 +344,7 @@ func showOutboundTimeAction(
 					CueBanner: "YYYY-MM-DD HH:mm:ss",
 				},
 			}},
-			Label{Text: "提交前会重新查询服务端状态；提交后不会自动重试。", TextColor: walk.RGB(85, 85, 85)},
+			Label{Text: "提交前会重新查询服务端状态；提交后不会自动重试。", TextColor: secondaryTextColor()},
 			Composite{Layout: HBox{Spacing: 8}, Children: []Widget{
 				HSpacer{},
 				PushButton{Text: "取消", OnClicked: func() { dlg.Cancel() }},
@@ -372,7 +372,7 @@ func showOutboundTimeAction(
 		}
 		submit.SetEnabled(false)
 		submit.SetText("正在提交，请勿关闭……")
-		go func() {
+		guardedGo(func() {
 			current, preflightErr := client.FindOutboundByCode(context.Background(), order.Code)
 			if preflightErr == nil && !valid(current) {
 				preflightErr = fmt.Errorf("服务端最新状态为“%s”，已停止提交", current.Status)
@@ -404,7 +404,7 @@ func showOutboundTimeAction(
 				}
 				dlg.Accept()
 			})
-		}()
+		})
 	})
 	dlg.Run()
 	return success
@@ -494,7 +494,7 @@ func ShowOutboundWeigh(owner walk.Form, client *api.Client, order api.OutboundOr
 		}
 		submit.SetEnabled(false)
 		submit.SetText("正在提交，请勿关闭……")
-		go func() {
+		guardedGo(func() {
 			current, preflightErr := client.FindOutboundByCode(context.Background(), order.Code)
 			if preflightErr == nil && !canWeighOutbound(current) {
 				preflightErr = fmt.Errorf("服务端最新状态为“%s”，已停止提交", current.Status)
@@ -524,7 +524,7 @@ func ShowOutboundWeigh(owner walk.Form, client *api.Client, order api.OutboundOr
 				}
 				dlg.Accept()
 			})
-		}()
+		})
 	})
 	dlg.Run()
 	return success
@@ -536,7 +536,7 @@ func (ui *mainUI) departSelectedOutbound() {
 		return
 	}
 	ui.setOutboundOperationBusy(true, "正在加载承运商选项……")
-	go func() {
+	guardedGo(func() {
 		carriers, err := ui.session.Client.Carriers(context.Background())
 		ui.window.Synchronize(func() {
 			ui.setOutboundOperationBusy(false, "")
@@ -547,7 +547,7 @@ func (ui *mainUI) departSelectedOutbound() {
 			ShowOutboundDeparture(ui.window, ui.session.Client, order, carriers)
 			ui.loadOutbound()
 		})
-	}()
+	})
 }
 
 func ShowOutboundDeparture(owner walk.Form, client *api.Client, order api.OutboundOrder, carriers []api.Carrier) bool {
@@ -579,7 +579,7 @@ func ShowOutboundDeparture(owner walk.Form, client *api.Client, order api.Outbou
 				Label{Text: "其他费用"},
 				LineEdit{AssignTo: &otherCostEdit, Text: "0", CueBanner: "非负数字"},
 			}},
-			Label{Text: "提交后不会自动重试；若网络中断，请返回队列刷新状态。", TextColor: walk.RGB(85, 85, 85)},
+			Label{Text: "提交后不会自动重试；若网络中断，请返回队列刷新状态。", TextColor: secondaryTextColor()},
 			Composite{Layout: HBox{Spacing: 8}, Children: []Widget{
 				HSpacer{},
 				PushButton{Text: "取消", OnClicked: func() { dlg.Cancel() }},
@@ -623,7 +623,7 @@ func ShowOutboundDeparture(owner walk.Form, client *api.Client, order api.Outbou
 		}
 		submit.SetEnabled(false)
 		submit.SetText("正在提交，请勿关闭……")
-		go func() {
+		guardedGo(func() {
 			current, preflightErr := client.FindOutboundByCode(context.Background(), order.Code)
 			if preflightErr == nil && !canDepartOutbound(current) {
 				preflightErr = fmt.Errorf("服务端最新状态为“%s”，已停止提交", current.Status)
@@ -653,7 +653,7 @@ func ShowOutboundDeparture(owner walk.Form, client *api.Client, order api.Outbou
 				}
 				dlg.Accept()
 			})
-		}()
+		})
 	})
 	dlg.Run()
 	return success
@@ -706,7 +706,7 @@ func ShowOutboundReceipt(owner walk.Form, client *api.Client, order api.Outbound
 					fileEdit.SetText(filepath.Base(filePath))
 				}},
 			}},
-			Label{Text: "若选择附件，将先调用现有图片上传接口，再提交签收。写请求不会自动重试。", TextColor: walk.RGB(85, 85, 85)},
+			Label{Text: "若选择附件，将先调用现有图片上传接口，再提交签收。写请求不会自动重试。", TextColor: secondaryTextColor()},
 			Composite{Layout: HBox{Spacing: 8}, Children: []Widget{
 				HSpacer{},
 				PushButton{Text: "取消", OnClicked: func() { dlg.Cancel() }},
@@ -735,7 +735,7 @@ func ShowOutboundReceipt(owner walk.Form, client *api.Client, order api.Outbound
 		}
 		submit.SetEnabled(false)
 		submit.SetText("正在提交，请勿关闭……")
-		go func() {
+		guardedGo(func() {
 			current, preflightErr := client.FindOutboundByCode(context.Background(), order.Code)
 			if preflightErr == nil && !canReceiptOutbound(current) {
 				preflightErr = fmt.Errorf("服务端最新状态为“%s”，已停止提交", current.Status)
@@ -778,7 +778,7 @@ func ShowOutboundReceipt(owner walk.Form, client *api.Client, order api.Outbound
 				}
 				dlg.Accept()
 			})
-		}()
+		})
 	})
 	dlg.Run()
 	return success

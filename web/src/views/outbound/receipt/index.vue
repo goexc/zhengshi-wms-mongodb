@@ -22,6 +22,7 @@ import NP from "number-precision";
 import {DateFormat} from "@/utils/time.ts";
 import Pack from "@/views/outbound/receipt/components/Pack.vue";
 import Pick from "@/views/outbound/receipt/components/Pick.vue";
+import MaterialModelRemoteSelect from "@/components/Material/MaterialModelRemoteSelect.vue";
 
 //当前Tab页状态
 let globalStatus = ref<string>('')
@@ -33,6 +34,7 @@ const initOutboundOrdersRequest = () => {
     status: globalStatus.value,
     type: '',
     code: '',
+    model: '',
     supplier_id: '',
     customer_id: '',
     is_pack: -1,
@@ -360,6 +362,9 @@ let orderStatus = (status:string) => {
               v-model.trim="form.code"
               clearable
               placeholder="请填写发货单号"/>
+        </el-form-item>
+        <el-form-item label="型号">
+          <MaterialModelRemoteSelect v-model="form.model"/>
         </el-form-item>
         <SupplierPageItem
             :form="form"

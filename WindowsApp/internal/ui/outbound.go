@@ -60,7 +60,10 @@ type outboundMaterialRow struct {
 }
 
 type outboundUI struct {
+	splitter    *walk.Splitter
 	search      *walk.LineEdit
+	model       *walk.LineEdit
+	chooseModel *walk.PushButton
 	stage       *walk.ComboBox
 	orderType   *walk.ComboBox
 	supplier    *walk.ComboBox
@@ -76,6 +79,12 @@ type outboundUI struct {
 	prev        *walk.PushButton
 	next        *walk.PushButton
 	pageSize    *walk.ComboBox
+	add         *walk.PushButton
+	fast        *walk.PushButton
+	delete      *walk.PushButton
+	export      *walk.PushButton
+	exportStop  *walk.PushButton
+	detail      *walk.PushButton
 	attachments *walk.PushButton
 	revise      *walk.PushButton
 	confirm     *walk.PushButton
@@ -93,9 +102,12 @@ type outboundUI struct {
 	customerOptions    []selectOption
 	generation         int
 	materialGeneration int
+	exportGeneration   int
 	cancel             context.CancelFunc
+	exportCancel       context.CancelFunc
 	materialCancel     context.CancelFunc
 	operationBusy      bool
+	exportBusy         bool
 }
 
 func newOutboundUI() *outboundUI {
@@ -127,7 +139,7 @@ func (ui *mainUI) outboundPageWidget() TabPage {
 			Label{Text: "出库执行", Font: Font{Family: "Microsoft YaHei UI", PointSize: 15, Bold: true}},
 			Label{
 				Text:      "状态队列直接映射现有 API；选择订单后，在下方核对物料并执行当前状态允许的操作。",
-				TextColor: walk.RGB(85, 85, 85),
+				TextColor: secondaryTextColor(), Accessibility: Accessibility{Name: "出库单操作提示"},
 			},
 			GroupBox{
 				Title:  "筛选条件",
@@ -138,14 +150,22 @@ func (ui *mainUI) outboundPageWidget() TabPage {
 						AssignTo: &state.search, MinSize: Size{Width: 170, Height: 28},
 						CueBanner: "可扫码或输入单号",
 					},
+					Label{Text: "物料型号"},
+					Composite{
+						Layout: HBox{Spacing: 4},
+						Children: []Widget{
+							LineEdit{AssignTo: &state.model, ReadOnly: true, MinSize: Size{Width: 112, Height: 28}, CueBanner: "全部型号", Accessibility: Accessibility{Name: "出库物料精确型号"}},
+							PushButton{AssignTo: &state.chooseModel, Text: "选择", MinSize: Size{Width: 54, Height: 28}, ToolTipText: "从物料列表搜索并选择精确型号", OnClicked: ui.selectOutboundFilterModel},
+						},
+					},
 					Label{Text: "状态队列"},
 					ComboBox{
-						AssignTo: &state.stage, Model: outboundStageLabels(), CurrentIndex: 0,
+						AssignTo: &state.stage, Model: outboundStageLabels(), CurrentIndex: ui.initialWorkspaceFilterIndex("outbound_stage", len(outboundStages)),
 						MinSize: Size{Width: 130, Height: 28},
 					},
 					Label{Text: "出库类型"},
 					ComboBox{
-						AssignTo: &state.orderType, Model: types, CurrentIndex: 0,
+						AssignTo: &state.orderType, Model: types, CurrentIndex: ui.initialWorkspaceFilterIndex("outbound_type", len(types)),
 						MinSize: Size{Width: 140, Height: 28},
 					},
 					Label{Text: "供应商"},
@@ -168,7 +188,6 @@ func (ui *mainUI) outboundPageWidget() TabPage {
 						AssignTo: &state.endDate, MinSize: Size{Width: 130, Height: 28},
 						CueBanner: "YYYY-MM-DD",
 					},
-					HSpacer{ColumnSpan: 2},
 					Composite{
 						ColumnSpan: 8,
 						Layout:     HBox{Spacing: 8},
@@ -190,6 +209,7 @@ func (ui *mainUI) outboundPageWidget() TabPage {
 				},
 			},
 			VSplitter{
+				AssignTo:      &state.splitter,
 				HandleWidth:   4,
 				StretchFactor: 1,
 				Children: []Widget{
@@ -199,7 +219,7 @@ func (ui *mainUI) outboundPageWidget() TabPage {
 						ColumnsOrderable:      true,
 						StretchFactor:         3,
 						OnCurrentIndexChanged: ui.outboundSelectionChanged,
-						OnItemActivated:       ui.outboundSelectionChanged,
+						OnItemActivated:       ui.showSelectedOutboundDetail,
 						Columns: []TableViewColumn{
 							{Title: "出库单号", DataMember: "Code", Width: 140},
 							{Title: "类型", DataMember: "Type", Width: 95},
@@ -222,6 +242,7 @@ func (ui *mainUI) outboundPageWidget() TabPage {
 								AssignTo:         &state.materials,
 								Model:            []outboundMaterialRow{},
 								AlternatingRowBG: true,
+								ColumnsOrderable: true,
 								StretchFactor:    1,
 								Columns: []TableViewColumn{
 									{Title: "序号", DataMember: "Index", Width: 55},
@@ -239,13 +260,45 @@ func (ui *mainUI) outboundPageWidget() TabPage {
 			},
 			Label{
 				AssignTo: &state.actionHint, Text: "请选择一张出库单。",
-				TextColor: walk.RGB(85, 85, 85),
+				TextColor: secondaryTextColor(),
 			},
 			Composite{
 				Layout: VBox{Spacing: 6},
 				Children: []Widget{
 					Composite{Layout: HBox{Spacing: 6}, Children: []Widget{
 						Label{Text: "当前单据操作", Font: Font{Bold: true}},
+						PushButton{
+							AssignTo: &state.add, Text: "新建出库单",
+							Enabled: hasButton(ui.session.Perms.Buttons, "outbound:order:add"),
+							MinSize: Size{Width: 100, Height: 30}, Accessibility: Accessibility{Name: "新建预发货出库单"},
+							OnClicked: ui.newOutboundOrder,
+						},
+						PushButton{
+							AssignTo: &state.fast, Text: "极速出库",
+							Enabled: hasButton(ui.session.Perms.Buttons, "outbound:order:add"),
+							MinSize: Size{Width: 92, Height: 30}, Accessibility: Accessibility{Name: "新建并直接完成签收的极速出库单"},
+							ToolTipText: "直接完成库存补足、扣减、签收和客户应收记账；提交前会再次确认",
+							OnClicked:   ui.openFastOutbound,
+						},
+						PushButton{
+							AssignTo: &state.delete, Text: "删除预发货", Enabled: false,
+							Visible: hasButton(ui.session.Perms.Buttons, "outbound:order:delete"),
+							MinSize: Size{Width: 100, Height: 30}, Accessibility: Accessibility{Name: "删除选中的预发货出库单"},
+							OnClicked: ui.deleteSelectedOutbound,
+						},
+						PushButton{
+							AssignTo: &state.export, Text: "导出当前筛选", MinSize: Size{Width: 108, Height: 30},
+							Accessibility: Accessibility{Name: "导出当前出库筛选的全部结果到 Excel"}, OnClicked: ui.exportOutboundQuery,
+						},
+						PushButton{
+							AssignTo: &state.exportStop, Text: "取消导出", Enabled: false, MinSize: Size{Width: 88, Height: 30},
+							Accessibility: Accessibility{Name: "取消当前出库导出并清理未完成文件"}, OnClicked: ui.cancelOutboundExport,
+						},
+						PushButton{
+							AssignTo: &state.detail, Text: "查看详情", Enabled: false,
+							MinSize: Size{Width: 88, Height: 30}, Accessibility: Accessibility{Name: "查看选中出库单详情"},
+							OnClicked: ui.showSelectedOutboundDetail,
+						},
 						PushButton{
 							AssignTo: &state.attachments, Text: "查看附件", Enabled: false,
 							MinSize:       Size{Width: 88, Height: 30},
@@ -259,19 +312,23 @@ func (ui *mainUI) outboundPageWidget() TabPage {
 							OnClicked: ui.reviseSelectedOutbound,
 						},
 						HSpacer{},
-						PushButton{AssignTo: &state.confirm, Text: "确认并分配库存", OnClicked: ui.confirmSelectedOutbound},
-						PushButton{AssignTo: &state.pick, Text: "确认拣货", OnClicked: ui.pickSelectedOutbound},
-						PushButton{AssignTo: &state.pack, Text: "确认打包", OnClicked: ui.packSelectedOutbound},
-						PushButton{AssignTo: &state.weigh, Text: "确认称重", OnClicked: ui.weighSelectedOutbound},
-						PushButton{AssignTo: &state.departure, Text: "确认出库", OnClicked: ui.departSelectedOutbound},
-						PushButton{AssignTo: &state.receipt, Text: "确认签收", OnClicked: ui.receiptSelectedOutbound},
+					}},
+					Composite{Layout: HBox{Spacing: 6}, Children: []Widget{
+						Label{Text: "执行流程", Font: Font{Bold: true}},
+						PushButton{AssignTo: &state.confirm, Text: "确认并分配库存", Accessibility: Accessibility{Name: "确认出库单并分配库存"}, OnClicked: ui.confirmSelectedOutbound},
+						PushButton{AssignTo: &state.pick, Text: "确认拣货", Accessibility: Accessibility{Name: "确认出库单拣货完成"}, OnClicked: ui.pickSelectedOutbound},
+						PushButton{AssignTo: &state.pack, Text: "确认打包", Accessibility: Accessibility{Name: "确认出库单打包完成"}, OnClicked: ui.packSelectedOutbound},
+						PushButton{AssignTo: &state.weigh, Text: "确认称重", Accessibility: Accessibility{Name: "确认出库单称重完成"}, OnClicked: ui.weighSelectedOutbound},
+						PushButton{AssignTo: &state.departure, Text: "确认出库", Accessibility: Accessibility{Name: "确认出库单已经出库"}, OnClicked: ui.departSelectedOutbound},
+						PushButton{AssignTo: &state.receipt, Text: "确认签收", Accessibility: Accessibility{Name: "确认出库单已经签收"}, OnClicked: ui.receiptSelectedOutbound},
+						HSpacer{},
 					}},
 					Composite{Layout: HBox{Spacing: 6}, Children: []Widget{
 						Label{AssignTo: &state.info, Text: "尚未加载"},
 						HSpacer{},
 						Label{Text: "每页"},
 						ComboBox{
-							AssignTo: &state.pageSize, Model: outboundPageSizeLabels, CurrentIndex: 1,
+							AssignTo: &state.pageSize, Model: outboundPageSizeLabels, CurrentIndex: ui.initialPageSizeIndex("outbound", len(outboundPageSizeLabels)),
 							MinSize: Size{Width: 92},
 							OnCurrentIndexChanged: func() {
 								if ui.window != nil && state.pageSize != nil && state.pageSize.CurrentIndex() >= 0 {
@@ -296,6 +353,12 @@ func (ui *mainUI) outboundPageWidget() TabPage {
 								ui.loadOutbound()
 							},
 						},
+						PushButton{Text: "跳转页", Accessibility: Accessibility{Name: "跳转到指定出库结果页"}, OnClicked: func() {
+							if page, ok := promptPageNumber(ui.window, state.page, state.total, selectedPageSize(state.pageSize)); ok {
+								state.page = page
+								ui.loadOutbound()
+							}
+						}},
 					}},
 				},
 			},
@@ -333,6 +396,9 @@ func (ui *mainUI) releaseOutboundPage() {
 	if state.materialCancel != nil {
 		state.materialCancel()
 	}
+	if state.exportCancel != nil {
+		state.exportCancel()
+	}
 	ui.outboundTab = nil
 	ui.outbound = newOutboundUI()
 }
@@ -343,7 +409,7 @@ func (ui *mainUI) loadOutboundOptions() {
 		return
 	}
 	generation := state.generation
-	go func() {
+	guardedGo(func() {
 		suppliers, supplierErr := ui.session.Client.Suppliers(context.Background())
 		customers, customerErr := ui.session.Client.Customers(context.Background())
 		ui.window.Synchronize(func() {
@@ -378,7 +444,7 @@ func (ui *mainUI) loadOutboundOptions() {
 				state.actionHint.SetText("部分往来单位筛选项加载失败，仍可使用其他条件查询。")
 			}
 		})
-	}()
+	})
 }
 
 func businessOptionLabel(name, code string) string {
@@ -425,7 +491,7 @@ func (ui *mainUI) loadOutbound() {
 		stage = outboundStages[index]
 	}
 	filters := api.OutboundFilters{
-		Code: state.search.Text(), Status: stage.Status, IsPack: stage.IsPack, IsWeigh: stage.IsWeigh,
+		Code: state.search.Text(), Model: state.model.Text(), Status: stage.Status, IsPack: stage.IsPack, IsWeigh: stage.IsWeigh,
 		SupplierID: selectedOptionID(state.supplier, state.supplierOptions),
 		CustomerID: selectedOptionID(state.customer, state.customerOptions),
 		StartTime:  startTime, EndTime: endTime,
@@ -439,7 +505,7 @@ func (ui *mainUI) loadOutbound() {
 	state.prev.SetEnabled(false)
 	state.next.SetEnabled(false)
 	ui.setOutboundActionButtons(nil)
-	go func() {
+	guardedGo(func() {
 		result, requestErr := ui.session.Client.OutboundOrders(ctx, page, size, filters)
 		if ctx.Err() != nil {
 			return
@@ -451,7 +517,7 @@ func (ui *mainUI) loadOutbound() {
 			state.query.SetEnabled(true)
 			state.reset.SetEnabled(true)
 			if requestErr != nil {
-				state.info.SetText("加载失败：" + requestErr.Error())
+				state.info.SetText(requestFailureText(requestErr))
 				return
 			}
 			rows := make([]outboundRow, 0, len(result.List))
@@ -482,7 +548,7 @@ func (ui *mainUI) loadOutbound() {
 			state.next.SetEnabled(int64(page*size) < result.Total)
 			state.actionHint.SetText("请选择一张出库单查看物料和可执行操作。")
 		})
-	}()
+	})
 }
 
 func parseOutboundFilterDate(text string, endOfDay bool) (int64, error) {
@@ -525,12 +591,27 @@ func (ui *mainUI) resetOutboundFilters() {
 		return
 	}
 	state.search.SetText("")
+	state.model.SetText("")
 	state.stage.SetCurrentIndex(0)
 	state.orderType.SetCurrentIndex(0)
 	state.supplier.SetCurrentIndex(0)
 	state.customer.SetCurrentIndex(0)
 	state.startDate.SetText("")
 	state.endDate.SetText("")
+	state.page = 1
+	ui.loadOutbound()
+}
+
+func (ui *mainUI) selectOutboundFilterModel() {
+	state := ui.outbound
+	if state == nil || state.operationBusy {
+		return
+	}
+	material, ok := selectOutboundMaterial(ui.window, ui.session.Client)
+	if !ok {
+		return
+	}
+	state.model.SetText(strings.TrimSpace(material.Model))
 	state.page = 1
 	ui.loadOutbound()
 }
@@ -576,7 +657,7 @@ func (ui *mainUI) loadSelectedOutboundMaterials(order api.OutboundOrder) {
 	state.materialGeneration++
 	generation := state.materialGeneration
 	state.actionHint.SetText("正在加载出库单物料……")
-	go func() {
+	guardedGo(func() {
 		materials, err := ui.session.Client.OutboundMaterials(ctx, order.Code)
 		if ctx.Err() != nil {
 			return
@@ -606,7 +687,7 @@ func (ui *mainUI) loadSelectedOutboundMaterials(order api.OutboundOrder) {
 			state.selectedMaterials = materials
 			state.actionHint.SetText(outboundActionHint(order))
 		})
-	}()
+	})
 }
 
 func outboundActionHint(order api.OutboundOrder) string {
@@ -672,6 +753,21 @@ func (ui *mainUI) setOutboundActionButtons(order *api.OutboundOrder) {
 			state.attachments.SetText("查看附件")
 		}
 	}
+	if state.detail != nil {
+		state.detail.SetEnabled(enabled)
+	}
+	if state.add != nil {
+		state.add.SetEnabled(!state.operationBusy && hasButton(ui.session.Perms.Buttons, "outbound:order:add"))
+	}
+	if state.fast != nil {
+		state.fast.SetEnabled(!state.operationBusy && hasButton(ui.session.Perms.Buttons, "outbound:order:add"))
+	}
+	if state.export != nil {
+		state.export.SetEnabled(!state.operationBusy && !state.exportBusy)
+	}
+	if state.exportStop != nil {
+		state.exportStop.SetEnabled(state.exportBusy)
+	}
 	state.confirm.SetEnabled(enabled && hasButton(ui.session.Perms.Buttons, "outbound:order:confirm") && canConfirmOutbound(value))
 	state.pick.SetEnabled(enabled && hasButton(ui.session.Perms.Buttons, "outbound:order:pick") && canPickOutbound(value))
 	state.pack.SetEnabled(enabled && hasButton(ui.session.Perms.Buttons, "outbound:order:pack") && canPackOutbound(value))
@@ -680,6 +776,9 @@ func (ui *mainUI) setOutboundActionButtons(order *api.OutboundOrder) {
 	state.receipt.SetEnabled(enabled && hasButton(ui.session.Perms.Buttons, "outbound:order:receipt") && canReceiptOutbound(value))
 	if state.revise != nil {
 		state.revise.SetEnabled(enabled && hasButton(ui.session.Perms.Buttons, "outbound:order:revise") && strings.TrimSpace(value.CustomerID) != "")
+	}
+	if state.delete != nil {
+		state.delete.SetEnabled(enabled && hasButton(ui.session.Perms.Buttons, "outbound:order:delete") && canDeleteOutbound(value))
 	}
 }
 

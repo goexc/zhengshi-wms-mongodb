@@ -3,13 +3,16 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
+	"time"
 )
 
 type repeatingByteReader struct{}
@@ -171,6 +174,78 @@ func TestInboundRecordDecodesBatchMetadata(t *testing.T) {
 	}
 }
 
+func TestClientUsesInboundLifecycleContracts(t *testing.T) {
+	var requests []string
+	var payloads []InboundReceiptRequest
+	var check InboundCheckRequest
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests = append(requests, r.Method+" "+r.URL.Path+"?"+r.URL.RawQuery)
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/inbound/receipt":
+			var payload InboundReceiptRequest
+			if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+				t.Fatal(err)
+			}
+			payloads = append(payloads, payload)
+		case r.Method == http.MethodPut && r.URL.Path == "/inbound/receipt":
+			var payload InboundReceiptRequest
+			if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+				t.Fatal(err)
+			}
+			payloads = append(payloads, payload)
+		case r.Method == http.MethodPatch && r.URL.Path == "/inbound/receipt/check":
+			if err := json.NewDecoder(r.Body).Decode(&check); err != nil {
+				t.Fatal(err)
+			}
+		}
+		_, _ = w.Write([]byte(`{"code":200,"msg":"成功"}`))
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL)
+	request := InboundReceiptRequest{
+		ID: "receipt", Code: "RK-001", Type: "采购入库", SupplierID: "supplier",
+		TotalAmount: 25, ReceivingDate: 123,
+		Materials: []InboundMaterialRequest{{
+			Index: 1, ID: "material", Price: 12.5, EstimatedQuantity: 2,
+			Position: []string{"warehouse", "zone", "rack", "bin"},
+		}},
+		Annex: []string{"receipt.png"}, Remark: "测试",
+	}
+	if err := client.CreateInboundReceipt(context.Background(), request); err != nil {
+		t.Fatal(err)
+	}
+	if err := client.UpdateInboundReceipt(context.Background(), request); err != nil {
+		t.Fatal(err)
+	}
+	if err := client.CheckInboundReceipt(context.Background(), "receipt", "审核通过"); err != nil {
+		t.Fatal(err)
+	}
+	if err := client.DeleteInboundReceipt(context.Background(), "receipt"); err != nil {
+		t.Fatal(err)
+	}
+
+	want := []string{
+		"POST /inbound/receipt?",
+		"PUT /inbound/receipt?",
+		"PATCH /inbound/receipt/check?",
+		"DELETE /inbound/receipt?id=receipt",
+	}
+	if !reflect.DeepEqual(requests, want) {
+		t.Fatalf("requests = %#v, want %#v", requests, want)
+	}
+	if len(payloads) != 2 || payloads[0].ID != "" || payloads[1].ID != "receipt" {
+		t.Fatalf("payloads = %#v", payloads)
+	}
+	if len(payloads[0].Materials) != 1 || len(payloads[0].Materials[0].Position) != 4 {
+		t.Fatalf("materials = %#v", payloads[0].Materials)
+	}
+	if check.ID != "receipt" || check.Status != "审核通过" {
+		t.Fatalf("check = %#v", check)
+	}
+}
+
 func TestClientReturnsBusinessError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`{"code":403,"msg":"没有权限"}`))
@@ -235,6 +310,95 @@ func TestClientUsesExistingOutboundAndInventoryContracts(t *testing.T) {
 		if requests[index] != want[index] {
 			t.Fatalf("request %d = %q, want %q", index, requests[index], want[index])
 		}
+	}
+}
+
+func TestClientUsesOutboundCreateAndDeleteContracts(t *testing.T) {
+	var requests []string
+	var created OutboundOrderRequest
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests = append(requests, r.Method+" "+r.URL.Path+"?"+r.URL.RawQuery)
+		if r.Method == http.MethodPost {
+			if err := json.NewDecoder(r.Body).Decode(&created); err != nil {
+				t.Fatal(err)
+			}
+		}
+		_, _ = w.Write([]byte(`{"code":200,"msg":"成功"}`))
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL)
+	request := OutboundOrderRequest{
+		Code: "WIN-OUT-001", Type: "销售出库", CustomerID: "customer", TotalAmount: 25,
+		Materials: []OutboundMaterialRequest{{Index: 1, MaterialID: "material", Price: 12.5, Quantity: 2}},
+		Annex:     []string{"order.png"}, Remark: "Windows 客户端",
+	}
+	if err := client.CreateOutbound(context.Background(), request); err != nil {
+		t.Fatal(err)
+	}
+	if err := client.DeleteOutbound(context.Background(), "order-id"); err != nil {
+		t.Fatal(err)
+	}
+
+	want := []string{"POST /outbound?", "DELETE /outbound?id=order-id"}
+	if !reflect.DeepEqual(requests, want) {
+		t.Fatalf("requests = %#v, want %#v", requests, want)
+	}
+	if !reflect.DeepEqual(created, request) {
+		t.Fatalf("payload = %#v, want %#v", created, request)
+	}
+}
+
+func TestClientNotifiesUnauthorized(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"code":401,"msg":"登录状态已失效"}`))
+	}))
+	defer server.Close()
+
+	called := 0
+	client := NewClient(server.URL)
+	client.SetUnauthorizedHandler(func() { called++ })
+	_, err := client.Profile(context.Background())
+	if err == nil || called != 1 {
+		t.Fatalf("err=%v called=%d", err, called)
+	}
+}
+
+func TestClientClassifiesTransportTimeout(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(50 * time.Millisecond)
+		_, _ = w.Write([]byte(`{"code":200,"msg":"成功","data":{}}`))
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL)
+	client.http.Timeout = 5 * time.Millisecond
+	_, err := client.Profile(context.Background())
+	var transportErr *TransportError
+	if !errors.As(err, &transportErr) || !transportErr.Timeout() {
+		t.Fatalf("error = %#v", err)
+	}
+}
+
+func TestOperationTimeoutPolicyAndCallerDeadline(t *testing.T) {
+	if got := operationTimeout(http.MethodGet, "/material"); got != readRequestTimeout {
+		t.Fatalf("GET timeout = %s", got)
+	}
+	if got := operationTimeout(http.MethodPatch, "/outbound/pick"); got != writeRequestTimeout {
+		t.Fatalf("write timeout = %s", got)
+	}
+	if got := operationTimeout(http.MethodPost, "/images"); got != imageUploadTimeout {
+		t.Fatalf("image upload timeout = %s", got)
+	}
+
+	parent, parentCancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+	defer parentCancel()
+	child, childCancel := withOperationTimeout(parent, time.Minute)
+	defer childCancel()
+	parentDeadline, _ := parent.Deadline()
+	childDeadline, _ := child.Deadline()
+	if !childDeadline.Equal(parentDeadline) {
+		t.Fatalf("child deadline %v should preserve earlier caller deadline %v", childDeadline, parentDeadline)
 	}
 }
 

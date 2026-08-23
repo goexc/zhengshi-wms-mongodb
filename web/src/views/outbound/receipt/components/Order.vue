@@ -479,6 +479,7 @@ onMounted(async () => {
     <el-form
         inline
         label-width="80px"
+        @keyup.enter="getMaterials"
     >
       <MaterialCategoryListItem
           :form="materialsForm"

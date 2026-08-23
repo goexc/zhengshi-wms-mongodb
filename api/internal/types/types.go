@@ -1145,6 +1145,7 @@ type OutboundOrdersRequest struct {
 	IsPack     int    `form:"is_pack,optional" validate:"omitempty,oneof=-1 0 1" comment:"是否打包"`                                    //是否打包：-1忽略，0否,1是
 	IsWeigh    int    `form:"is_weigh,optional" validate:"omitempty,oneof=-1 0 1" comment:"是否称重"`                                   //是否称重：-1忽略，0否,1是
 	Type       string `form:"type,optional" validate:"omitempty,oneof=销售出库 样品出库 报废出库 赠品出库 生产用料出库 退货出库 损耗出库" comment:"出库单类型"`        //出库单类型
+	Model      string `form:"model,optional" validate:"omitempty" comment:"物料型号"`                                                   //物料型号
 	SupplierId string `form:"supplier_id,optional" validate:"omitempty,mongodb" comment:"供应商"`                                      //供应商
 	CustomerId string `form:"customer_id,optional" validate:"omitempty,mongodb" comment:"客户"`                                       //客户
 	StartTime  int64  `form:"start_time,optional" validate:"omitempty,gte=0" comment:"签收起始时间"`

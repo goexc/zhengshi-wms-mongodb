@@ -104,7 +104,7 @@ func ShowInboundDetail(owner walk.Form, client *api.Client, imageBaseURL string,
 					{Title: "状态", DataMember: "Status", Width: 95},
 				},
 			},
-			Label{AssignTo: &recordInfo, Text: "正在加载收货批次……", TextColor: walk.RGB(80, 80, 80)},
+			Label{AssignTo: &recordInfo, Text: "正在加载收货批次……", TextColor: secondaryTextColor()},
 			VSplitter{
 				StretchFactor: 1,
 				Children: []Widget{
@@ -200,7 +200,7 @@ func ShowInboundDetail(owner walk.Form, client *api.Client, imageBaseURL string,
 		batchAttachmentButton.SetEnabled(len(record.Annex) > 0)
 		batchAttachmentButton.SetText(fmt.Sprintf("当前批次附件 (%d)", len(record.Annex)))
 	}
-	go func() {
+	guardedGo(func() {
 		loaded, requestErr := client.InboundRecords(ctx, receipt.ID)
 		if closed.Load() || ctx.Err() != nil {
 			return
@@ -227,7 +227,7 @@ func ShowInboundDetail(owner walk.Form, client *api.Client, imageBaseURL string,
 			_ = batchesTable.SetCurrentIndex(0)
 			updateSelectedBatch()
 		})
-	}()
+	})
 	dlg.Run()
 }
 
@@ -281,7 +281,7 @@ func ReceiveInbound(owner walk.Form, client *api.Client, receipt api.InboundRece
 		Composite{Layout: HBox{Spacing: 8}, Children: []Widget{
 			Label{
 				AssignTo: &dependencyLabel, Text: "正在加载仓储位置和承运商……",
-				TextColor: walk.RGB(75, 75, 75), Accessibility: Accessibility{Name: "收货依赖数据加载状态"},
+				TextColor: secondaryTextColor(), Accessibility: Accessibility{Name: "收货依赖数据加载状态"},
 			},
 			HSpacer{},
 			PushButton{
@@ -366,20 +366,20 @@ func ReceiveInbound(owner walk.Form, client *api.Client, receipt api.InboundRece
 		_ = carrierCombo.SetCurrentIndex(0)
 		dependencyLabel.SetText("正在加载仓储位置和承运商……")
 
-		go func() {
+		guardedGo(func() {
 			var tree []api.WarehouseNode
 			var loadedCarriers []api.Carrier
 			var treeErr, carrierErr error
 			var wait sync.WaitGroup
 			wait.Add(2)
-			go func() {
+			guardedGo(func() {
 				defer wait.Done()
 				tree, treeErr = client.WarehouseTree(ctx)
-			}()
-			go func() {
+			})
+			guardedGo(func() {
 				defer wait.Done()
 				loadedCarriers, carrierErr = client.Carriers(ctx)
-			}()
+			})
 			wait.Wait()
 			if ctx.Err() != nil || closed.Load() {
 				return
@@ -435,7 +435,7 @@ func ReceiveInbound(owner walk.Form, client *api.Client, receipt api.InboundRece
 				}
 				setSubmitAvailability()
 			})
-		}()
+		})
 	}
 	retryButton.Clicked().Attach(loadDependencies)
 	dlg.Disposing().Attach(func() {
@@ -477,7 +477,7 @@ func ReceiveInbound(owner walk.Form, client *api.Client, receipt api.InboundRece
 		cancelButton.SetEnabled(false)
 		retryButton.SetEnabled(false)
 		submitButton.SetText("正在提交，请勿关闭……")
-		go func() {
+		guardedGo(func() {
 			requestErr := client.ReceiveInbound(context.Background(), request)
 			var verifyErr error
 			if requestErr == nil {
@@ -503,7 +503,7 @@ func ReceiveInbound(owner walk.Form, client *api.Client, receipt api.InboundRece
 				success = true
 				dlg.Accept()
 			})
-		}()
+		})
 	})
 	loadDependencies()
 	dlg.Run()

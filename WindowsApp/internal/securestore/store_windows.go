@@ -10,6 +10,8 @@ import (
 	"unsafe"
 
 	"golang.org/x/sys/windows"
+
+	"zhengshi-wms-windowsapp/internal/localfile"
 )
 
 type CachedSession struct {
@@ -32,6 +34,14 @@ func path() (string, error) {
 }
 
 func Save(session CachedSession) error {
+	name, err := path()
+	if err != nil {
+		return err
+	}
+	return saveAt(name, session)
+}
+
+func saveAt(name string, session CachedSession) error {
 	if session.Token == "" || session.ExpiresAt == 0 || session.APIBaseURL == "" {
 		return errors.New("缓存会话数据不完整")
 	}
@@ -43,23 +53,32 @@ func Save(session CachedSession) error {
 	if err != nil {
 		return err
 	}
-	name, err := path()
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(name, encrypted, 0o600)
+	return localfile.WriteAtomicWithBackup(name, encrypted, 0o600, validateEncryptedSession)
 }
 
 func Load() (CachedSession, error) {
-	var session CachedSession
 	name, err := path()
 	if err != nil {
-		return session, err
+		return CachedSession{}, err
 	}
-	encrypted, err := os.ReadFile(name)
+	return loadAt(name)
+}
+
+func loadAt(name string) (CachedSession, error) {
+	encrypted, _, err := localfile.ReadWithBackup(name, 0o600, validateEncryptedSession)
 	if err != nil {
-		return session, err
+		return CachedSession{}, err
 	}
+	return decodeEncryptedSession(encrypted)
+}
+
+func validateEncryptedSession(encrypted []byte) error {
+	_, err := decodeEncryptedSession(encrypted)
+	return err
+}
+
+func decodeEncryptedSession(encrypted []byte) (CachedSession, error) {
+	var session CachedSession
 	plain, err := unprotect(encrypted)
 	if err != nil {
 		return session, err
@@ -78,11 +97,30 @@ func Delete() error {
 	if err != nil {
 		return err
 	}
-	err = os.Remove(name)
-	if errors.Is(err, os.ErrNotExist) {
-		return nil
+	var result error
+	for _, candidate := range []string{name, name + localfile.BackupSuffix} {
+		if removeErr := os.Remove(candidate); removeErr != nil && !errors.Is(removeErr, os.ErrNotExist) {
+			result = errors.Join(result, removeErr)
+		}
 	}
-	return err
+	return result
+}
+
+// Seal protects non-session local state with the same current-Windows-user
+// DPAPI boundary used by the cached login session.
+func Seal(plain []byte) ([]byte, error) {
+	if len(plain) == 0 {
+		return nil, errors.New("待加密数据为空")
+	}
+	return protect(plain)
+}
+
+// Open decrypts data previously returned by Seal for the current Windows user.
+func Open(encrypted []byte) ([]byte, error) {
+	if len(encrypted) == 0 {
+		return nil, errors.New("待解密数据为空")
+	}
+	return unprotect(encrypted)
 }
 
 func protect(plain []byte) ([]byte, error) {

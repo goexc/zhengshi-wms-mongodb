@@ -6,6 +6,7 @@ export interface OutboundOrdersRequest {
   is_weigh: number; //是否称重：-1忽略，0否,1是
   type: string; //出库单类型
   code: string; //出库单号
+  model: string; //物料型号
   supplier_id: string; //供应商
   customer_id: string; //客户
   start_time: number; //签收起始日期

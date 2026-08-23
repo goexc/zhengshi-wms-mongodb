@@ -22,6 +22,7 @@ import Departure from "@/views/outbound/receipt/components/Departure.vue";
 import NP from "number-precision";
 import {DateFormat} from "@/utils/time.ts";
 import Revise from "@/views/outbound/receipt/components/Revise.vue";
+import MaterialModelRemoteSelect from "@/components/Material/MaterialModelRemoteSelect.vue";
 
 
 //图片域名
@@ -36,6 +37,7 @@ const initOutboundOrdersRequest = () => {
     status: globalStatus.value,
     type: '',
     code: '',
+    model: '',
     supplier_id: '',
     customer_id: '',
     is_pack: -1,
@@ -358,6 +360,9 @@ let orderStatus = (status:string) => {
               v-model.trim="form.code"
               clearable
               placeholder="请填写发货单号"/>
+        </el-form-item>
+        <el-form-item label="型号">
+          <MaterialModelRemoteSelect v-model="form.model"/>
         </el-form-item>
         <SupplierPageItem
             :form="form"

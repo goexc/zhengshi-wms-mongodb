@@ -95,7 +95,7 @@ func ShowOrderAttachments(
 					},
 					Label{
 						Text:      "附件来自当前线上单据；切换选择后重新加载原图。",
-						TextColor: walk.RGB(80, 80, 80),
+						TextColor: secondaryTextColor(),
 					},
 					HSpacer{},
 					Label{AssignTo: &zoomLabel, Text: "—", MinSize: Size{Width: 52}, TextAlignment: AlignFar},
@@ -108,7 +108,7 @@ func ShowOrderAttachments(
 				Children: []Widget{
 					Label{
 						AssignTo: &statusLabel, Text: "正在加载附件原图……",
-						TextColor:     walk.RGB(70, 70, 70),
+						TextColor:     secondaryTextColor(),
 						Accessibility: Accessibility{Name: "附件图片加载状态"},
 					},
 					Composite{
@@ -124,7 +124,7 @@ func ShowOrderAttachments(
 								MinSize: Size{Width: 64, Height: 30}, ToolTipText: "按原始像素显示图片",
 								Accessibility: Accessibility{Name: "附件图片原始大小"},
 							},
-							Label{Text: "Ctrl + 鼠标滚轮按 10% 缩放", TextColor: walk.RGB(80, 80, 80)},
+							Label{Text: "Ctrl+滚轮 / Ctrl+加减号按 10% 缩放", TextColor: secondaryTextColor()},
 							HSpacer{},
 							PushButton{
 								AssignTo: &retryButton, Text: "重试加载", Visible: false,
@@ -168,7 +168,7 @@ func ShowOrderAttachments(
 			Composite{
 				Layout: HBox{},
 				Children: []Widget{
-					Label{Text: "普通滚轮和滚动条用于浏览；旋转后自动重新适应宽度。", TextColor: walk.RGB(90, 90, 90)},
+					Label{Text: "Ctrl+0 适应宽度，Ctrl+1 显示 100%，Ctrl+L/R 旋转；普通滚轮用于浏览。", TextColor: secondaryTextColor()},
 					HSpacer{},
 					PushButton{
 						AssignTo: &closeButton, Text: "关闭", MinSize: Size{Width: 88, Height: 30},
@@ -270,13 +270,13 @@ func ShowOrderAttachments(
 		source := sourceImage
 		setControlsEnabled(false)
 		statusLabel.SetText("正在生成 " + formatMaterialZoom(targetScale) + " 预览……")
-		go func() {
+		guardedGo(func() {
 			rendered := scaleMaterialDrawing(source, targetScale)
 			if closed.Load() || ctx.Err() != nil {
 				return
 			}
 			applyRendered(rendered, targetScale, generation, nil)
-		}()
+		})
 	}
 
 	fitWidth := func() {
@@ -301,7 +301,7 @@ func ShowOrderAttachments(
 		nextRotation := normalizeMaterialRotation(rotationQuarterTurns + direction)
 		setControlsEnabled(false)
 		statusLabel.SetText("正在旋转 90°并适应宽度……")
-		go func() {
+		guardedGo(func() {
 			rotated := rotateMaterialDrawing(source, direction)
 			rotatedMaxZoom := materialMaxZoom(rotated.Bounds())
 			targetScale := clampMaterialZoom(materialFitWidthZoom(rotated.Bounds(), viewportWidth), rotatedMaxZoom)
@@ -314,10 +314,16 @@ func ShowOrderAttachments(
 				rotationQuarterTurns = nextRotation
 				maxZoomScale = rotatedMaxZoom
 			})
-		}()
+		})
 	}
 	rotateLeftButton.Clicked().Attach(func() { rotate(-1) })
 	rotateRightButton.Clicked().Attach(func() { rotate(1) })
+	addWindowShortcut(dlg, drawingZoomInShortcuts(), func() { renderZoom(nextMaterialZoom(zoomScale, 1, maxZoomScale)) })
+	addWindowShortcut(dlg, drawingZoomOutShortcuts(), func() { renderZoom(nextMaterialZoom(zoomScale, -1, maxZoomScale)) })
+	addWindowShortcut(dlg, []walk.Shortcut{{Modifiers: walk.ModControl, Key: walk.Key0}}, fitWidth)
+	addWindowShortcut(dlg, []walk.Shortcut{{Modifiers: walk.ModControl, Key: walk.Key1}}, func() { renderZoom(1) })
+	addWindowShortcut(dlg, []walk.Shortcut{{Modifiers: walk.ModControl, Key: walk.KeyL}}, func() { rotate(-1) })
+	addWindowShortcut(dlg, []walk.Shortcut{{Modifiers: walk.ModControl, Key: walk.KeyR}}, func() { rotate(1) })
 	imageView.MouseWheel().Attach(func(_, _ int, button walk.MouseButton) {
 		const mouseWheelControlKey = 0x0008
 		if walk.MouseWheelEventKeyState(button)&mouseWheelControlKey == 0 || sourceImage == nil {
@@ -361,7 +367,7 @@ func ShowOrderAttachments(
 			retryButton.SetVisible(true)
 			return
 		}
-		go func() {
+		guardedGo(func() {
 			defer cancelLoad()
 			data, requestErr := client.DownloadImage(loadCtx, imageURL)
 			var decoded image.Image
@@ -388,7 +394,7 @@ func ShowOrderAttachments(
 				maxZoomScale = materialMaxZoom(decoded.Bounds())
 				fitWidth()
 			})
-		}()
+		})
 	}
 	retryButton.Clicked().Attach(loadImage)
 	attachmentCombo.CurrentIndexChanged().Attach(loadImage)

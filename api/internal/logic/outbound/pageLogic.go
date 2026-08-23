@@ -71,6 +71,13 @@ func (l *PageLogic) Page(req *types.OutboundOrdersRequest) (resp *types.Outbound
 		filter["customer_id"] = strings.TrimSpace(req.CustomerId)
 	}
 
+	if err = applyMaterialModelFilter(l.ctx, l.svcCtx.OutboundMaterialModel, filter, req.Model); err != nil {
+		fmt.Printf("[Error]按物料型号查询出库单:%s\n", err.Error())
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "服务器内部错误"
+		return resp, nil
+	}
+
 	var opt = options.Find().
 		SetSort(bson.D{{"receipt_time", -1}, {"_id", -1}}).
 		SetSkip((req.Page - 1) * req.Size).

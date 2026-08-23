@@ -56,13 +56,6 @@
          "style": {
             "navigationBarTitleText": "客户"
          }
-      },
-      {
-      	"path" : "pages/material/test",
-      	"style" : 
-      	{
-      		"navigationBarTitleText" : "下拉缩放顶部封面图"
-      	}
       }
    ],
    "globalStyle": {

@@ -48,3 +48,36 @@ func TestParseNonNegativeNumberAllowsExistingOptionalCostContract(t *testing.T) 
 		t.Fatal("expected non-negative validation error")
 	}
 }
+
+func TestInboundLifecycleStatusMatrixMatchesServerRules(t *testing.T) {
+	for _, status := range []string{"待审核", "审核不通过"} {
+		if !canEditInbound(status) || !canDeleteInbound(status) {
+			t.Fatalf("status %q should allow edit and delete", status)
+		}
+	}
+	if !canCheckInbound("待审核") || canCheckInbound("审核不通过") {
+		t.Fatal("check status matrix mismatch")
+	}
+	for _, status := range []string{"待审核", "审核不通过", "作废", "入库完成"} {
+		if canReceiveInbound(status) {
+			t.Fatalf("status %q must not allow receiving", status)
+		}
+	}
+	for _, status := range []string{"审核通过", "未发货", "在途", "部分入库"} {
+		if !canReceiveInbound(status) {
+			t.Fatalf("status %q should allow receiving", status)
+		}
+	}
+}
+
+func TestParsePositiveInboundNumber(t *testing.T) {
+	if got, err := parsePositiveInboundNumber("0", "单价", true); err != nil || got != 0 {
+		t.Fatalf("price = %v, %v", got, err)
+	}
+	if got, err := parsePositiveInboundNumber("1.25", "数量", false); err != nil || got != 1.25 {
+		t.Fatalf("quantity = %v, %v", got, err)
+	}
+	if _, err := parsePositiveInboundNumber("0", "数量", false); err == nil {
+		t.Fatal("zero quantity must fail")
+	}
+}

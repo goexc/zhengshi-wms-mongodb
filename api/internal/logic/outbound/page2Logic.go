@@ -73,6 +73,13 @@ func (l *Page2Logic) Page2(req *types.OutboundOrdersRequest) (resp *types.Outbou
 		filter["customer_id"] = strings.TrimSpace(req.CustomerId)
 	}
 
+	if err = applyMaterialModelFilter(l.ctx, l.svcCtx.OutboundMaterialModel, filter, req.Model); err != nil {
+		fmt.Printf("[Error]按物料型号查询出库单:%s\n", err.Error())
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "服务器内部错误"
+		return resp, nil
+	}
+
 	switch true {
 	case req.StartTime > 0 && req.EndTime > 0:
 		filter["receipt_time"] = bson.M{"$gte": req.StartTime, "$lte": req.EndTime}

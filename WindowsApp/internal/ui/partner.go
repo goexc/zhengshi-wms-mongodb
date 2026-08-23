@@ -10,14 +10,16 @@ import (
 	. "github.com/lxn/walk/declarative"
 
 	"zhengshi-wms-windowsapp/internal/api"
-	"zhengshi-wms-windowsapp/internal/config"
 )
 
 type partnerKind struct {
-	Key        string
-	Label      string
-	MenuPath   string
-	Permission string
+	Key              string
+	Label            string
+	MenuPath         string
+	Permission       string
+	AddPermission    string
+	EditPermission   string
+	StatusPermission string
 }
 
 type partnerDetail struct {
@@ -33,8 +35,11 @@ type partnerDetail struct {
 	LegalPerson      string
 	CreditIdentifier string
 	Address          string
+	Image            string
 	Level            string
+	LevelValue       int
 	Receivable       string
+	ReceivableValue  float64
 	CreditBalance    string
 	Remark           string
 	CreateBy         string
@@ -68,6 +73,12 @@ type partnerUI struct {
 	info    *walk.Label
 	query   *walk.PushButton
 	reset   *walk.PushButton
+	add     *walk.PushButton
+	edit    *walk.PushButton
+	status  *walk.PushButton
+	detail  *walk.PushButton
+	finance *walk.PushButton
+	action  *walk.Label
 	prev    *walk.PushButton
 	next    *walk.PushButton
 	size    *walk.ComboBox
@@ -77,6 +88,7 @@ type partnerUI struct {
 	rows       []partnerRow
 	generation int
 	cancel     context.CancelFunc
+	busy       bool
 }
 
 type partnerLoadResult struct {
@@ -86,9 +98,21 @@ type partnerLoadResult struct {
 
 func availablePartnerKinds(perms api.Perms) []partnerKind {
 	candidates := []partnerKind{
-		{Key: "supplier", Label: "供应商", MenuPath: "/business_partner/supplier", Permission: "business_partner:supplier:list"},
-		{Key: "customer", Label: "客户", MenuPath: "/business_partner/customer", Permission: "business_partner:customer:list"},
-		{Key: "carrier", Label: "承运商", MenuPath: "/business_partner/carrier", Permission: "business_partner:carrier:list"},
+		{
+			Key: "supplier", Label: "供应商", MenuPath: "/business_partner/supplier",
+			Permission: "business_partner:supplier:list", AddPermission: "business_partner:supplier:add",
+			EditPermission: "business_partner:supplier:edit", StatusPermission: "business_partner:supplier:status",
+		},
+		{
+			Key: "customer", Label: "客户", MenuPath: "/business_partner/customer",
+			Permission: "business_partner:customer:list", AddPermission: "business_partner:customer:add",
+			EditPermission: "business_partner:customer:edit", StatusPermission: "business_partner:customer:status",
+		},
+		{
+			Key: "carrier", Label: "承运商", MenuPath: "/business_partner/carrier",
+			Permission: "business_partner:carrier:list", AddPermission: "business_partner:carrier:add",
+			EditPermission: "business_partner:carrier:edit", StatusPermission: "business_partner:carrier:status",
+		},
 	}
 	result := make([]partnerKind, 0, len(candidates))
 	for _, candidate := range candidates {
@@ -112,8 +136,8 @@ func (ui *mainUI) partnerPageWidget() TabPage {
 		Children: []Widget{
 			Label{Text: "合作伙伴", Font: Font{Family: "Microsoft YaHei UI", PointSize: 15, Bold: true}},
 			Label{
-				Text:          "查询服务端已有的供应商、客户和承运商资料。双击一行可查看完整只读信息。",
-				TextColor:     walk.RGB(85, 85, 85),
+				Text:          "查询并按线上权限维护供应商、客户和承运商资料；双击一行查看完整信息。",
+				TextColor:     secondaryTextColor(),
 				Accessibility: Accessibility{Name: "合作伙伴页面说明"},
 			},
 			GroupBox{
@@ -165,6 +189,18 @@ func (ui *mainUI) partnerPageWidget() TabPage {
 					},
 				},
 			},
+			Composite{
+				Layout: HBox{Spacing: 8},
+				Children: []Widget{
+					PushButton{AssignTo: &state.add, Text: "新增", MinSize: Size{Width: 82, Height: 30}, OnClicked: ui.newPartner},
+					PushButton{AssignTo: &state.edit, Text: "编辑", Enabled: false, MinSize: Size{Width: 82, Height: 30}, OnClicked: ui.editSelectedPartner},
+					PushButton{AssignTo: &state.status, Text: "变更状态", Enabled: false, MinSize: Size{Width: 96, Height: 30}, OnClicked: ui.changeSelectedPartnerStatus},
+					PushButton{AssignTo: &state.detail, Text: "查看详情", Enabled: false, MinSize: Size{Width: 92, Height: 30}, OnClicked: ui.showSelectedPartner},
+					PushButton{AssignTo: &state.finance, Text: "客户应收", Visible: false, Enabled: false, MinSize: Size{Width: 92, Height: 30}, OnClicked: ui.openSelectedCustomerFinance},
+					HSpacer{},
+					Label{AssignTo: &state.action, Text: "选择一条资料后可按权限执行操作。", TextColor: secondaryTextColor()},
+				},
+			},
 			TableView{
 				AssignTo:         &state.table,
 				AlternatingRowBG: true,
@@ -174,7 +210,8 @@ func (ui *mainUI) partnerPageWidget() TabPage {
 					Name:        "合作伙伴查询结果",
 					Description: "双击当前行查看合作伙伴完整资料",
 				},
-				OnItemActivated: ui.showSelectedPartner,
+				OnCurrentIndexChanged: ui.updatePartnerActions,
+				OnItemActivated:       ui.showSelectedPartner,
 				Columns: []TableViewColumn{
 					{Title: "类别", DataMember: "Category", Width: 75},
 					{Title: "类型", DataMember: "Type", Width: 75},
@@ -192,11 +229,6 @@ func (ui *mainUI) partnerPageWidget() TabPage {
 				Children: []Widget{
 					Label{AssignTo: &state.info, Text: "尚未加载"},
 					HSpacer{},
-					PushButton{
-						Text: "查看详情", MinSize: Size{Width: 88, Height: 30},
-						Accessibility: Accessibility{Name: "查看选中的合作伙伴详情"},
-						OnClicked:     ui.showSelectedPartner,
-					},
 					Label{Text: "每页"},
 					ComboBox{
 						AssignTo: &state.size, Model: pageSizeLabels, CurrentIndex: 1, MinSize: Size{Width: 92},
@@ -238,6 +270,7 @@ func (ui *mainUI) initializePartnerPage() {
 	}
 	state.generation++
 	ui.updatePartnerLevelFilter()
+	ui.updatePartnerActions()
 	for _, edit := range []*walk.LineEdit{state.name, state.code, state.manager, state.contact, state.email} {
 		edit.KeyDown().Attach(func(key walk.Key) {
 			if key == walk.KeyReturn {
@@ -268,6 +301,7 @@ func (ui *mainUI) partnerKindChanged() {
 		return
 	}
 	ui.updatePartnerLevelFilter()
+	ui.updatePartnerActions()
 	state.page = 1
 	ui.loadPartners()
 }
@@ -334,12 +368,14 @@ func (ui *mainUI) loadPartners() {
 		filters.Level = state.level.CurrentIndex()
 	}
 	state.info.SetText("正在加载线上" + kind.Label + "资料……")
+	state.busy = true
+	ui.updatePartnerActions()
 	state.query.SetEnabled(false)
 	state.reset.SetEnabled(false)
 	state.prev.SetEnabled(false)
 	state.next.SetEnabled(false)
 
-	go func() {
+	guardedGo(func() {
 		result, requestErr := ui.loadPartnerRows(ctx, kind, page, size, filters)
 		if ctx.Err() != nil {
 			return
@@ -350,8 +386,10 @@ func (ui *mainUI) loadPartners() {
 			}
 			state.query.SetEnabled(true)
 			state.reset.SetEnabled(true)
+			state.busy = false
 			if requestErr != nil {
 				state.info.SetText("加载失败：" + requestErr.Error() + "。请检查筛选条件后重试。")
+				ui.updatePartnerActions()
 				return
 			}
 			if modelErr := state.table.SetModel(result.rows); modelErr != nil {
@@ -363,8 +401,9 @@ func (ui *mainUI) loadPartners() {
 			state.info.SetText(fmt.Sprintf("%s | 第 %d 页 | 本页 %d 条 | 共 %d 条", kind.Label, page, len(result.rows), result.total))
 			state.prev.SetEnabled(page > 1)
 			state.next.SetEnabled(int64(page*size) < result.total)
+			ui.updatePartnerActions()
 		})
-	}()
+	})
 }
 
 func (ui *mainUI) loadPartnerRows(
@@ -409,7 +448,8 @@ func supplierPartnerRow(item api.Supplier) partnerRow {
 		ID: item.ID, Category: "供应商", Type: item.Type, Code: item.Code, Name: item.Name, Status: item.Status,
 		Manager: item.Manager, Contact: item.Contact, Email: item.Email,
 		LegalPerson: item.LegalRepresentative, CreditIdentifier: item.UnifiedSocialCreditIdentifier,
-		Address: item.Address, Level: level, Remark: item.Remark, CreateBy: item.CreateBy,
+		Address: item.Address, Image: item.Image, Level: level, LevelValue: item.Level,
+		Remark: item.Remark, CreateBy: item.CreateBy,
 		CreatedAt: item.CreatedAt, UpdatedAt: item.UpdatedAt,
 	}
 	return partnerRowFromDetail(detail)
@@ -420,8 +460,9 @@ func customerPartnerRow(item api.Customer) partnerRow {
 		ID: item.ID, Category: "客户", Type: item.Type, Code: item.Code, Name: item.Name, Status: item.Status,
 		Manager: item.Manager, Contact: item.Contact, Email: item.Email,
 		LegalPerson: item.LegalRepresentative, CreditIdentifier: item.UnifiedSocialCreditIdentifier,
-		Address: item.Address, Receivable: fmt.Sprintf("%.2f", item.ReceivableBalance),
-		CreditBalance: fmt.Sprintf("%.2f", item.CreditBalance), Remark: item.Remark,
+		Address: item.Address, Image: item.Image, Receivable: fmt.Sprintf("%.2f", item.ReceivableBalance),
+		ReceivableValue: item.ReceivableBalance,
+		CreditBalance:   fmt.Sprintf("%.2f", item.CreditBalance), Remark: item.Remark,
 		CreateBy: item.CreateBy, CreatedAt: item.CreatedAt, UpdatedAt: item.UpdatedAt,
 	}
 	return partnerRowFromDetail(detail)
@@ -432,7 +473,7 @@ func carrierPartnerRow(item api.Carrier) partnerRow {
 		ID: item.ID, Category: "承运商", Type: item.Type, Code: item.Code, Name: item.Name, Status: item.Status,
 		Manager: item.Manager, Contact: item.Contact, Email: item.Email,
 		LegalPerson: item.LegalRepresentative, CreditIdentifier: item.UnifiedSocialCreditIdentifier,
-		Address: item.Address, Remark: item.Remark, CreateBy: item.CreateBy,
+		Address: item.Address, Image: item.Image, Remark: item.Remark, CreateBy: item.CreateBy,
 		CreatedAt: item.CreatedAt, UpdatedAt: item.UpdatedAt,
 	}
 	return partnerRowFromDetail(detail)
@@ -456,10 +497,13 @@ func (ui *mainUI) showSelectedPartner() {
 		walk.MsgBox(ui.window, "请选择合作伙伴", "请先在列表中选择一条合作伙伴资料。", walk.MsgBoxIconInformation)
 		return
 	}
-	showPartnerDetail(ui.window, ui.session.Client, state.rows[index].Detail)
+	detail := state.rows[index].Detail
+	showPartnerDetail(ui.window, ui.session.Client, detail, func() {
+		ui.openCustomerFinance(detail)
+	})
 }
 
-func showPartnerDetail(owner walk.Form, client *api.Client, detail partnerDetail) {
+func showPartnerDetail(owner walk.Form, client *api.Client, detail partnerDetail, openFinance func()) {
 	var dlg *walk.Dialog
 	var transactionButton *walk.PushButton
 	var closeButton *walk.PushButton
@@ -475,7 +519,7 @@ func showPartnerDetail(owner walk.Form, client *api.Client, detail partnerDetail
 				Text: detail.Name, Font: Font{Family: "Microsoft YaHei UI", PointSize: 15, Bold: true},
 				EllipsisMode: EllipsisEnd, ToolTipText: detail.Name,
 			},
-			Label{Text: detail.Category + " · " + displayMaterialValue(detail.Status), TextColor: walk.RGB(70, 70, 70)},
+			Label{Text: detail.Category + " · " + displayMaterialValue(detail.Status), TextColor: secondaryTextColor()},
 			GroupBox{
 				Title:         "只读资料",
 				StretchFactor: 1,
@@ -483,14 +527,17 @@ func showPartnerDetail(owner walk.Form, client *api.Client, detail partnerDetail
 				Children:      partnerDetailWidgets(detail),
 			},
 			Composite{Layout: HBox{}, Children: []Widget{
-				Label{Text: "资料来自当前线上接口。", TextColor: walk.RGB(90, 90, 90)},
+				Label{Text: "资料来自当前线上接口。", TextColor: secondaryTextColor()},
 				HSpacer{},
 				PushButton{
 					AssignTo: &transactionButton, Text: "交易流水", Visible: detail.Category == "客户",
 					Enabled: detail.Category == "客户" && strings.TrimSpace(detail.ID) != "", MinSize: Size{Width: 92, Height: 30},
 					Accessibility: Accessibility{Name: "查看客户交易流水"},
 					OnClicked: func() {
-						ShowCustomerTransactions(dlg, client, config.ImageBaseURL(), detail.ID, detail.Name)
+						dlg.Accept()
+						if openFinance != nil {
+							openFinance()
+						}
 					},
 				},
 				PushButton{

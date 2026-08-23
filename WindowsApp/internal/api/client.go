@@ -13,19 +13,46 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 )
 
 type Client struct {
-	baseURL string
-	token   string
-	http    *http.Client
-	logger  Logger
+	baseURL        string
+	token          string
+	http           *http.Client
+	logger         Logger
+	onUnauthorized func()
+	operationMu    sync.RWMutex
+	onOperation    OperationObserver
 }
 
 type Logger interface {
 	Printf(format string, args ...any)
 }
+
+// OperationEvent describes one non-query request made by the authenticated
+// client. It intentionally contains no token, request body or response body.
+type OperationEvent struct {
+	ID          string
+	Method      string
+	Path        string
+	KeyField    string
+	BusinessKey string
+	StartedAt   time.Time
+	FinishedAt  time.Time
+	Outcome     string
+	Message     string
+}
+
+type OperationObserver func(OperationEvent)
+
+const (
+	OperationPending   = "pending"
+	OperationSucceeded = "success"
+	OperationFailed    = "failed"
+	OperationUnknown   = "unknown"
+)
 
 type envelope struct {
 	Code int             `json:"code"`
@@ -43,9 +70,16 @@ type LoginData struct {
 
 type Profile struct {
 	Name           string `json:"name"`
+	Sex            string `json:"sex"`
+	DepartmentID   string `json:"department_id"`
 	DepartmentName string `json:"department_name"`
 	Mobile         string `json:"mobile"`
+	Email          string `json:"email"`
 	Status         string `json:"status"`
+	Avatar         string `json:"avatar"`
+	Remark         string `json:"remark"`
+	CreatedAt      int64  `json:"created_at"`
+	UpdatedAt      int64  `json:"updated_at"`
 }
 
 type Menu struct {
@@ -69,6 +103,7 @@ type Button struct {
 type Material struct {
 	ID               string  `json:"id"`
 	Image            string  `json:"image"`
+	CategoryID       string  `json:"category_id"`
 	CategoryName     string  `json:"category_name"`
 	Name             string  `json:"name"`
 	Model            string  `json:"model"`
@@ -79,6 +114,10 @@ type Material struct {
 	Quantity         float64 `json:"quantity"`
 	Unit             string  `json:"unit"`
 	Remark           string  `json:"remark"`
+	Creator          string  `json:"creator"`
+	CreatorName      string  `json:"creator_name"`
+	CreatedAt        int64   `json:"created_at"`
+	UpdatedAt        int64   `json:"updated_at"`
 }
 
 type Inventory struct {
@@ -147,7 +186,9 @@ type InboundReceipt struct {
 	Code          string            `json:"code"`
 	Status        string            `json:"status"`
 	Type          string            `json:"type"`
+	SupplierID    string            `json:"supplier_id"`
 	SupplierName  string            `json:"supplier_name"`
+	CustomerID    string            `json:"customer_id"`
 	CustomerName  string            `json:"customer_name"`
 	ReceivingDate int64             `json:"receiving_date"`
 	TotalAmount   float64           `json:"total_amount"`
@@ -167,6 +208,32 @@ type InboundFilters struct {
 	Type       string
 	SupplierID string
 	CustomerID string
+}
+
+type InboundMaterialRequest struct {
+	Index             int      `json:"index"`
+	ID                string   `json:"id"`
+	Price             float64  `json:"price"`
+	EstimatedQuantity float64  `json:"estimated_quantity"`
+	Position          []string `json:"position,omitempty"`
+}
+
+type InboundReceiptRequest struct {
+	ID            string                   `json:"id,omitempty"`
+	Code          string                   `json:"code"`
+	Type          string                   `json:"type"`
+	SupplierID    string                   `json:"supplier_id,omitempty"`
+	CustomerID    string                   `json:"customer_id,omitempty"`
+	TotalAmount   float64                  `json:"total_amount"`
+	ReceivingDate int64                    `json:"receiving_date"`
+	Materials     []InboundMaterialRequest `json:"materials"`
+	Annex         []string                 `json:"annex,omitempty"`
+	Remark        string                   `json:"remark,omitempty"`
+}
+
+type InboundCheckRequest struct {
+	ID     string `json:"id"`
+	Status string `json:"status"`
 }
 
 type InboundRecordMaterial struct {
@@ -206,9 +273,17 @@ type WarehouseNode struct {
 }
 
 type MaterialCategory struct {
-	ID       string             `json:"id"`
-	Name     string             `json:"name"`
-	Children []MaterialCategory `json:"children"`
+	ID          string             `json:"id"`
+	ParentID    string             `json:"parent_id"`
+	SortID      int                `json:"sort_id"`
+	Name        string             `json:"name"`
+	Image       string             `json:"image"`
+	Status      string             `json:"status"`
+	Remark      string             `json:"remark"`
+	CreatorName string             `json:"creator_name"`
+	CreatedAt   int64              `json:"created_at"`
+	UpdatedAt   int64              `json:"updated_at"`
+	Children    []MaterialCategory `json:"children"`
 }
 
 type Supplier struct {
@@ -354,6 +429,7 @@ type WarehouseZone struct {
 	WarehouseName string  `json:"warehouse_name"`
 	Name          string  `json:"name"`
 	Code          string  `json:"code"`
+	Image         string  `json:"image"`
 	Capacity      float64 `json:"capacity"`
 	CapacityUnit  string  `json:"capacity_unit"`
 	Status        string  `json:"status"`
@@ -379,6 +455,7 @@ type WarehouseRack struct {
 	Type              string  `json:"type"`
 	Name              string  `json:"name"`
 	Code              string  `json:"code"`
+	Image             string  `json:"image"`
 	Capacity          float64 `json:"capacity"`
 	CapacityUnit      string  `json:"capacity_unit"`
 	Status            string  `json:"status"`
@@ -405,6 +482,7 @@ type WarehouseBin struct {
 	WarehouseRackName string  `json:"warehouse_rack_name"`
 	Name              string  `json:"name"`
 	Code              string  `json:"code"`
+	Image             string  `json:"image"`
 	Capacity          float64 `json:"capacity"`
 	CapacityUnit      string  `json:"capacity_unit"`
 	Status            string  `json:"status"`
@@ -427,6 +505,7 @@ type OutboundFilters struct {
 	IsPack     int
 	IsWeigh    int
 	Type       string
+	Model      string
 	SupplierID string
 	CustomerID string
 	StartTime  int64
@@ -477,6 +556,24 @@ type OutboundMaterial struct {
 	Quantity      float64 `json:"quantity"`
 	Weight        float64 `json:"weight"`
 	Unit          string  `json:"unit"`
+}
+
+type OutboundMaterialRequest struct {
+	Index      int     `json:"index"`
+	MaterialID string  `json:"material_id"`
+	Price      float64 `json:"price"`
+	Quantity   float64 `json:"quantity"`
+}
+
+type OutboundOrderRequest struct {
+	Code        string                    `json:"code"`
+	Type        string                    `json:"type"`
+	SupplierID  string                    `json:"supplier_id,omitempty"`
+	CustomerID  string                    `json:"customer_id,omitempty"`
+	TotalAmount float64                   `json:"total_amount"`
+	Materials   []OutboundMaterialRequest `json:"materials"`
+	Annex       []string                  `json:"annex,omitempty"`
+	Remark      string                    `json:"remark,omitempty"`
 }
 
 type OutboundSummaryRecord struct {
@@ -600,15 +697,68 @@ type BusinessError struct {
 
 func (e *BusinessError) Error() string { return e.Msg }
 
+type TransportError struct {
+	Err error
+}
+
+func (e *TransportError) Error() string {
+	if e.Timeout() {
+		return "请求线上服务超时"
+	}
+	return "无法连接线上服务"
+}
+
+func (e *TransportError) Unwrap() error { return e.Err }
+
+func (e *TransportError) Timeout() bool {
+	type timeoutError interface{ Timeout() bool }
+	var target timeoutError
+	return errors.As(e.Err, &target) && target.Timeout()
+}
+
 func NewClient(baseURL string) *Client {
 	return &Client{
 		baseURL: strings.TrimRight(strings.TrimSpace(baseURL), "/"),
-		http:    &http.Client{Timeout: 20 * time.Second},
+		// Each operation applies its own deadline. Keeping the transport-level
+		// timeout unset lets caller cancellation and longer file transfers work
+		// without weakening the shorter deadline used by normal API requests.
+		http: &http.Client{},
 	}
 }
 
-func (c *Client) SetToken(token string)   { c.token = token }
-func (c *Client) SetLogger(logger Logger) { c.logger = logger }
+const (
+	readRequestTimeout   = 25 * time.Second
+	writeRequestTimeout  = 35 * time.Second
+	imageUploadTimeout   = 90 * time.Second
+	imageDownloadTimeout = 60 * time.Second
+	fileDownloadTimeout  = 90 * time.Second
+)
+
+func operationTimeout(method, path string) time.Duration {
+	if method == http.MethodPost && path == "/images" {
+		return imageUploadTimeout
+	}
+	if method == http.MethodGet || method == http.MethodHead {
+		return readRequestTimeout
+	}
+	return writeRequestTimeout
+}
+
+func withOperationTimeout(ctx context.Context, timeout time.Duration) (context.Context, context.CancelFunc) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return context.WithTimeout(ctx, timeout)
+}
+
+func (c *Client) SetToken(token string)                 { c.token = token }
+func (c *Client) SetLogger(logger Logger)               { c.logger = logger }
+func (c *Client) SetUnauthorizedHandler(handler func()) { c.onUnauthorized = handler }
+func (c *Client) SetOperationObserver(observer OperationObserver) {
+	c.operationMu.Lock()
+	c.onOperation = observer
+	c.operationMu.Unlock()
+}
 
 func (c *Client) Login(ctx context.Context, mobile, password string) (LoginData, error) {
 	var result LoginData
@@ -624,6 +774,12 @@ func (c *Client) Login(ctx context.Context, mobile, password string) (LoginData,
 func (c *Client) Profile(ctx context.Context) (Profile, error) {
 	var result Profile
 	return result, c.do(ctx, http.MethodGet, "/account/profile", nil, nil, &result)
+}
+
+func (c *Client) ChangeAvatar(ctx context.Context, avatarURL string) error {
+	return c.do(ctx, http.MethodPatch, "/account/avatar", nil, map[string]string{
+		"avatar": strings.TrimSpace(avatarURL),
+	}, nil)
 }
 
 func (c *Client) Permissions(ctx context.Context) (Perms, error) {
@@ -686,6 +842,43 @@ func (c *Client) InboundRecords(ctx context.Context, receiptID string) ([]Inboun
 	var result []InboundRecord
 	query := url.Values{"inbound_receipt_id": {receiptID}}
 	return result, c.do(ctx, http.MethodGet, "/inbound/receipt/receive", query, nil, &result)
+}
+
+func (c *Client) CreateInboundReceipt(ctx context.Context, request InboundReceiptRequest) error {
+	request.ID = ""
+	return c.do(ctx, http.MethodPost, "/inbound/receipt", nil, request, nil)
+}
+
+func (c *Client) UpdateInboundReceipt(ctx context.Context, request InboundReceiptRequest) error {
+	return c.do(ctx, http.MethodPut, "/inbound/receipt", nil, request, nil)
+}
+
+func (c *Client) CheckInboundReceipt(ctx context.Context, receiptID, status string) error {
+	return c.do(ctx, http.MethodPatch, "/inbound/receipt/check", nil, InboundCheckRequest{
+		ID: receiptID, Status: status,
+	}, nil)
+}
+
+func (c *Client) DeleteInboundReceipt(ctx context.Context, receiptID string) error {
+	query := url.Values{"id": {strings.TrimSpace(receiptID)}}
+	return c.do(ctx, http.MethodDelete, "/inbound/receipt", query, nil, nil)
+}
+
+func (c *Client) FindInboundReceipt(ctx context.Context, receiptID, code string) (InboundReceipt, bool, error) {
+	receiptID = strings.TrimSpace(receiptID)
+	code = strings.TrimSpace(code)
+	result, err := c.InboundReceipts(ctx, 1, 100, InboundFilters{Code: code})
+	if err != nil {
+		return InboundReceipt{}, false, err
+	}
+	for _, receipt := range result.List {
+		idMatches := receiptID == "" || strings.TrimSpace(receipt.ID) == receiptID
+		codeMatches := code == "" || strings.EqualFold(strings.TrimSpace(receipt.Code), code)
+		if idMatches && codeMatches {
+			return receipt, true, nil
+		}
+	}
+	return InboundReceipt{}, false, nil
 }
 
 func (c *Client) WarehouseTree(ctx context.Context) ([]WarehouseNode, error) {
@@ -799,6 +992,7 @@ func (c *Client) OutboundOrders(ctx context.Context, page, size int, filters Out
 	setTrimmedQuery(query, "code", filters.Code)
 	setTrimmedQuery(query, "status", filters.Status)
 	setTrimmedQuery(query, "type", filters.Type)
+	setTrimmedQuery(query, "model", filters.Model)
 	setTrimmedQuery(query, "supplier_id", filters.SupplierID)
 	setTrimmedQuery(query, "customer_id", filters.CustomerID)
 	if filters.StartTime > 0 {
@@ -814,6 +1008,15 @@ func (c *Client) OutboundMaterials(ctx context.Context, orderCode string) ([]Out
 	var result []OutboundMaterial
 	query := url.Values{"order_code": {strings.TrimSpace(orderCode)}}
 	return result, c.do(ctx, http.MethodGet, "/outbound/materials", query, nil, &result)
+}
+
+func (c *Client) CreateOutbound(ctx context.Context, request OutboundOrderRequest) error {
+	return c.do(ctx, http.MethodPost, "/outbound", nil, request, nil)
+}
+
+func (c *Client) DeleteOutbound(ctx context.Context, orderID string) error {
+	query := url.Values{"id": {strings.TrimSpace(orderID)}}
+	return c.do(ctx, http.MethodDelete, "/outbound", query, nil, nil)
 }
 
 func (c *Client) MaterialPrices(ctx context.Context, materialID, customerID string) ([]MaterialPrice, error) {
@@ -844,17 +1047,31 @@ func (c *Client) OutboundSummary(ctx context.Context, customerID string, startDa
 }
 
 func (c *Client) FindOutboundByCode(ctx context.Context, code string) (OutboundOrder, error) {
-	code = strings.TrimSpace(code)
-	result, err := c.OutboundOrders(ctx, 1, 50, OutboundFilters{Code: code, IsPack: -1, IsWeigh: -1})
+	result, found, err := c.FindOutbound(ctx, "", code)
 	if err != nil {
 		return OutboundOrder{}, err
 	}
+	if !found {
+		return OutboundOrder{}, fmt.Errorf("未查询到出库单 %s", strings.TrimSpace(code))
+	}
+	return result, nil
+}
+
+func (c *Client) FindOutbound(ctx context.Context, orderID, code string) (OutboundOrder, bool, error) {
+	orderID = strings.TrimSpace(orderID)
+	code = strings.TrimSpace(code)
+	result, err := c.OutboundOrders(ctx, 1, 50, OutboundFilters{Code: code, IsPack: -1, IsWeigh: -1})
+	if err != nil {
+		return OutboundOrder{}, false, err
+	}
 	for _, order := range result.List {
-		if strings.EqualFold(strings.TrimSpace(order.Code), code) {
-			return order, nil
+		codeMatches := code == "" || strings.EqualFold(strings.TrimSpace(order.Code), code)
+		idMatches := orderID == "" || strings.TrimSpace(order.ID) == orderID
+		if codeMatches && idMatches {
+			return order, true, nil
 		}
 	}
-	return OutboundOrder{}, fmt.Errorf("未查询到出库单 %s", code)
+	return OutboundOrder{}, false, nil
 }
 
 func (c *Client) ConfirmOutbound(ctx context.Context, request OutboundConfirmRequest) error {
@@ -941,7 +1158,9 @@ func (c *Client) DownloadImage(ctx context.Context, imageURL string) ([]byte, er
 	if err != nil || !parsed.IsAbs() || (parsed.Scheme != "http" && parsed.Scheme != "https") {
 		return nil, errors.New("图片下载地址无效")
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, parsed.String(), nil)
+	requestContext, cancel := withOperationTimeout(ctx, imageDownloadTimeout)
+	defer cancel()
+	req, err := http.NewRequestWithContext(requestContext, http.MethodGet, parsed.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -979,11 +1198,13 @@ func setTrimmedQuery(query url.Values, key, value string) {
 
 func (c *Client) do(ctx context.Context, method, path string, query url.Values, body any, out any) error {
 	var reader io.Reader
+	var bodyData []byte
 	if body != nil {
 		data, err := json.Marshal(body)
 		if err != nil {
 			return err
 		}
+		bodyData = data
 		reader = bytes.NewReader(data)
 	}
 	target := c.baseURL + path
@@ -994,17 +1215,48 @@ func (c *Client) do(ctx context.Context, method, path string, query url.Values, 
 	if body != nil {
 		contentType = "application/json"
 	}
-	return c.request(ctx, method, path, target, contentType, reader, out)
+	keyField, businessKey := operationBusinessKey(query, bodyData)
+	return c.request(ctx, method, path, target, contentType, reader, out, keyField, businessKey)
 }
 
 func (c *Client) doWithContentType(ctx context.Context, method, path, contentType string, body io.Reader, out any) error {
-	return c.request(ctx, method, path, c.baseURL+path, contentType, body, out)
+	return c.request(ctx, method, path, c.baseURL+path, contentType, body, out, "", "")
 }
 
-func (c *Client) request(ctx context.Context, method, path, target, contentType string, body io.Reader, out any) error {
+func (c *Client) request(ctx context.Context, method, path, target, contentType string, body io.Reader, out any, keyField, businessKey string) (requestErr error) {
+	requestContext, cancel := withOperationTimeout(ctx, operationTimeout(method, path))
+	defer cancel()
 	started := time.Now()
 	requestID := fmt.Sprintf("%d", time.Now().UnixNano())
-	req, err := http.NewRequestWithContext(ctx, method, target, body)
+	observe := method != http.MethodGet && method != http.MethodHead && path != "/auth/login" && path != "/auth/logout"
+	if observe {
+		c.notifyOperation(OperationEvent{
+			ID: requestID, Method: method, Path: path,
+			KeyField: keyField, BusinessKey: businessKey,
+			StartedAt: started, Outcome: OperationPending, Message: "请求正在提交",
+		})
+		defer func() {
+			outcome := OperationSucceeded
+			message := "服务端已返回成功"
+			if requestErr != nil {
+				outcome = OperationFailed
+				message = requestErr.Error()
+				var transportErr *TransportError
+				var businessErr *BusinessError
+				serverFailure := errors.As(requestErr, &businessErr) && businessErr.Code >= http.StatusInternalServerError
+				if errors.As(requestErr, &transportErr) || serverFailure || strings.Contains(requestErr.Error(), "无法识别的响应") {
+					outcome = OperationUnknown
+					message = "请求结果无法确认，请在线回读业务状态"
+				}
+			}
+			c.notifyOperation(OperationEvent{
+				ID: requestID, Method: method, Path: path,
+				KeyField: keyField, BusinessKey: businessKey,
+				StartedAt: started, FinishedAt: time.Now(), Outcome: outcome, Message: message,
+			})
+		}()
+	}
+	req, err := http.NewRequestWithContext(requestContext, method, target, body)
 	if err != nil {
 		return err
 	}
@@ -1021,7 +1273,7 @@ func (c *Client) request(ctx context.Context, method, path, target, contentType 
 		if c.logger != nil {
 			c.logger.Printf("request_id=%s method=%s path=%s duration=%s result=network_error", requestID, method, path, time.Since(started))
 		}
-		return fmt.Errorf("无法连接线上服务：%w", err)
+		return &TransportError{Err: err}
 	}
 	defer resp.Body.Close()
 	data, err := io.ReadAll(io.LimitReader(resp.Body, 4<<20))
@@ -1039,6 +1291,9 @@ func (c *Client) request(ctx context.Context, method, path, target, contentType 
 		if env.Msg == "" {
 			env.Msg = http.StatusText(env.Code)
 		}
+		if env.Code == http.StatusUnauthorized && c.onUnauthorized != nil {
+			c.onUnauthorized()
+		}
 		return &BusinessError{Code: env.Code, Msg: env.Msg}
 	}
 	if out != nil && len(env.Data) > 0 && string(env.Data) != "null" {
@@ -1047,4 +1302,34 @@ func (c *Client) request(ctx context.Context, method, path, target, contentType 
 		}
 	}
 	return nil
+}
+
+func operationBusinessKey(query url.Values, body []byte) (string, string) {
+	for _, key := range []string{"code", "order_code", "receipt_code", "id", "name"} {
+		if value := strings.TrimSpace(query.Get(key)); value != "" {
+			return key, value
+		}
+	}
+	if len(body) == 0 {
+		return "", ""
+	}
+	var values map[string]any
+	if json.Unmarshal(body, &values) != nil {
+		return "", ""
+	}
+	for _, key := range []string{"code", "order_code", "receipt_code", "id", "name"} {
+		if value, ok := values[key].(string); ok && strings.TrimSpace(value) != "" {
+			return key, strings.TrimSpace(value)
+		}
+	}
+	return "", ""
+}
+
+func (c *Client) notifyOperation(event OperationEvent) {
+	c.operationMu.RLock()
+	observer := c.onOperation
+	c.operationMu.RUnlock()
+	if observer != nil {
+		observer(event)
+	}
 }

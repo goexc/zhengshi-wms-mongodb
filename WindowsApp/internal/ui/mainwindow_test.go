@@ -61,33 +61,57 @@ func TestSelectedPageSizeDefaultsToTwenty(t *testing.T) {
 
 func TestWorkspaceTabMappings(t *testing.T) {
 	material := new(walk.TabPage)
+	dashboard := new(walk.TabPage)
+	globalLookup := new(walk.TabPage)
+	operations := new(walk.TabPage)
+	documents := new(walk.TabPage)
 	inventory := new(walk.TabPage)
 	inbound := new(walk.TabPage)
+	inboundEditor := new(walk.TabPage)
 	outbound := new(walk.TabPage)
 	outboundReport := new(walk.TabPage)
 	partner := new(walk.TabPage)
+	partnerEditor := new(walk.TabPage)
 	warehouse := new(walk.TabPage)
+	warehouseEditor := new(walk.TabPage)
+	profile := new(walk.TabPage)
 	system := new(walk.TabPage)
 	ui := &mainUI{
-		materialTab:       material,
-		inventoryTab:      inventory,
-		inboundTab:        inbound,
-		outboundTab:       outbound,
-		outboundReportTab: outboundReport,
-		partnerTab:        partner,
-		warehouseTab:      warehouse,
-		systemTab:         system,
+		dashboardTab:       dashboard,
+		globalLookupTab:    globalLookup,
+		operationTab:       operations,
+		documentTab:        documents,
+		materialTab:        material,
+		inventoryTab:       inventory,
+		inboundTab:         inbound,
+		inboundEditorTab:   inboundEditor,
+		outboundTab:        outbound,
+		outboundReportTab:  outboundReport,
+		partnerTab:         partner,
+		partnerEditorTab:   partnerEditor,
+		warehouseTab:       warehouse,
+		warehouseEditorTab: warehouseEditor,
+		profileTab:         profile,
+		systemTab:          system,
 	}
 
 	for key, page := range map[string]*walk.TabPage{
-		"material":        material,
-		"inventory":       inventory,
-		"inbound":         inbound,
-		"outbound":        outbound,
-		"outbound_report": outboundReport,
-		"partner":         partner,
-		"warehouse":       warehouse,
-		"system":          system,
+		"dashboard":        dashboard,
+		"global_lookup":    globalLookup,
+		"operations":       operations,
+		"documents":        documents,
+		"material":         material,
+		"inventory":        inventory,
+		"inbound":          inbound,
+		"inbound_editor":   inboundEditor,
+		"outbound":         outbound,
+		"outbound_report":  outboundReport,
+		"partner":          partner,
+		"partner_editor":   partnerEditor,
+		"warehouse":        warehouse,
+		"warehouse_editor": warehouseEditor,
+		"profile":          profile,
+		"system":           system,
 	} {
 		if got := ui.tabForKey(key); got != page {
 			t.Fatalf("tabForKey(%q) = %p, want %p", key, got, page)
@@ -98,6 +122,23 @@ func TestWorkspaceTabMappings(t *testing.T) {
 	}
 	if got := stringIndex([]string{"material", "inventory"}, "inventory"); got != 1 {
 		t.Fatalf("stringIndex = %d", got)
+	}
+}
+
+func TestDashboardCardsRequireExactListPermissions(t *testing.T) {
+	perms := api.Perms{
+		Menus:   []api.Menu{{Path: "/inbound/receipt"}, {Path: "/outbound/receipt"}},
+		Buttons: []api.Button{{Perms: "inbound:receipt:list"}, {Perms: "outbound:order:list"}},
+	}
+	cards := dashboardCardSpecs(perms)
+	if len(cards) != 8 {
+		t.Fatalf("cards = %#v", cards)
+	}
+	if cards[0].Module != "inbound" || cards[0].Status != "待审核" || cards[7].Status != "已出库" {
+		t.Fatalf("cards = %#v", cards)
+	}
+	if got := dashboardCardSpecs(api.Perms{Menus: perms.Menus}); len(got) != 0 {
+		t.Fatalf("cards without buttons = %#v", got)
 	}
 }
 

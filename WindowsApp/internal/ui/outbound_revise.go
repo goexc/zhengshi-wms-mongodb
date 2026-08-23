@@ -77,11 +77,11 @@ func ShowOutboundRevise(owner walk.Form, client *api.Client, snapshot api.Outbou
 			Label{Text: "出库核价/调价", Font: Font{Family: "Microsoft YaHei UI", PointSize: 15, Bold: true}},
 			Label{
 				Text:      fmt.Sprintf("出库单：%s    客户：%s    当前状态：%s", snapshot.Code, displayMaterialValue(snapshot.CustomerName), snapshot.Status),
-				TextColor: walk.RGB(70, 70, 70),
+				TextColor: secondaryTextColor(),
 			},
 			Label{
 				AssignTo: &statusLabel, Text: "正在重新读取线上订单和物料……",
-				TextColor: walk.RGB(80, 80, 80), Accessibility: Accessibility{Name: "出库核价加载和提交状态"},
+				TextColor: secondaryTextColor(), Accessibility: Accessibility{Name: "出库核价加载和提交状态"},
 			},
 			TableView{
 				AssignTo: &table, Model: []outboundReviseRow{}, AlternatingRowBG: true,
@@ -123,7 +123,7 @@ func ShowOutboundRevise(owner walk.Form, client *api.Client, snapshot api.Outbou
 						AssignTo: &historyCombo, Model: []string{"选择物料后加载"}, CurrentIndex: 0, Enabled: false,
 						Accessibility: Accessibility{Name: "当前物料历史参考价"},
 					},
-					Label{AssignTo: &historyStatus, Text: "历史价格按当前客户读取，仅作填写参考。", ColumnSpan: 3, TextColor: walk.RGB(85, 85, 85)},
+					Label{AssignTo: &historyStatus, Text: "历史价格按当前客户读取，仅作填写参考。", ColumnSpan: 3, TextColor: secondaryTextColor()},
 					PushButton{
 						AssignTo: &applyButton, Text: "应用到当前物料", Enabled: false, MinSize: Size{Width: 130, Height: 30},
 						OnClicked: func() {
@@ -196,7 +196,7 @@ func ShowOutboundRevise(owner walk.Form, client *api.Client, snapshot api.Outbou
 		_ = historyCombo.SetCurrentIndex(0)
 		historyCombo.SetEnabled(false)
 		historyStatus.SetText("正在读取当前客户的有效历史价格……")
-		go func() {
+		guardedGo(func() {
 			prices, requestErr := client.MaterialPrices(historyCtx, materialID, customerID)
 			if historyCtx.Err() != nil || closed.Load() {
 				return
@@ -237,7 +237,7 @@ func ShowOutboundRevise(owner walk.Form, client *api.Client, snapshot api.Outbou
 				historyStatus.SetText(fmt.Sprintf("已加载 %d 条有效历史价格；选择后仍需点击“应用到当前物料”。", len(historyPrices)))
 				historyLoading = false
 			})
-		}()
+		})
 	}
 
 	updateSelection = func() {
@@ -315,7 +315,7 @@ func ShowOutboundRevise(owner walk.Form, client *api.Client, snapshot api.Outbou
 		reloadButton.SetEnabled(false)
 		submitButton.SetEnabled(false)
 		setEditorEnabled(false)
-		go func() {
+		guardedGo(func() {
 			order, orderErr := client.FindOutboundByCode(ctx, snapshot.Code)
 			var materials []api.OutboundMaterial
 			if orderErr == nil {
@@ -351,7 +351,7 @@ func ShowOutboundRevise(owner walk.Form, client *api.Client, snapshot api.Outbou
 					updateSelection()
 				}
 			})
-		}()
+		})
 	}
 	reloadButton.Clicked().Attach(loadOrder)
 
@@ -379,7 +379,7 @@ func ShowOutboundRevise(owner walk.Form, client *api.Client, snapshot api.Outbou
 		cancelButton.SetEnabled(false)
 		submitButton.SetText("正在提交，请勿关闭……")
 		statusLabel.SetText("正在重新核对服务端订单快照……")
-		go func() {
+		guardedGo(func() {
 			currentOrder, submitErr := client.FindOutboundByCode(context.Background(), baselineOrder.Code)
 			var currentMaterials []api.OutboundMaterial
 			if submitErr == nil {
@@ -424,7 +424,7 @@ func ShowOutboundRevise(owner walk.Form, client *api.Client, snapshot api.Outbou
 				allowClose = true
 				dlg.Accept()
 			})
-		}()
+		})
 	})
 	loadOrder()
 	dlg.Run()

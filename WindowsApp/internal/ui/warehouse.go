@@ -13,12 +13,15 @@ import (
 )
 
 type warehouseKind struct {
-	Key        string
-	Label      string
-	MenuPath   string
-	Permission string
-	Level      int
-	Types      []string
+	Key              string
+	Label            string
+	MenuPath         string
+	Permission       string
+	AddPermission    string
+	EditPermission   string
+	StatusPermission string
+	Level            int
+	Types            []string
 }
 
 type warehouseTreeEntry struct {
@@ -33,21 +36,28 @@ type warehouseTreeEntry struct {
 }
 
 type warehouseDetail struct {
-	Level     string
-	Warehouse string
-	Parent    string
-	Code      string
-	Name      string
-	Type      string
-	Status    string
-	Capacity  string
-	Manager   string
-	Contact   string
-	Address   string
-	Remark    string
-	CreateBy  string
-	CreatedAt int64
-	UpdatedAt int64
+	ID            string
+	WarehouseID   string
+	ZoneID        string
+	RackID        string
+	Level         string
+	Warehouse     string
+	Parent        string
+	Code          string
+	Name          string
+	Type          string
+	Status        string
+	Capacity      string
+	CapacityValue float64
+	CapacityUnit  string
+	Image         string
+	Manager       string
+	Contact       string
+	Address       string
+	Remark        string
+	CreateBy      string
+	CreatedAt     int64
+	UpdatedAt     int64
 }
 
 type warehouseRow struct {
@@ -66,20 +76,26 @@ type warehouseRow struct {
 }
 
 type warehouseUI struct {
-	kinds      []warehouseKind
-	tree       *walk.ListBox
-	kind       *walk.ComboBox
-	typeFilter *walk.ComboBox
-	name       *walk.LineEdit
-	code       *walk.LineEdit
-	status     *walk.ComboBox
-	table      *walk.TableView
-	info       *walk.Label
-	query      *walk.PushButton
-	reset      *walk.PushButton
-	prev       *walk.PushButton
-	next       *walk.PushButton
-	size       *walk.ComboBox
+	splitter     *walk.Splitter
+	kinds        []warehouseKind
+	tree         *walk.ListBox
+	kind         *walk.ComboBox
+	typeFilter   *walk.ComboBox
+	name         *walk.LineEdit
+	code         *walk.LineEdit
+	status       *walk.ComboBox
+	table        *walk.TableView
+	info         *walk.Label
+	query        *walk.PushButton
+	reset        *walk.PushButton
+	add          *walk.PushButton
+	edit         *walk.PushButton
+	statusAction *walk.PushButton
+	detailAction *walk.PushButton
+	actionHint   *walk.Label
+	prev         *walk.PushButton
+	next         *walk.PushButton
+	size         *walk.ComboBox
 
 	treeEntries    []warehouseTreeEntry
 	selectedTree   *warehouseTreeEntry
@@ -91,6 +107,7 @@ type warehouseUI struct {
 	treeGeneration int
 	cancel         context.CancelFunc
 	treeCancel     context.CancelFunc
+	busy           bool
 }
 
 type warehouseLoadResult struct {
@@ -102,19 +119,27 @@ func availableWarehouseKinds(perms api.Perms) []warehouseKind {
 	candidates := []warehouseKind{
 		{
 			Key: "warehouse", Label: "仓库", MenuPath: "/warehouse/index",
-			Permission: "warehouse:warehouse:list", Level: 0,
+			Permission: "warehouse:warehouse:list", AddPermission: "warehouse:warehouse:add",
+			EditPermission: "warehouse:warehouse:edit", StatusPermission: "warehouse:warehouse:status", Level: 0,
 			Types: []string{
 				"分销中心", "生产仓库", "跨境仓库", "电商仓库", "冷链仓库",
 				"合规仓库", "专用仓库", "跨渠道仓库", "自动化仓库", "第三方物流仓库",
 			},
 		},
-		{Key: "zone", Label: "库区", MenuPath: "/warehouse/zone", Permission: "warehouse:zone:list", Level: 1},
+		{
+			Key: "zone", Label: "库区", MenuPath: "/warehouse/zone", Permission: "warehouse:zone:list",
+			AddPermission: "warehouse:zone:add", EditPermission: "warehouse:zone:edit", StatusPermission: "warehouse:zone:status", Level: 1,
+		},
 		{
 			Key: "rack", Label: "货架", MenuPath: "/warehouse/rack",
-			Permission: "warehouse:rack:list", Level: 2,
+			Permission: "warehouse:rack:list", AddPermission: "warehouse:rack:add",
+			EditPermission: "warehouse:rack:edit", StatusPermission: "warehouse:rack:status", Level: 2,
 			Types: []string{"标准货架", "重型货架", "中型货架", "轻型货架"},
 		},
-		{Key: "bin", Label: "货位", MenuPath: "/warehouse/bin", Permission: "warehouse:bin:list", Level: 3},
+		{
+			Key: "bin", Label: "货位", MenuPath: "/warehouse/bin", Permission: "warehouse:bin:list",
+			AddPermission: "warehouse:bin:add", EditPermission: "warehouse:bin:edit", StatusPermission: "warehouse:bin:status", Level: 3,
+		},
 	}
 	result := make([]warehouseKind, 0, len(candidates))
 	for _, candidate := range candidates {
@@ -143,10 +168,22 @@ func (ui *mainUI) warehousePageWidget() TabPage {
 		Children: []Widget{
 			Label{Text: "仓储结构", Font: Font{Family: "Microsoft YaHei UI", PointSize: 15, Bold: true}},
 			Label{
-				Text:      "左侧展示线上仓库层级；选择节点可定位对应层级，右侧详情以分页接口返回结果为准。",
-				TextColor: walk.RGB(85, 85, 85),
+				Text:      "左侧展示线上仓储层级；右侧可按账号权限新增、编辑和变更非删除状态。",
+				TextColor: secondaryTextColor(),
+			},
+			Composite{
+				Layout: HBox{Spacing: 8},
+				Children: []Widget{
+					PushButton{AssignTo: &state.add, Text: "新增", MinSize: Size{Width: 82, Height: 30}, OnClicked: ui.newWarehouseEntity},
+					PushButton{AssignTo: &state.edit, Text: "编辑", Enabled: false, MinSize: Size{Width: 82, Height: 30}, OnClicked: ui.editSelectedWarehouse},
+					PushButton{AssignTo: &state.statusAction, Text: "变更状态", Enabled: false, MinSize: Size{Width: 96, Height: 30}, OnClicked: ui.changeSelectedWarehouseStatus},
+					PushButton{AssignTo: &state.detailAction, Text: "查看详情", Enabled: false, MinSize: Size{Width: 92, Height: 30}, OnClicked: ui.showSelectedWarehouseDetail},
+					HSpacer{},
+					Label{AssignTo: &state.actionHint, Text: "选择一条资料后可按权限执行操作。", TextColor: secondaryTextColor()},
+				},
 			},
 			HSplitter{
+				AssignTo:      &state.splitter,
 				HandleWidth:   5,
 				StretchFactor: 1,
 				Children: []Widget{
@@ -157,7 +194,7 @@ func (ui *mainUI) warehousePageWidget() TabPage {
 						MaxSize:       Size{Width: 290},
 						Layout:        VBox{Margins: Margins{Left: 10, Top: 10, Right: 10, Bottom: 10}, Spacing: 8},
 						Children: []Widget{
-							Label{Text: "选择节点定位详情", TextColor: walk.RGB(85, 85, 85)},
+							Label{Text: "选择节点定位详情", TextColor: secondaryTextColor()},
 							ListBox{
 								AssignTo: &state.tree, Model: []string{"正在加载线上仓储树……"},
 								StretchFactor: 1, MinSize: Size{Width: 190, Height: 360},
@@ -225,7 +262,8 @@ func (ui *mainUI) warehousePageWidget() TabPage {
 									Name:        "仓储位置查询结果",
 									Description: "双击当前行查看完整只读资料",
 								},
-								OnItemActivated: ui.showSelectedWarehouseDetail,
+								OnCurrentIndexChanged: ui.updateWarehouseActions,
+								OnItemActivated:       ui.showSelectedWarehouseDetail,
 								Columns: []TableViewColumn{
 									{Title: "层级", DataMember: "Level", Width: 65},
 									{Title: "所属仓库", DataMember: "Warehouse", Width: 120},
@@ -245,7 +283,6 @@ func (ui *mainUI) warehousePageWidget() TabPage {
 								Children: []Widget{
 									Label{AssignTo: &state.info, Text: "尚未加载"},
 									HSpacer{},
-									PushButton{Text: "查看详情", OnClicked: ui.showSelectedWarehouseDetail},
 									Label{Text: "每页"},
 									ComboBox{
 										AssignTo: &state.size, Model: pageSizeLabels, CurrentIndex: 1, MinSize: Size{Width: 92},
@@ -298,6 +335,7 @@ func (ui *mainUI) initializeWarehousePage() {
 	}
 	state.generation++
 	ui.updateWarehouseTypeFilter()
+	ui.updateWarehouseActions()
 	for _, edit := range []*walk.LineEdit{state.name, state.code} {
 		edit.KeyDown().Attach(func(key walk.Key) {
 			if key == walk.KeyReturn {
@@ -339,7 +377,7 @@ func (ui *mainUI) loadWarehouseTree() {
 	state.treeCancel = cancel
 	state.treeGeneration++
 	generation := state.treeGeneration
-	go func() {
+	guardedGo(func() {
 		nodes, requestErr := ui.session.Client.WarehouseTree(ctx)
 		if ctx.Err() != nil {
 			return
@@ -363,7 +401,7 @@ func (ui *mainUI) loadWarehouseTree() {
 			}
 			_ = state.tree.SetModel(labels)
 		})
-	}()
+	})
 }
 
 func flattenWarehouseTree(nodes []api.WarehouseNode) []warehouseTreeEntry {
@@ -428,6 +466,7 @@ func (ui *mainUI) warehouseKindChanged() {
 		return
 	}
 	ui.updateWarehouseTypeFilter()
+	ui.updateWarehouseActions()
 	if state.syncingTree {
 		return
 	}
@@ -511,12 +550,14 @@ func (ui *mainUI) loadWarehouseDirectory() {
 		}
 	}
 	state.info.SetText("正在加载线上" + kind.Label + "详情……")
+	state.busy = true
+	ui.updateWarehouseActions()
 	state.query.SetEnabled(false)
 	state.reset.SetEnabled(false)
 	state.prev.SetEnabled(false)
 	state.next.SetEnabled(false)
 
-	go func() {
+	guardedGo(func() {
 		result, requestErr := ui.loadWarehouseRows(ctx, kind, page, size, filters)
 		if ctx.Err() != nil {
 			return
@@ -527,8 +568,10 @@ func (ui *mainUI) loadWarehouseDirectory() {
 			}
 			state.query.SetEnabled(true)
 			state.reset.SetEnabled(true)
+			state.busy = false
 			if requestErr != nil {
 				state.info.SetText("加载失败：" + requestErr.Error() + "。左侧仓储树不受影响。")
+				ui.updateWarehouseActions()
 				return
 			}
 			if modelErr := state.table.SetModel(result.rows); modelErr != nil {
@@ -544,8 +587,9 @@ func (ui *mainUI) loadWarehouseDirectory() {
 			}
 			state.prev.SetEnabled(page > 1)
 			state.next.SetEnabled(int64(page*size) < result.total)
+			ui.updateWarehouseActions()
 		})
-	}()
+	})
 }
 
 func (ui *mainUI) loadWarehouseRows(
@@ -597,8 +641,9 @@ func warehouseCapacity(value float64, unit string) string {
 
 func warehouseRowFromWarehouse(item api.Warehouse) warehouseRow {
 	detail := warehouseDetail{
-		Level: "仓库", Warehouse: item.Name, Code: item.Code, Name: item.Name, Type: item.Type,
+		ID: item.ID, WarehouseID: item.ID, Level: "仓库", Warehouse: item.Name, Code: item.Code, Name: item.Name, Type: item.Type,
 		Status: item.Status, Capacity: warehouseCapacity(item.Capacity, item.CapacityUnit),
+		CapacityValue: item.Capacity, CapacityUnit: item.CapacityUnit, Image: item.Image,
 		Manager: item.Manager, Contact: item.Contact, Address: item.Address, Remark: item.Remark,
 		CreateBy: item.CreateBy, CreatedAt: item.CreatedAt, UpdatedAt: item.UpdatedAt,
 	}
@@ -607,10 +652,11 @@ func warehouseRowFromWarehouse(item api.Warehouse) warehouseRow {
 
 func warehouseRowFromZone(item api.WarehouseZone) warehouseRow {
 	detail := warehouseDetail{
-		Level: "库区", Warehouse: item.WarehouseName, Parent: item.WarehouseName,
+		ID: item.ID, WarehouseID: item.WarehouseID, Level: "库区", Warehouse: item.WarehouseName, Parent: item.WarehouseName,
 		Code: item.Code, Name: item.Name, Status: item.Status,
-		Capacity: warehouseCapacity(item.Capacity, item.CapacityUnit),
-		Manager:  item.Manager, Contact: item.Contact, Remark: item.Remark,
+		Capacity:      warehouseCapacity(item.Capacity, item.CapacityUnit),
+		CapacityValue: item.Capacity, CapacityUnit: item.CapacityUnit, Image: item.Image,
+		Manager: item.Manager, Contact: item.Contact, Remark: item.Remark,
 		CreateBy: item.CreateBy, CreatedAt: item.CreatedAt, UpdatedAt: item.UpdatedAt,
 	}
 	return warehouseRowFromDetail(detail)
@@ -618,10 +664,12 @@ func warehouseRowFromZone(item api.WarehouseZone) warehouseRow {
 
 func warehouseRowFromRack(item api.WarehouseRack) warehouseRow {
 	detail := warehouseDetail{
+		ID: item.ID, WarehouseID: item.WarehouseID, ZoneID: item.WarehouseZoneID,
 		Level: "货架", Warehouse: item.WarehouseName, Parent: item.WarehouseZoneName,
 		Code: item.Code, Name: item.Name, Type: item.Type, Status: item.Status,
-		Capacity: warehouseCapacity(item.Capacity, item.CapacityUnit),
-		Manager:  item.Manager, Contact: item.Contact, Remark: item.Remark,
+		Capacity:      warehouseCapacity(item.Capacity, item.CapacityUnit),
+		CapacityValue: item.Capacity, CapacityUnit: item.CapacityUnit, Image: item.Image,
+		Manager: item.Manager, Contact: item.Contact, Remark: item.Remark,
 		CreateBy: item.CreateBy, CreatedAt: item.CreatedAt, UpdatedAt: item.UpdatedAt,
 	}
 	return warehouseRowFromDetail(detail)
@@ -629,11 +677,13 @@ func warehouseRowFromRack(item api.WarehouseRack) warehouseRow {
 
 func warehouseRowFromBin(item api.WarehouseBin) warehouseRow {
 	detail := warehouseDetail{
+		ID: item.ID, WarehouseID: item.WarehouseID, ZoneID: item.WarehouseZoneID, RackID: item.WarehouseRackID,
 		Level: "货位", Warehouse: item.WarehouseName,
 		Parent: strings.Trim(strings.Join([]string{item.WarehouseZoneName, item.WarehouseRackName}, " / "), " /"),
 		Code:   item.Code, Name: item.Name, Status: item.Status,
-		Capacity: warehouseCapacity(item.Capacity, item.CapacityUnit),
-		Manager:  item.Manager, Contact: item.Contact, Remark: item.Remark,
+		Capacity: warehouseCapacity(item.Capacity, item.CapacityUnit), CapacityValue: item.Capacity,
+		CapacityUnit: item.CapacityUnit, Image: item.Image,
+		Manager: item.Manager, Contact: item.Contact, Remark: item.Remark,
 		CreateBy: item.CreateBy, CreatedAt: item.CreatedAt, UpdatedAt: item.UpdatedAt,
 	}
 	return warehouseRowFromDetail(detail)
@@ -673,7 +723,7 @@ func showWarehouseDetail(owner walk.Form, detail warehouseDetail) {
 		Layout:        VBox{Margins: Margins{Left: 18, Top: 18, Right: 18, Bottom: 16}, Spacing: 10},
 		Children: []Widget{
 			Label{Text: detail.Name, Font: Font{Family: "Microsoft YaHei UI", PointSize: 15, Bold: true}},
-			Label{Text: detail.Level + " · " + displayMaterialValue(detail.Status), TextColor: walk.RGB(70, 70, 70)},
+			Label{Text: detail.Level + " · " + displayMaterialValue(detail.Status), TextColor: secondaryTextColor()},
 			GroupBox{
 				Title:         "只读资料",
 				StretchFactor: 1,
@@ -681,7 +731,7 @@ func showWarehouseDetail(owner walk.Form, detail warehouseDetail) {
 				Children:      warehouseDetailWidgets(detail),
 			},
 			Composite{Layout: HBox{}, Children: []Widget{
-				Label{Text: "详情来自当前线上分页接口。", TextColor: walk.RGB(90, 90, 90)},
+				Label{Text: "详情来自当前线上分页接口。", TextColor: secondaryTextColor()},
 				HSpacer{},
 				PushButton{AssignTo: &closeButton, Text: "关闭", MinSize: Size{Width: 88, Height: 30}, OnClicked: func() { dlg.Accept() }},
 			}},

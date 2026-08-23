@@ -44,7 +44,7 @@ func Login(cfg *config.Config) (*Session, bool) {
 		}
 		loginButton.SetEnabled(false)
 		updateStatus("正在连接线上服务并验证账号……")
-		go func() {
+		guardedGo(func() {
 			client := api.NewClient(baseURL)
 			loginData, err := client.Login(context.Background(), mobile, password)
 			if err == nil {
@@ -66,10 +66,15 @@ func Login(cfg *config.Config) (*Session, bool) {
 					passwordEdit.SetFocus()
 					return
 				}
+				workspace := cfg.Workspace
+				if workspace.APIBaseURL != baseURL || workspace.Mobile != mobile {
+					workspace = config.WorkspaceState{}
+				}
 				*cfg = config.Config{
 					APIBaseURL:   baseURL,
 					RememberUser: rememberCB.Checked(),
 					KeepLoggedIn: keepLoginCB.Checked(),
+					Workspace:    workspace,
 				}
 				if cfg.RememberUser {
 					cfg.Mobile = mobile
@@ -89,7 +94,7 @@ func Login(cfg *config.Config) (*Session, bool) {
 				authenticated = true
 				dlg.Accept()
 			})
-		}()
+		})
 	}
 
 	err := Dialog{
@@ -102,13 +107,13 @@ func Login(cfg *config.Config) (*Session, bool) {
 		Layout:        VBox{Margins: Margins{Left: 28, Top: 24, Right: 28, Bottom: 24}, Spacing: 12},
 		Children: []Widget{
 			Label{Text: "正时 WMS", Font: Font{Family: "Microsoft YaHei UI", PointSize: 18, Bold: true}},
-			Label{Text: "仓库执行 Windows 客户端", TextColor: walk.RGB(90, 90, 90)},
+			Label{Text: "仓库执行 Windows 客户端", TextColor: secondaryTextColor()},
 			GroupBox{
 				Title:  "连接环境",
 				Layout: VBox{Margins: Margins{Left: 14, Top: 10, Right: 14, Bottom: 12}, Spacing: 6},
 				Children: []Widget{
-					Label{Text: "线上生产环境", Font: Font{Family: "Microsoft YaHei UI", PointSize: 9, Bold: true}, TextColor: walk.RGB(183, 45, 33)},
-					Label{Text: "登录后将直接读取和操作生产数据，请确认账号与操作内容。", TextColor: walk.RGB(85, 85, 85)},
+					Label{Text: "线上生产环境", Font: Font{Family: "Microsoft YaHei UI", PointSize: 9, Bold: true}, TextColor: dangerTextColor()},
+					Label{Text: "登录后将直接读取和操作生产数据，请确认账号与操作内容。", TextColor: secondaryTextColor()},
 				},
 			},
 			GroupBox{
@@ -133,7 +138,7 @@ func Login(cfg *config.Config) (*Session, bool) {
 				},
 			},
 			CheckBox{AssignTo: &keepLoginCB, Text: "保持登录（使用 Windows 加密保护登录状态）", Checked: cfg.KeepLoggedIn},
-			Label{AssignTo: &statusLabel, Text: "请输入手机号和密码。", TextColor: walk.RGB(80, 80, 80)},
+			Label{AssignTo: &statusLabel, Text: "请输入手机号和密码。", TextColor: secondaryTextColor()},
 			Composite{
 				Layout: HBox{Spacing: 8},
 				Children: []Widget{

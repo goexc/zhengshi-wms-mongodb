@@ -76,6 +76,7 @@ func ShowMaterialDetail(owner walk.Form, client *api.Client, imageBaseURL string
 	var rotateRightButton *walk.PushButton
 	var zoomLabel *walk.Label
 	var priceButton *walk.PushButton
+	var inventoryButton *walk.PushButton
 	var closeButton *walk.PushButton
 	var currentBitmap *walk.Bitmap
 	var closed atomic.Bool
@@ -102,7 +103,7 @@ func ShowMaterialDetail(owner walk.Form, client *api.Client, imageBaseURL string
 			},
 			Label{
 				Text:          fmt.Sprintf("型号：%s    图纸状态：有图纸", displayMaterialValue(material.Model)),
-				TextColor:     walk.RGB(70, 70, 70),
+				TextColor:     secondaryTextColor(),
 				Accessibility: Accessibility{Name: "物料型号及图纸状态"},
 			},
 			HSplitter{
@@ -118,7 +119,7 @@ func ShowMaterialDetail(owner walk.Form, client *api.Client, imageBaseURL string
 							Label{
 								AssignTo:      &statusLabel,
 								Text:          "正在加载图纸原图……",
-								TextColor:     walk.RGB(70, 70, 70),
+								TextColor:     secondaryTextColor(),
 								Accessibility: Accessibility{Name: "图纸加载状态"},
 							},
 							Composite{
@@ -141,8 +142,8 @@ func ShowMaterialDetail(owner walk.Form, client *api.Client, imageBaseURL string
 										Accessibility: Accessibility{Name: "图纸原始大小"},
 									},
 									Label{
-										Text:          "Ctrl + 鼠标滚轮缩放",
-										TextColor:     walk.RGB(80, 80, 80),
+										Text:          "Ctrl+滚轮 / Ctrl+加减号缩放",
+										TextColor:     secondaryTextColor(),
 										Accessibility: Accessibility{Name: "按住 Ctrl 并滚动鼠标滚轮可缩放图纸"},
 									},
 									HSpacer{},
@@ -219,8 +220,13 @@ func ShowMaterialDetail(owner walk.Form, client *api.Client, imageBaseURL string
 			Composite{
 				Layout: HBox{},
 				Children: []Widget{
-					Label{Text: "按住 Ctrl 滚动鼠标滚轮缩放；普通滚轮和滚动条用于浏览图纸。", TextColor: walk.RGB(90, 90, 90)},
+					Label{Text: "Ctrl+滚轮或 Ctrl+加减号按 10% 缩放；Ctrl+0 适应宽度，Ctrl+1 显示 100%，Ctrl+L/R 旋转。", TextColor: secondaryTextColor()},
 					HSpacer{},
+					PushButton{
+						AssignTo: &inventoryButton, Text: "库存位置", MinSize: Size{Width: 88, Height: 30},
+						ToolTipText: "只读查看该物料当前库存位置",
+						OnClicked:   func() { ShowMaterialInventoryPositions(dlg, client, material) },
+					},
 					PushButton{
 						AssignTo: &priceButton, Text: "历史价格", MinSize: Size{Width: 88, Height: 30},
 						ToolTipText: "只读查看该物料的客户历史价格",
@@ -319,13 +325,13 @@ func ShowMaterialDetail(owner walk.Form, client *api.Client, imageBaseURL string
 		source := drawingImage
 		setZoomControlsEnabled(false)
 		statusLabel.SetText(fmt.Sprintf("正在生成 %s 预览……", formatMaterialZoom(targetScale)))
-		go func() {
+		guardedGo(func() {
 			rendered := scaleMaterialDrawing(source, targetScale)
 			if closed.Load() || ctx.Err() != nil {
 				return
 			}
 			applyRenderedDrawing(rendered, targetScale, generation, nil)
-		}()
+		})
 	}
 
 	fitDrawingWidth := func() {
@@ -356,7 +362,7 @@ func ShowMaterialDetail(owner walk.Form, client *api.Client, imageBaseURL string
 		}
 		setZoomControlsEnabled(false)
 		statusLabel.SetText("正在" + action + " 90°并适应宽度……")
-		go func() {
+		guardedGo(func() {
 			rotated := rotateMaterialDrawing(source, direction)
 			rotatedMaxZoom := materialMaxZoom(rotated.Bounds())
 			targetScale := clampMaterialZoom(materialFitWidthZoom(rotated.Bounds(), viewportWidth), rotatedMaxZoom)
@@ -369,7 +375,7 @@ func ShowMaterialDetail(owner walk.Form, client *api.Client, imageBaseURL string
 				rotationQuarterTurns = nextRotation
 				maxZoomScale = rotatedMaxZoom
 			})
-		}()
+		})
 	}
 	rotateLeftButton.Clicked().Attach(func() {
 		rotateDrawing(-1)
@@ -377,6 +383,16 @@ func ShowMaterialDetail(owner walk.Form, client *api.Client, imageBaseURL string
 	rotateRightButton.Clicked().Attach(func() {
 		rotateDrawing(1)
 	})
+	addWindowShortcut(dlg, drawingZoomInShortcuts(), func() {
+		renderZoom(nextMaterialZoom(zoomScale, 1, maxZoomScale))
+	})
+	addWindowShortcut(dlg, drawingZoomOutShortcuts(), func() {
+		renderZoom(nextMaterialZoom(zoomScale, -1, maxZoomScale))
+	})
+	addWindowShortcut(dlg, []walk.Shortcut{{Modifiers: walk.ModControl, Key: walk.Key0}}, fitDrawingWidth)
+	addWindowShortcut(dlg, []walk.Shortcut{{Modifiers: walk.ModControl, Key: walk.Key1}}, func() { renderZoom(1) })
+	addWindowShortcut(dlg, []walk.Shortcut{{Modifiers: walk.ModControl, Key: walk.KeyL}}, func() { rotateDrawing(-1) })
+	addWindowShortcut(dlg, []walk.Shortcut{{Modifiers: walk.ModControl, Key: walk.KeyR}}, func() { rotateDrawing(1) })
 
 	imageView.MouseWheel().Attach(func(_, _ int, button walk.MouseButton) {
 		const mouseWheelControlKey = 0x0008
@@ -403,7 +419,7 @@ func ShowMaterialDetail(owner walk.Form, client *api.Client, imageBaseURL string
 		setZoomControlsEnabled(false)
 		statusLabel.SetText("正在加载图纸原图……")
 		retryButton.SetVisible(false)
-		go func() {
+		guardedGo(func() {
 			data, requestErr := client.DownloadImage(ctx, imageURL)
 			var decoded image.Image
 			if requestErr == nil {
@@ -428,7 +444,7 @@ func ShowMaterialDetail(owner walk.Form, client *api.Client, imageBaseURL string
 				maxZoomScale = materialMaxZoom(decoded.Bounds())
 				fitDrawingWidth()
 			})
-		}()
+		})
 	}
 	retryButton.Clicked().Attach(loadImage)
 	dlg.Show()
@@ -643,6 +659,7 @@ func materialQuantityText(material api.Material) string {
 func showMaterialWithoutDrawing(owner walk.Form, client *api.Client, material api.Material) {
 	var dlg *walk.Dialog
 	var priceButton *walk.PushButton
+	var inventoryButton *walk.PushButton
 	var closeButton *walk.PushButton
 	titlePart := strings.TrimSpace(material.Model)
 	if titlePart == "" {
@@ -665,7 +682,7 @@ func showMaterialWithoutDrawing(owner walk.Form, client *api.Client, material ap
 			},
 			Label{
 				Text:          fmt.Sprintf("型号：%s    图纸状态：无图纸", displayMaterialValue(material.Model)),
-				TextColor:     walk.RGB(70, 70, 70),
+				TextColor:     secondaryTextColor(),
 				Accessibility: Accessibility{Name: "物料型号及图纸状态"},
 			},
 			GroupBox{
@@ -677,7 +694,7 @@ func showMaterialWithoutDrawing(owner walk.Form, client *api.Client, material ap
 						Text:          "该物料没有图纸。",
 						TextAlignment: AlignHCenterVCenter,
 						Font:          Font{Family: "Microsoft YaHei UI", PointSize: 13, Bold: true},
-						TextColor:     walk.RGB(80, 80, 80),
+						TextColor:     secondaryTextColor(),
 						StretchFactor: 1,
 						Accessibility: Accessibility{Name: "该物料没有图纸"},
 					},
@@ -687,6 +704,10 @@ func showMaterialWithoutDrawing(owner walk.Form, client *api.Client, material ap
 				Layout: HBox{},
 				Children: []Widget{
 					HSpacer{},
+					PushButton{
+						AssignTo: &inventoryButton, Text: "库存位置", MinSize: Size{Width: 88, Height: 30},
+						OnClicked: func() { ShowMaterialInventoryPositions(dlg, client, material) },
+					},
 					PushButton{
 						AssignTo: &priceButton, Text: "历史价格", MinSize: Size{Width: 88, Height: 30},
 						OnClicked: func() { ShowMaterialPriceHistory(dlg, client, material) },
