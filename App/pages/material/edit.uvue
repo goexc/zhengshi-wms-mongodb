@@ -1,0 +1,361 @@
+<template>
+	<WmsPage title="编辑物料">
+		<view class="wms-content">
+			<view v-if="!canEdit" class="wms-empty"
+				><text class="wms-title">没有物料编辑权限</text
+				><text class="wms-muted">请联系管理员确认账号权限</text></view
+			>
+			<view v-else-if="loading" class="wms-empty"
+				><cl-loading :loading="true" /><text class="wms-muted"
+					>正在读取当前物料资料…</text
+				></view
+			>
+			<view v-else-if="loadError.length > 0" class="wms-card"
+				><text class="wms-error">{{ loadError }}</text
+				><cl-button size="large" @tap="load">重新加载</cl-button></view
+			>
+			<template v-else-if="form != null">
+				<view class="wms-card">
+					<text class="wms-title">物料身份</text>
+					<view class="material-form-field">
+						<text class="wms-label">物料分类 *</text>
+						<cl-select
+							v-model="form!.category_id"
+							:options="categoryOptions"
+							title="选择物料分类"
+							placeholder="请选择分类"
+							:disabled="saving || categoriesLoading"
+						/>
+						<text v-if="categoriesLoading" class="wms-muted">正在加载分类…</text>
+						<text v-if="categoryError.length > 0" class="wms-error">{{
+							categoryError
+						}}</text>
+						<view v-if="categoriesError.length > 0" class="material-form-field"
+							><text class="wms-error">{{ categoriesError }}</text
+							><cl-button size="large" type="light" @tap="loadCategories"
+								>重新加载分类</cl-button
+							></view
+						>
+					</view>
+					<view class="material-form-field"
+						><text class="wms-label">物料型号 *</text
+						><cl-input
+							v-model="form!.model"
+							placeholder="请输入物料型号"
+							:disabled="saving"
+						/><text v-if="modelError.length > 0" class="wms-error">{{
+							modelError
+						}}</text></view
+					>
+					<view class="material-form-field"
+						><text class="wms-label">物料名称 *</text
+						><cl-input
+							v-model="form!.name"
+							placeholder="请输入物料名称"
+							:disabled="saving"
+						/><text v-if="nameError.length > 0" class="wms-error">{{
+							nameError
+						}}</text></view
+					>
+				</view>
+				<view class="wms-card">
+					<text class="wms-title">规格与属性</text>
+					<view class="material-form-field"
+						><text class="wms-label">规格 / 尺寸</text
+						><cl-input
+							v-model="form!.specification"
+							placeholder="长度、宽度、厚度等"
+							:disabled="saving"
+					/></view>
+					<view class="material-form-field"
+						><text class="wms-label">材质</text
+						><cl-input
+							v-model="form!.material"
+							placeholder="如碳钢、不锈钢、合金钢"
+							:disabled="saving"
+					/></view>
+					<view class="material-form-field"
+						><text class="wms-label">表面处理</text
+						><cl-input
+							v-model="form!.surface_treatment"
+							placeholder="如热镀锌、喷涂"
+							:disabled="saving"
+					/></view>
+					<view class="material-form-field"
+						><text class="wms-label">强度等级</text
+						><cl-input
+							v-model="form!.strength_grade"
+							placeholder="如 Q235、Q345"
+							:disabled="saving"
+					/></view>
+					<view class="material-form-field"
+						><text class="wms-label">计量单位</text
+						><cl-input
+							v-model="form!.unit"
+							placeholder="如个、件、千克"
+							:disabled="saving"
+					/></view>
+					<view class="material-form-field"
+						><text class="wms-label">安全库存 *</text
+						><cl-input
+							v-model="quantityInput"
+							type="digit"
+							placeholder="大于或等于 0"
+							:disabled="saving"
+						/><text v-if="quantityError.length > 0" class="wms-error">{{
+							quantityError
+						}}</text></view
+					>
+					<view class="material-form-field"
+						><text class="wms-label">备注</text
+						><cl-textarea
+							v-model="form!.remark"
+							placeholder="补充物料说明"
+							:maxlength="2000"
+							:disabled="saving"
+					/></view>
+				</view>
+				<view class="wms-card">
+					<text class="wms-muted"
+						>客户价格通过正式价格业务维护。本页保存基础资料，历史单据仍按原记录展示。</text
+					>
+					<text v-if="saveError.length > 0" class="wms-error">{{ saveError }}</text>
+					<view class="material-form-field"
+						><cl-button
+							size="large"
+							fluid
+							:loading="saving"
+							:disabled="saving || categoriesLoading"
+							@tap="submit"
+							>保存修改</cl-button
+						></view
+					>
+				</view>
+			</template>
+		</view>
+	</WmsPage>
+</template>
+
+<script setup lang="ts">
+import { computed, ref } from "vue";
+import WmsPage from "@/components/wms/Page.uvue";
+import { errorMessage, router, useStore } from "@/.cool";
+import { getMaterial, getMaterialCategories, updateMaterial } from "@/services/material";
+import type { MaterialCategory, MaterialRequest } from "@/types/material";
+import type { ClSelectOption } from "@/uni_modules/cool-ui/types";
+
+const { user } = useStore();
+const materialId = ref("");
+const form = ref<MaterialRequest | null>(null);
+const quantityInput = ref("");
+const categoryOptions = ref<ClSelectOption[]>([]);
+const loading = ref(false);
+const saving = ref(false);
+const categoriesLoading = ref(false);
+const loadError = ref("");
+const categoriesError = ref("");
+const saveError = ref("");
+const categoryError = ref("");
+const nameError = ref("");
+const modelError = ref("");
+const quantityError = ref("");
+const canEdit = computed((): boolean => user.hasPermission("material:material:edit"));
+let sequence = 0;
+let categorySequence = 0;
+let initialForm = "";
+let initialQuantity = "";
+let allowLeave = false;
+let leaveDialogOpen = false;
+
+function appendCategories(
+	list: MaterialCategory[],
+	prefix: string,
+	target: ClSelectOption[]
+): void {
+	list.forEach((category: MaterialCategory) => {
+		const label = prefix.length > 0 ? prefix + " / " + category.name : category.name;
+		if (category.status == "启用") target.push({ label, value: category.id } as ClSelectOption);
+		appendCategories(category.children ?? [], label, target);
+	});
+}
+
+async function loadCategories() {
+	if (!canEdit.value) return;
+	const serial = ++categorySequence;
+	categoriesLoading.value = true;
+	categoriesError.value = "";
+	try {
+		const list = await getMaterialCategories();
+		if (serial != categorySequence) return;
+		const options: ClSelectOption[] = [];
+		appendCategories(list, "", options);
+		categoryOptions.value = options;
+		if (options.length == 0)
+			categoriesError.value = "暂无启用的物料分类，请联系管理员维护后重试";
+	} catch (error) {
+		if (serial == categorySequence)
+			categoriesError.value = errorMessage(error, "物料分类加载失败");
+	} finally {
+		if (serial == categorySequence) categoriesLoading.value = false;
+	}
+}
+
+async function load() {
+	if (!user.hasCredential() || !canEdit.value || loading.value) return;
+	if (materialId.value.length == 0) {
+		loadError.value = "缺少物料编号，请返回后重新进入";
+		return;
+	}
+	const serial = ++sequence;
+	loading.value = true;
+	loadError.value = "";
+	try {
+		const item = await getMaterial(materialId.value);
+		if (serial != sequence) return;
+		form.value = {
+			id: item.id,
+			category_id: item.category_id,
+			name: item.name,
+			model: item.model,
+			image: item.image,
+			material: item.material,
+			specification: item.specification,
+			surface_treatment: item.surface_treatment,
+			strength_grade: item.strength_grade,
+			quantity: item.quantity,
+			unit: item.unit,
+			remark: item.remark
+		} as MaterialRequest;
+		quantityInput.value = `${item.quantity}`;
+		initialForm = JSON.stringify(form.value) ?? "";
+		initialQuantity = quantityInput.value;
+		loadCategories();
+	} catch (error) {
+		if (serial == sequence) loadError.value = errorMessage(error, "物料资料加载失败");
+	} finally {
+		if (serial == sequence) loading.value = false;
+	}
+}
+
+function validate(): boolean {
+	if (form.value == null) return false;
+	const value = form.value!;
+	categoryError.value = categoryOptions.value.some(
+		(option: ClSelectOption): boolean => option.value == value.category_id
+	)
+		? ""
+		: "请选择启用的物料分类";
+	nameError.value = value.name.trim().length > 0 ? "" : "请填写物料名称";
+	modelError.value = value.model.trim().length > 0 ? "" : "请填写物料型号";
+	const quantity = parseFloat(quantityInput.value.trim());
+	quantityError.value =
+		!/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(quantityInput.value.trim()) ||
+		!Number.isFinite(quantity) ||
+		quantity < 0
+			? "安全库存必须为大于或等于 0 的数字"
+			: "";
+	return (
+		categoryError.value.length == 0 &&
+		nameError.value.length == 0 &&
+		modelError.value.length == 0 &&
+		quantityError.value.length == 0
+	);
+}
+
+async function submit() {
+	if (saving.value || form.value == null || !canEdit.value || !validate()) return;
+	const serial = sequence;
+	const value = form.value!;
+	const payload: MaterialRequest = {
+		id: value.id,
+		category_id: value.category_id,
+		name: value.name.trim(),
+		model: value.model.trim(),
+		image: value.image,
+		material: value.material.trim(),
+		specification: value.specification.trim(),
+		surface_treatment: value.surface_treatment.trim(),
+		strength_grade: value.strength_grade.trim(),
+		quantity: parseFloat(quantityInput.value),
+		unit: value.unit.trim(),
+		remark: value.remark.trim()
+	};
+	saving.value = true;
+	saveError.value = "";
+	try {
+		await updateMaterial(payload);
+		if (serial != sequence) return;
+		allowLeave = true;
+		uni.$emit("wms.material.changed");
+		uni.showToast({ title: "物料已更新", icon: "success" });
+		router.back();
+	} catch (error) {
+		if (serial == sequence)
+			saveError.value = errorMessage(error, "保存失败，已保留您的输入，请重试");
+	} finally {
+		if (serial == sequence) saving.value = false;
+	}
+}
+
+function permissionsReady() {
+	if (form.value == null) load();
+}
+function clearSession() {
+	sequence++;
+	categorySequence++;
+	form.value = null;
+	quantityInput.value = "";
+	categoryOptions.value = [];
+	loading.value = false;
+	saving.value = false;
+	categoriesLoading.value = false;
+	allowLeave = true;
+}
+onLoad((query: UTSJSONObject) => {
+	materialId.value = `${query["id"] ?? ""}`;
+	uni.$on("wms.session.changed", clearSession);
+	uni.$on("wms.permissions.ready", permissionsReady);
+});
+onShow(() => {
+	if (form.value == null) load();
+});
+onBackPress((): boolean => {
+	if (allowLeave || form.value == null) return false;
+	if (saving.value) {
+		uni.showToast({ title: "正在保存，请稍候", icon: "none" });
+		return true;
+	}
+	if ((JSON.stringify(form.value) ?? "") == initialForm && quantityInput.value == initialQuantity)
+		return false;
+	if (leaveDialogOpen) return true;
+	leaveDialogOpen = true;
+	uni.showModal({
+		title: "放弃未保存的修改？",
+		content: "返回后，本次输入的修改将不会保存。",
+		confirmText: "放弃修改",
+		cancelText: "继续编辑",
+		success: (result) => {
+			if (result.confirm) {
+				allowLeave = true;
+				router.back();
+			}
+		},
+		complete: () => {
+			leaveDialogOpen = false;
+		}
+	});
+	return true;
+});
+onUnload(() => {
+	sequence++;
+	categorySequence++;
+	uni.$off("wms.session.changed", clearSession);
+	uni.$off("wms.permissions.ready", permissionsReady);
+});
+</script>
+
+<style lang="scss" scoped>
+.material-form-field {
+	margin-top: 16px;
+}
+</style>

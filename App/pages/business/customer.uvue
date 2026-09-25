@@ -1,0 +1,4 @@
+<template><PartnerList kind="customer" /></template>
+<script setup lang="ts">
+import PartnerList from "./components/PartnerList.uvue";
+</script>

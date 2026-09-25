@@ -1,0 +1,153 @@
+<template>
+	<WmsPage title="工作台" active="/pages/index/home" :back="false">
+		<view class="wms-content">
+			<view class="welcome-card"
+				><text class="welcome-label">今天的工作，从这里开始</text
+				><text class="welcome-name">{{ user.info.value?.name ?? "你好" }}</text
+				><text class="welcome-department">{{
+					user.info.value?.department_name ?? "仓储工作空间"
+				}}</text></view
+			>
+			<view class="section-heading"
+				><text class="wms-title">常用查询</text
+				><text class="wms-muted">物料与单据，一步直达</text></view
+			>
+			<view v-if="user.permissionError.value != ''" class="wms-card"
+				><text class="wms-error">{{ user.permissionError.value }}</text
+				><cl-button style="margin-top: 12px" @tap="retry">重试权限加载</cl-button></view
+			>
+			<view v-else-if="!user.permissionsReady.value" class="wms-empty"
+				><text class="wms-muted">正在加载你的业务权限…</text></view
+			>
+			<view v-else-if="items.length == 0" class="wms-card"
+				><text class="wms-text">尚未分配业务权限</text
+				><text class="wms-muted">请联系管理员分配权限后重新加载。</text
+				><cl-button style="margin-top: 12px" @tap="retry">重新加载</cl-button></view
+			>
+			<cl-row :gutter="12">
+				<cl-col v-for="item in items" :key="item.path" :span="12">
+					<view class="entry-card" hover-class="entry-pressed" @tap="open(item.path)">
+						<view class="entry-icon">
+							<cl-icon :name="item.icon" :size="30" color="#166534" />
+						</view>
+						<text class="wms-title entry-title">{{ item.title }}</text>
+					</view>
+				</cl-col>
+			</cl-row>
+			<view class="work-note"
+				><text class="wms-label"
+					>数据以业务系统的当前查询结果为准。单据明细保留开单时的名称、规格与价格。</text
+				></view
+			>
+		</view>
+	</WmsPage>
+</template>
+<script setup lang="ts">
+import { computed } from "vue";
+import { router, useStore } from "@/.cool";
+import WmsPage from "@/components/wms/Page.uvue";
+const { user } = useStore();
+type Entry = { feature: string; path: string; title: string; icon: string };
+const all: Entry[] = [
+	{
+		feature: "material",
+		path: "/pages/material/index",
+		title: "物料查询",
+		icon: "box-3-line"
+	},
+	{
+		feature: "outbound",
+		path: "/pages/outbound/order",
+		title: "出库单",
+		icon: "truck-line"
+	},
+	{
+		feature: "outbound",
+		path: "/pages/outbound/report",
+		title: "出库报表",
+		icon: "bar-chart-box-line"
+	},
+	{
+		feature: "customer",
+		path: "/pages/business/customer",
+		title: "客户",
+		icon: "team-line"
+	},
+	{
+		feature: "supplier",
+		path: "/pages/business/supplier",
+		title: "供应商",
+		icon: "building-line"
+	},
+	{
+		feature: "plan",
+		path: "/pages/plan/index",
+		title: "计划任务",
+		icon: "calendar-check-line"
+	}
+];
+const items = computed((): Entry[] => all.filter((item) => user.canAccess(item.feature)));
+function open(path: string) {
+	router.to(path);
+}
+function retry() {
+	user.get();
+}
+</script>
+<style scoped>
+.welcome-card {
+	background-color: #166534;
+	border-radius: 16px;
+	padding: 24px;
+	margin-bottom: 26px;
+}
+.welcome-label {
+	font-size: 14px;
+	line-height: 22px;
+	color: #dcfce7;
+}
+.welcome-name {
+	font-size: 28px;
+	line-height: 38px;
+	color: #ffffff;
+	font-weight: 700;
+	margin-top: 10px;
+}
+.welcome-department {
+	font-size: 16px;
+	line-height: 24px;
+	color: #dcfce7;
+	margin-top: 6px;
+}
+.section-heading {
+	margin-bottom: 16px;
+}
+.entry-card {
+	min-height: 140px;
+	align-items: center;
+	justify-content: center;
+	background-color: #ffffff;
+	border: 1px solid #9bb3a3;
+	border-radius: 12px;
+	padding: 20px 12px;
+	margin-bottom: 12px;
+}
+.entry-icon {
+	width: 52px;
+	height: 52px;
+	align-items: center;
+	justify-content: center;
+	background-color: #eaf5ee;
+	border-radius: 12px;
+	margin-bottom: 12px;
+}
+.entry-title {
+	text-align: center;
+}
+.entry-pressed {
+	background-color: #eaf5ee;
+}
+.work-note {
+	padding: 12px 4px 20px;
+}
+</style>

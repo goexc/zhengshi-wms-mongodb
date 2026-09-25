@@ -1,0 +1,187 @@
+{
+  "pages": [
+    {
+      "path": "pages/index/home",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "工作台"
+      },
+      "meta": {
+        "isAuth": true
+      }
+    },
+    {
+      "path": "pages/material/index",
+      "style": {
+        // #ifndef APP
+        "enablePullDownRefresh": true,
+        // #endif
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "物料"
+      },
+      "meta": {
+        "isAuth": true
+      }
+    },
+    {
+      "path": "pages/outbound/order",
+      "style": {
+        // #ifndef APP
+        "enablePullDownRefresh": true,
+        // #endif
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "出库"
+      },
+      "meta": {
+        "isAuth": true
+      }
+    },
+    {
+      "path": "pages/index/my",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "我的"
+      },
+      "meta": {
+        "isAuth": true
+      }
+    },
+    {
+      "path": "pages/user/login",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "登录"
+      },
+      "meta": {
+        "isAuth": false
+      }
+    },
+    {
+      "path": "pages/material/edit",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "编辑物料"
+      },
+      "meta": {
+        "isAuth": true
+      }
+    },
+    {
+      "path": "pages/outbound/detail",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "出库单详情"
+      },
+      "meta": {
+        "isAuth": true
+      }
+    },
+    {
+      "path": "pages/outbound/report",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "出库报表"
+      },
+      "meta": {
+        "isAuth": true
+      }
+    },
+    {
+      "path": "pages/business/customer",
+      "style": {
+        // #ifndef APP
+        "enablePullDownRefresh": true,
+        // #endif
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "客户"
+      },
+      "meta": {
+        "isAuth": true
+      }
+    },
+    {
+      "path": "pages/business/supplier",
+      "style": {
+        // #ifndef APP
+        "enablePullDownRefresh": true,
+        // #endif
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "供应商"
+      },
+      "meta": {
+        "isAuth": true
+      }
+    },
+    {
+      "path": "pages/business/customer-transactions",
+      "style": {
+        // #ifndef APP
+        "enablePullDownRefresh": true,
+        // #endif
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "客户流水"
+      },
+      "meta": {
+        "isAuth": true
+      }
+    },
+    {
+      "path": "pages/plan/index",
+      "style": {
+        // #ifndef APP
+        "enablePullDownRefresh": true,
+        // #endif
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "计划任务"
+      },
+      "meta": {
+        "isAuth": true
+      }
+    },
+    {
+      "path": "pages/set/about",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "关于"
+      },
+      "meta": {
+        "isAuth": true
+      }
+    },
+    {
+      "path": "pages/privacy/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "使用说明"
+      },
+      "meta": {
+        "isAuth": false
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTitleText": "正时 WMS",
+    "navigationBarTextStyle": "white",
+    "navigationBarBackgroundColor": "#166534",
+    "backgroundColor": "#dfe8e1",
+    "backgroundColorContent": "#dfe8e1",
+    "onReachBottomDistance": 180
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "#526170",
+    "selectedColor": "#166534",
+    "backgroundColor": "#ffffff",
+    "list": [
+      {
+        "pagePath": "pages/index/home",
+        "text": "工作台"
+      },
+      {
+        "pagePath": "pages/index/my",
+        "text": "我的"
+      }
+    ]
+  },
+  "uniIdRouter": {}
+}

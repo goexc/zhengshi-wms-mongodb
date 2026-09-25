@@ -1,0 +1,12 @@
+// #ifdef APP-ANDROID
+import MathFloor from 'kotlin.math.floor';
+// #endif
+
+export const floor = (value: number): number => {
+	// #ifndef APP-ANDROID
+	return Math.floor(value);
+	// #endif
+	// #ifdef APP-ANDROID
+	return Number.from(MathFloor(value.toDouble()));
+	// #endif
+}

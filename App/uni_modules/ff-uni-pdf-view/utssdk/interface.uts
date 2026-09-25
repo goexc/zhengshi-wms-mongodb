@@ -1,0 +1,54 @@
+/**
+ * PDF 预览组件上下文对象
+ */
+export interface IPdfViewContext {
+	/**
+	 * 跳转到指定页（1-based）
+	 */
+	setPage(page : number) : void
+	/**
+	 * 获取总页数
+	 */
+	getPageCount() : number
+	/**
+	 * 获取当前页（1-based）
+	 */
+	getCurrentPage() : number
+	/**
+	 * 重新加载当前 src
+	 */
+	reload() : void
+}
+
+export type CreatePdfViewContext = (
+	id : string,
+	component ?: ComponentPublicInstance | null
+) => IPdfViewContext | null
+
+/**
+ * 错误码
+ * - 9010001 文件路径无效或文件不存在
+ * - 9010002 网络 PDF 下载失败
+ * - 9010003 PDF 文件格式错误或解析失败
+ * - 9010004 原生组件初始化失败
+ */
+export type PdfViewErrorCode = 9010001 | 9010002 | 9010003 | 9010004
+
+export interface IPdfViewFail extends IUniError {
+	errCode : PdfViewErrorCode
+}
+
+/**
+ * load 事件回调参数
+ */
+export type PdfViewLoadDetail = {
+	pageCount : number
+}
+
+/**
+ * pageChange 事件回调参数
+ */
+export type PdfViewPageChangeDetail = {
+	page : number
+	pageCount : number
+}

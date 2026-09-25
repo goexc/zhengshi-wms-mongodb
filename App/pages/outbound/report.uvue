@@ -1,0 +1,298 @@
+<template>
+	<WmsPage title="出库签收报表">
+		<view class="wms-content">
+			<view class="wms-card">
+				<text class="wms-label">客户</text
+				><CustomerPicker
+					:selected-id="customerID"
+					:selected-name="customerName"
+					:allow-all="false"
+					placeholder="请选择客户"
+					@select="selectCustomer"
+				/>
+				<view class="report-dates">
+					<view class="report-date"
+						><text class="wms-label">签收起始日期</text
+						><cl-select-date
+							v-model="startDate"
+							type="date"
+							value-format="YYYY-MM-DD"
+							label-format="YYYY-MM-DD"
+							title="签收起始日期"
+					/></view>
+					<view class="report-date"
+						><text class="wms-label">签收截止日期</text
+						><cl-select-date
+							v-model="endDate"
+							type="date"
+							value-format="YYYY-MM-DD"
+							label-format="YYYY-MM-DD"
+							title="签收截止日期"
+					/></view>
+				</view>
+				<text class="wms-muted">包含起止当天已签收的单据。</text>
+				<cl-button fluid :loading="loading" @tap="queryReport">查询报表</cl-button>
+			</view>
+			<view v-if="error != ''" class="wms-card"
+				><text class="wms-error">{{ error }}</text
+				><cl-button v-if="!loading" @tap="queryReport">重新查询</cl-button></view
+			>
+			<view v-if="loading" class="wms-empty"
+				><text class="wms-muted">正在查询签收记录…</text></view
+			>
+			<view v-else-if="!queried && error == ''" class="wms-empty"
+				><text class="wms-title">选择客户与日期</text
+				><text class="wms-muted">查询该客户在签收期间的出库物料记录。</text></view
+			>
+			<view v-if="queried && !loading" class="report-summary">
+				<text class="wms-label">客户名称</text>
+				<text class="wms-title report-summary-customer">{{ customerName }}</text>
+				<view class="report-summary-metrics">
+					<view class="report-summary-count">
+						<text class="wms-label">单据总数</text>
+						<text class="wms-value">{{ totals.orderCount }} 张</text>
+					</view>
+					<view class="report-summary-amount">
+						<text class="wms-label">物料金额合计（元）</text>
+						<text class="wms-value">{{ formatMoney(totals.amount) }}</text>
+					</view>
+				</view>
+				<text class="wms-label">{{
+					totals.hasMissingQuantity ? "物料数量合计（部分未提供）" : "物料数量合计"
+				}}</text>
+				<view class="report-summary-quantities">
+					<text
+						v-for="item in totals.units"
+						:key="item.unit"
+						class="wms-value report-summary-quantity"
+						>{{ formatQuantity(item.quantity) }}{{ item.unit }}</text
+					>
+					<text v-if="totals.units.length == 0" class="wms-value">{{
+						totals.hasMissingQuantity ? "未提供" : "0"
+					}}</text>
+				</view>
+			</view>
+			<view v-if="queried && rows.length == 0" class="wms-empty"
+				><text class="wms-muted">此签收日期范围内没有出库物料记录</text></view
+			>
+			<view v-for="(item, index) in visibleRows" :key="item.id" class="wms-card wms-record"
+				><view class="wms-record-header"
+					><text class="wms-record-title">{{
+						item.model != null && item.model != "" ? item.model! : "型号未提供"
+					}}</text></view
+				><view class="wms-record-body"
+					><view class="wms-between"
+						><text class="wms-label">明细 {{ (currentPage - 1) * 20 + index + 1 }}</text
+						><cl-button type="light" text @tap="openOrder(item.order_code)"
+							>{{ item.order_code }} →</cl-button
+						></view
+					><text class="wms-text">{{ item.name }}</text>
+					<text class="wms-text">{{ item.specification }}</text>
+					<view class="wms-between"
+						><text class="wms-label">数量</text
+						><text class="wms-text"
+							>{{ quantityText(item.quantity) }}{{
+								item.unit != null && item.unit != "" ? item.unit! : "单位"
+							}}</text
+						></view
+					>
+					<view class="wms-between"
+						><text class="wms-label">单价（元）</text
+						><text class="wms-text">{{ formatMoney(item.price) }}</text></view
+					>
+					<view class="wms-between"
+						><text class="wms-label">行小计（元）</text
+						><text class="wms-value">{{
+							formatMoney(outboundLineAmount(item))
+						}}</text></view
+					>
+					<view class="wms-between"
+						><text class="wms-label">签收日期</text
+						><text class="wms-text">{{ formatDate(item.receipt_date) }}</text></view
+					>
+					<view class="wms-between"
+						><text class="wms-label">出库日期</text
+						><text class="wms-text">{{
+							item.departure_date > 0 ? formatDate(item.departure_date) : "未提供"
+						}}</text></view
+					></view
+				></view
+			>
+			<view v-if="rows.length > 0" class="wms-pagination">
+				<text class="wms-muted"
+					>第 {{ currentPage }} 页 · 共 {{ rows.length }} 条 · 每页 20 条</text
+				>
+				<cl-pagination
+					:model-value="currentPage"
+					:total="rows.length"
+					:size="20"
+					@change="changePage"
+				/>
+			</view>
+		</view>
+	</WmsPage>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, watch } from "vue";
+import { errorMessage, router, useStore } from "@/.cool";
+import WmsPage from "@/components/wms/Page.uvue";
+import CustomerPicker from "@/components/wms/CustomerPicker.uvue";
+import {
+	getOutboundSummary,
+	summarizeOutbound,
+	outboundDateTimestamp,
+	outboundLineAmount as outboundLineAmountValue
+} from "@/services/outbound";
+import {
+	formatDate as formatDateValue,
+	formatMoney as formatMoneyValue,
+	formatQuantity as formatQuantityValue
+} from "@/utils/wms-format";
+import type { CustomerChoice, OutboundMaterial, OutboundTotals } from "@/types/outbound";
+function formatDate(value: number): string {
+	return formatDateValue(value);
+}
+function formatMoney(value: number | null): string {
+	return formatMoneyValue(value);
+}
+function formatQuantity(value: number): string {
+	return formatQuantityValue(value);
+}
+function outboundLineAmount(value: OutboundMaterial): number | null {
+	return outboundLineAmountValue(value);
+}
+
+const { user } = useStore();
+const today = new Date();
+function dateLabel(year: number, month: number, day: number): string {
+	return `${year}-${month < 10 ? "0" : ""}${month}-${day < 10 ? "0" : ""}${day}`;
+}
+const customerID = ref(""),
+	customerName = ref(""),
+	startDate = ref(dateLabel(today.getFullYear(), today.getMonth() + 1, 1)),
+	endDate = ref(dateLabel(today.getFullYear(), today.getMonth() + 1, today.getDate()));
+const error = ref(""),
+	loading = ref(false),
+	queried = ref(false),
+	currentPage = ref(1);
+const rows = ref<OutboundMaterial[]>([]);
+const totals = computed<OutboundTotals>(() => summarizeOutbound(rows.value));
+const visibleRows = computed<OutboundMaterial[]>(() =>
+	rows.value.slice((currentPage.value - 1) * 20, currentPage.value * 20)
+);
+let sequence = 0,
+	alive = true;
+
+function quantityText(value: number | null): string {
+	return value == null ? "未提供" : formatQuantity(value);
+}
+function invalidate(): void {
+	sequence += 1;
+	rows.value = [];
+	loading.value = false;
+	queried.value = false;
+	error.value = "";
+	currentPage.value = 1;
+}
+function selectCustomer(item: CustomerChoice): void {
+	customerID.value = item.id;
+	customerName.value = item.name;
+	invalidate();
+}
+async function queryReport(): Promise<void> {
+	if (!alive || !user.hasCredential() || !user.canAccess("outbound")) return;
+	invalidate();
+	const start = outboundDateTimestamp(startDate.value),
+		end = outboundDateTimestamp(endDate.value);
+	if (customerID.value == "") {
+		error.value = "请先选择客户";
+		return;
+	}
+	if (start <= 0 || end <= 0 || end < start) {
+		error.value = "请选择有效的签收日期范围，截止日期不能早于起始日期";
+		return;
+	}
+	const ticket = ++sequence;
+	loading.value = true;
+	try {
+		const result = await getOutboundSummary(customerID.value, start, end);
+		if (!alive || ticket != sequence) return;
+		rows.value = result;
+		queried.value = true;
+	} catch (cause) {
+		if (alive && ticket == sequence) error.value = errorMessage(cause, "报表查询失败，请重试");
+	} finally {
+		if (ticket == sequence) loading.value = false;
+	}
+}
+function changePage(value: number): void {
+	currentPage.value = value;
+}
+function openOrder(code: string): void {
+	router.push({ path: "/pages/outbound/detail", query: { code: code } });
+}
+function clearSession(): void {
+	invalidate();
+	customerID.value = "";
+	customerName.value = "";
+}
+watch(startDate, invalidate);
+watch(endDate, invalidate);
+uni.$on("wms.session.changed", clearSession);
+onUnload(() => {
+	alive = false;
+	sequence += 1;
+	uni.$off("wms.session.changed", clearSession);
+});
+</script>
+
+<style scoped lang="scss">
+.report-dates {
+	flex-direction: row;
+	margin-top: 12px;
+	margin-bottom: 8px;
+}
+.report-date {
+	flex: 1;
+	padding-right: 8px;
+}
+.report-summary {
+	padding: 4px 4px 20px;
+	margin-bottom: 20px;
+	border-bottom: 1px solid #9bb3a3;
+}
+.report-summary-customer {
+	color: #14532d;
+	margin-top: 4px;
+}
+.report-summary-metrics {
+	flex-direction: row;
+	align-items: flex-start;
+	margin-top: 16px;
+	margin-bottom: 12px;
+}
+.report-summary-count {
+	flex: 1;
+	min-width: 0;
+	margin-right: 16px;
+}
+.report-summary-amount {
+	flex: 2;
+	min-width: 0;
+}
+.report-summary-quantities {
+	flex-direction: row;
+	flex-wrap: wrap;
+}
+.report-summary-quantity {
+	margin-right: 16px;
+}
+/* #ifdef H5 */
+.report-summary-customer,
+.report-summary-amount,
+.report-summary-quantity {
+	overflow-wrap: anywhere;
+}
+/* #endif */
+</style>

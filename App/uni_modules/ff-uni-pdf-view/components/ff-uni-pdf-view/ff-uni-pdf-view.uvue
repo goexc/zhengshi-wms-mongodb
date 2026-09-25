@@ -1,0 +1,68 @@
+<template>
+  <!--建议只存在一个根节点：native-view 直接作为根节点-->
+  <native-view style="flex:1;" @init="onviewinit"></native-view>
+</template>
+<script setup lang="uts">
+	import { NativePdfView } from "@/uni_modules/ff-uni-pdf-view"
+
+	let pdfView : NativePdfView | null = null
+
+	// 声明属性：src 支持本地文件路径或网络 URL；page 为当前页（1-based）
+	// enablePageSwipe 仅控制跨页滑动，禁用后仍保留当前页缩放与放大后的拖拽查看
+	const props = defineProps<{ src : string, page : number, enablePageSwipe : boolean }>()
+
+	// 声明事件
+	// - load：PDF 加载完成，detail.pageCount 为总页数
+	// - error：加载失败，detail.errCode / detail.errMsg
+	// - pageChange：用户翻页，detail.page / detail.pageCount
+	const emit = defineEmits<{
+		(e : "load", detail : UTSJSONObject) : void
+		(e : "error", detail : UTSJSONObject) : void
+		(e : "pageChange", detail : UTSJSONObject) : void
+	}>()
+
+	// 原生回调 -> emit 给页面
+	function onLoad(pageCount : number) {
+		const detail : UTSJSONObject = { pageCount : pageCount }
+		emit("load", detail)
+	}
+	function onError(errCode : number, errMsg : string) {
+		const detail : UTSJSONObject = { errCode : errCode, errMsg : errMsg }
+		emit("error", detail)
+	}
+	function onPageChange(page : number, pageCount : number) {
+		const detail : UTSJSONObject = { page : page, pageCount : pageCount }
+		emit("pageChange", detail)
+	}
+
+	// native-view 初始化时触发
+	function onviewinit(e : UniNativeViewInitEvent) {
+		pdfView = new NativePdfView(e.detail.element, props.enablePageSwipe, onLoad, onError, onPageChange)
+		// #ifdef APP-IOS
+		pdfView.register()
+		// #endif
+		// #ifdef APP-HARMONY
+		// 鸿蒙平台：register 已在 constructor 中完成，无需额外调用
+		// #endif
+		pdfView.loadSrc(props.src, props.page)
+	}
+
+	// src 变化 -> 重新加载（仅监听 src，避免 page 变化触发重载）
+	watch(() : string => props.src, (newSrc : string) : void => {
+		if (pdfView != null) {
+			pdfView!.loadSrc(newSrc, props.page)
+		}
+	})
+
+	// page 变化 -> 跳页（不触发 pageChange，避免循环）
+	watch(() : number => props.page, (newPage : number) : void => {
+		if (pdfView != null) {
+			pdfView!.setPage(newPage)
+		}
+	})
+
+	function onUnmounted() {
+		// 释放 uts 实例，避免内存泄露
+		pdfView?.destroy()
+	}
+</script>

@@ -1,0 +1,141 @@
+import { IPdfViewContext, CreatePdfViewContext } from "../interface.uts"
+import View from "android.view.View"
+
+// PdfViewNative.kt 位于同包 uts.sdk.modules.uniPdfView，按混编规范无需 import 即可直接使用
+
+// 组件实例注册表：以绑定的原生 View 为 key（Android 下 kotlin Map 按引用匹配），
+// 供 createPdfViewContext 查找命令式上下文
+const pdfViewRegistry = new Map<View, NativePdfView>()
+
+/**
+ * PDF 预览原生组件的 uts 胶水层。
+ * 由 components/pdf-view/pdf-view.uvue 在 native-view 的 init 事件中 new 出来，
+ * 持有原生 PdfViewNative（barteksc PDFView）并把其 pdfView 绑定到 native-view。
+ */
+export class NativePdfView {
+	$element : UniNativeViewElement
+	private native : PdfViewNative
+	private onLoadCb : ((pageCount : number) => void) | null = null
+	private onErrorCb : ((code : number, msg : string) => void) | null = null
+	private onPageChangeCb : ((page : number, pageCount : number) => void) | null = null
+
+	constructor(element : UniNativeViewElement,
+		enablePageSwipe : boolean,
+		onLoad : (pageCount : number) => void,
+		onError : (code : number, msg : string) => void,
+		onPageChange : (page : number, pageCount : number) => void) {
+		this.$element = element
+		this.onLoadCb = onLoad
+		this.onErrorCb = onError
+		this.onPageChangeCb = onPageChange
+		// 通过 UniNativeViewElement 获取 activity 作为创建原生 view 的上下文
+		const activity = this.$element.getAndroidActivity()
+		this.native = new PdfViewNative(activity!, enablePageSwipe)
+		// 把 barteksc PDFView 绑定到 native-view
+		this.$element.bindAndroidView(this.native.pdfView)
+		pdfViewRegistry.set(this.native.pdfView, this)
+	}
+
+	/**
+	 * 加载 PDF。src 可为本地路径或 http(s) 网络地址；page 1-based。
+	 */
+	loadSrc(src : string, page : number) : void {
+		this.native.loadSrc(src, page,
+			(pageCount : number) : void => {
+				this.onLoadCb?.(pageCount)
+			},
+			(code : number, msg : string) : void => {
+				this.onErrorCb?.(code, msg)
+			},
+			(page : number, pageCount : number) : void => {
+				this.onPageChangeCb?.(page, pageCount)
+			})
+	}
+
+	/**
+	 * 跳转到指定页（1-based），不触发 pageChange 回调。
+	 */
+	setPage(page : number) : void {
+		this.native.setPage(page)
+	}
+
+	getPageCount() : number {
+		return this.native.getPageCount()
+	}
+
+	getCurrentPage() : number {
+		return this.native.getCurrentPage()
+	}
+
+	reload() : void {
+		this.native.reload()
+	}
+
+	destroy() : void {
+		pdfViewRegistry.delete(this.native.pdfView)
+		this.native.destroy()
+	}
+}
+
+
+/**
+ * 命令式上下文实现
+ */
+class PdfViewContext implements IPdfViewContext {
+	private view : NativePdfView | null
+	constructor(element : UniNativeViewElement) {
+		this.view = pdfViewRegistry.get(element.getAndroidView()!)
+	}
+	setPage(page : number) : void {
+		this.view?.setPage(page)
+	}
+	getPageCount() : number {
+		return this.view?.getPageCount() ?? 0
+	}
+	getCurrentPage() : number {
+		return this.view?.getCurrentPage() ?? 0
+	}
+	reload() : void {
+		this.view?.reload()
+	}
+}
+
+/**
+ * 递归查找 native-view 元素
+ */
+function iterateElement(homeElement : UniElement) : UniNativeViewElement | null {
+	if ("NATIVE-VIEW" == homeElement.nodeName) {
+		return homeElement as UniNativeViewElement
+	}
+	for (const perChildEle of homeElement.children) {
+		const findEle = iterateElement(perChildEle)
+		if (findEle != null) {
+			return findEle
+		}
+	}
+	return null
+}
+
+/**
+ * 创建命令式上下文。用法：createPdfViewContext("pdfViewId")
+ */
+export function createPdfViewContext(id : string, component : ComponentPublicInstance | null = null) : IPdfViewContext | null {
+	let root : UniElement | null = null
+	if (component == null) {
+		const pages = getCurrentPages()
+		if (pages.length > 0) {
+			const page = pages[pages.length - 1]
+			root = page.getElementById(id)
+		}
+	} else {
+		root = component.$el as UniElement | null
+	}
+	if (root == null) {
+		return null
+	}
+	const nativeViewElement = iterateElement(root!)
+	if (nativeViewElement == null) {
+		return null
+	}
+	return new PdfViewContext(nativeViewElement!)
+}

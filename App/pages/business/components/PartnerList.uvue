@@ -1,0 +1,470 @@
+<template>
+	<WmsPage
+		:title="title"
+		:refresher-enabled="allowed"
+		:refresher-triggered="refreshing"
+		@refresherrefresh="refresh"
+	>
+		<template #header>
+			<view v-if="allowed" class="partner-filters">
+				<text class="wms-label">{{ title }}名称</text>
+				<cl-input
+					v-model="name"
+					:placeholder="'搜索' + title + '名称'"
+					clearable
+					confirm-type="search"
+					@confirm="searchNow"
+				/>
+				<view class="wms-row wms-between">
+					<text class="wms-muted">共 {{ total }} 家 · 已加载 {{ items.length }} 家</text>
+					<cl-button type="light" :text="true" @tap="showFilters = !showFilters">{{
+						showFilters ? "收起筛选" : "更多筛选"
+					}}</cl-button>
+				</view>
+			</view>
+		</template>
+
+		<view class="wms-content">
+			<view v-if="!allowed" class="wms-empty"
+				><text class="wms-title">暂无访问权限</text
+				><text class="wms-muted">请联系管理员开通{{ title }}查询权限。</text></view
+			>
+			<template v-else>
+				<view v-if="showFilters" class="wms-card">
+					<text class="wms-title">筛选资料</text>
+					<text class="wms-label">编号</text
+					><cl-input v-model="code" placeholder="输入编号" clearable />
+					<text class="wms-label">负责人</text
+					><cl-input v-model="manager" placeholder="输入负责人" clearable />
+					<text class="wms-label">联系电话</text
+					><cl-input
+						v-model="contact"
+						type="number"
+						placeholder="输入完整手机号"
+						clearable
+					/>
+					<text class="wms-label">邮箱</text
+					><cl-input v-model="email" placeholder="输入邮箱" clearable />
+					<view v-if="kind == 'supplier'"
+						><text class="wms-label">供应商等级</text
+						><cl-input
+							v-model="level"
+							type="number"
+							placeholder="1–10，留空为全部"
+							clearable
+					/></view>
+					<view class="wms-actions"
+						><cl-button type="light" @tap="clearFilters">重置</cl-button
+						><cl-button type="primary" @tap="searchNow">应用筛选</cl-button></view
+					>
+				</view>
+				<view v-for="item in items" :key="item.id" class="wms-card wms-record"
+					><view class="wms-record-header"
+						><text class="wms-record-title" selectable>{{
+							item.name != null && item.name != "" ? item.name! : "未填写名称"
+						}}</text></view
+					><view class="wms-record-body"
+						><view class="wms-row wms-between"
+							><text class="wms-muted" selectable>{{
+								item.code != null && item.code != "" ? item.code! : "未填写编号"
+							}}</text
+							><text class="partner-status">{{
+								item.status != null && item.status != ""
+									? item.status!
+									: "状态未记录"
+							}}</text></view
+						>
+						<view class="partner-field"
+							><text class="wms-label">负责人</text
+							><text class="wms-text" selectable>{{
+								item.manager != null && item.manager != "" ? item.manager! : "—"
+							}}</text></view
+						>
+						<view class="partner-field"
+							><text class="wms-label">电话</text
+							><text class="wms-text" selectable>{{
+								item.contact != null && item.contact != "" ? item.contact! : "—"
+							}}</text></view
+						>
+						<view class="partner-field"
+							><text class="wms-label">地址</text
+							><text class="wms-text" selectable>{{
+								item.address != null && item.address != "" ? item.address! : "—"
+							}}</text></view
+						>
+						<view v-if="kind == 'customer'" class="partner-balance">
+							<text class="wms-label">应收余额</text
+							><text class="wms-value"
+								>￥{{ formatMoney(item.receivable_balance ?? null) }}</text
+							>
+							<text class="wms-muted"
+								>贷项余额 ￥{{ formatMoney(item.credit_balance ?? null) }}</text
+							>
+						</view>
+						<view v-if="expanded.indexOf(item.id) >= 0" class="partner-details">
+							<image
+								v-if="
+									(item.image != null && item.image != '' ? item.image! : '') !=
+									''
+								"
+								class="partner-image"
+								:src="fileImageUrl(item.image)"
+								mode="aspectFit"
+								@tap="previewFileImage(fileImageUrl(item.image))"
+							/>
+							<view class="partner-field"
+								><text class="wms-label">单位类型</text
+								><text class="wms-text">{{
+									item.type != null && item.type != "" ? item.type! : "—"
+								}}</text></view
+							>
+							<view v-if="kind == 'supplier'" class="partner-field"
+								><text class="wms-label">供应商等级</text
+								><text class="wms-text">{{ item.level ?? "—" }}</text></view
+							>
+							<view class="partner-field"
+								><text class="wms-label">法定代表人</text
+								><text class="wms-text" selectable>{{
+									item.legal_representative != null &&
+									item.legal_representative != ""
+										? item.legal_representative!
+										: "—"
+								}}</text></view
+							>
+							<view class="partner-field"
+								><text class="wms-label">统一社会信用代码</text
+								><text class="wms-text" selectable>{{
+									item.unified_social_credit_identifier != null &&
+									item.unified_social_credit_identifier != ""
+										? item.unified_social_credit_identifier!
+										: "—"
+								}}</text></view
+							>
+							<view class="partner-field"
+								><text class="wms-label">邮箱</text
+								><text class="wms-text" selectable>{{
+									item.email != null && item.email != "" ? item.email! : "—"
+								}}</text></view
+							>
+							<view class="partner-field"
+								><text class="wms-label">备注</text
+								><text class="wms-text" selectable>{{
+									item.remark != null && item.remark != "" ? item.remark! : "—"
+								}}</text></view
+							>
+							<view class="partner-field"
+								><text class="wms-label">创建人</text
+								><text class="wms-text" selectable>{{
+									item.create_by != null && item.create_by != ""
+										? item.create_by!
+										: "—"
+								}}</text></view
+							>
+							<view class="partner-field"
+								><text class="wms-label">创建时间</text
+								><text class="wms-text">{{
+									formatDate(item.created_at ?? 0)
+								}}</text></view
+							>
+							<view class="partner-field"
+								><text class="wms-label">更新时间</text
+								><text class="wms-text">{{
+									formatDate(item.updated_at ?? 0)
+								}}</text></view
+							>
+						</view>
+						<view class="wms-actions"
+							><cl-button type="light" @tap="toggleDetails(item.id)">{{
+								expanded.indexOf(item.id) >= 0 ? "收起资料" : "工商资料"
+							}}</cl-button
+							><cl-button
+								v-if="kind == 'customer'"
+								type="primary"
+								@tap="openTransactions(item)"
+								>查看流水</cl-button
+							></view
+						></view
+					></view
+				>
+				<view v-if="error != ''" class="wms-card"
+					><text class="wms-error">{{ error }}</text
+					><cl-button type="light" @tap="retry">重试</cl-button></view
+				>
+				<view v-if="loading" class="wms-empty"
+					><text class="wms-muted">{{
+						items.length > 0 ? "正在加载…" : "正在查询资料…"
+					}}</text></view
+				>
+				<view v-else-if="items.length == 0 && error == ''" class="wms-empty"
+					><text class="wms-title">没有符合条件的{{ title }}</text
+					><text class="wms-muted">尝试调整名称或筛选条件。</text></view
+				>
+				<view v-if="total > 0 &amp;&amp; !pendingSearch" class="wms-pagination">
+					<text class="wms-muted"
+						>第 {{ currentPage }} 页 · 共 {{ total }} 条 · 每页 20 条</text
+					>
+					<cl-pagination
+						:model-value="currentPage"
+						:total="total"
+						:size="20"
+						@change="changePage"
+					/>
+				</view>
+			</template>
+		</view>
+	</WmsPage>
+</template>
+
+<script setup lang="ts">
+defineOptions({ styleIsolation: "app" });
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import WmsPage from "@/components/wms/Page.uvue";
+import { errorMessage, router, useStore } from "@/.cool";
+import { fetchPartners } from "@/services/business";
+import type { Partner, PartnerQuery } from "@/types/business";
+import { formatDate as formatDateValue, formatMoney as formatMoneyValue } from "@/utils/wms-format";
+import { materialImageUrl, previewMaterialImage } from "@/utils/material-image";
+function formatDate(value: number): string {
+	return formatDateValue(value);
+}
+function formatMoney(value: number | null): string {
+	return formatMoneyValue(value);
+}
+function fileImageUrl(value: string): string {
+	return materialImageUrl(value);
+}
+function previewFileImage(value: string): void {
+	previewMaterialImage(value);
+}
+
+const props = defineProps({ kind: { type: String, required: true } });
+const { user } = useStore();
+const title = computed((): string => (props.kind == "customer" ? "客户" : "供应商"));
+const allowed = computed((): boolean => user.canAccess(props.kind));
+const name = ref("");
+const code = ref("");
+const manager = ref("");
+const contact = ref("");
+const email = ref("");
+const level = ref("");
+const showFilters = ref(false);
+const items = ref<Partner[]>([]);
+const expanded = ref<string[]>([]);
+const total = ref(0);
+const loading = ref(false);
+const refreshing = ref(false);
+const currentPage = ref(1);
+const pendingSearch = ref(false);
+const error = ref("");
+let serial = 0;
+let timer: number = 0;
+let lastQuery = "";
+let invalidFilters = false;
+let appliedQuery = {
+	page: 1,
+	size: 20,
+	name: "",
+	code: "",
+	manager: "",
+	contact: "",
+	email: ""
+} as PartnerQuery;
+
+function stopTimer() {
+	pendingSearch.value = false;
+	if (timer != 0) {
+		clearTimeout(timer);
+		timer = 0;
+	}
+}
+
+async function load(targetPage: number = 1, reset: boolean = false) {
+	if (!allowed.value) {
+		refreshing.value = false;
+		return;
+	}
+	const levelNumber = level.value.trim() == "" ? 0 : parseFloat(level.value);
+	if (
+		reset &&
+		props.kind == "supplier" &&
+		level.value.trim() != "" &&
+		(!/^\d+$/.test(level.value.trim()) ||
+			!Number.isInteger(levelNumber) ||
+			levelNumber < 1 ||
+			levelNumber > 10)
+	) {
+		serial++;
+		loading.value = false;
+		invalidFilters = true;
+		error.value = "供应商等级应为 1–10 的整数";
+		refreshing.value = false;
+		return;
+	}
+	const query = {
+		page: targetPage,
+		size: 20,
+		name: reset ? name.value.trim() : appliedQuery.name,
+		code: reset ? code.value.trim() : appliedQuery.code,
+		manager: reset ? manager.value.trim() : appliedQuery.manager,
+		contact: reset ? contact.value.trim() : appliedQuery.contact,
+		email: reset ? email.value.trim() : appliedQuery.email
+	} as PartnerQuery;
+	if (props.kind == "supplier") {
+		const appliedLevel = reset ? levelNumber : (appliedQuery.level ?? 0);
+		if (appliedLevel > 0) query.level = appliedLevel;
+	}
+	const queryKey = `${query.name}|${query.code}|${query.manager}|${query.contact}|${query.email}|${query.level ?? 0}`;
+	if (reset && queryKey != lastQuery) {
+		items.value = [];
+		total.value = 0;
+		expanded.value = [];
+	}
+	currentPage.value = targetPage;
+	invalidFilters = false;
+	items.value = [];
+	expanded.value = [];
+	lastQuery = queryKey;
+	appliedQuery = query;
+	const current = ++serial;
+	loading.value = true;
+	error.value = "";
+	try {
+		const result = await fetchPartners(props.kind, query);
+		if (current != serial) return;
+		total.value = result.total;
+		const lastPage = Math.max(1, Math.ceil(result.total / 20));
+		if (targetPage > lastPage) {
+			load(lastPage);
+			return;
+		}
+		items.value = result.list ?? [];
+	} catch (err) {
+		if (current == serial) error.value = errorMessage(err, "资料加载失败，请检查网络后重试");
+	} finally {
+		if (current == serial) {
+			loading.value = false;
+			refreshing.value = false;
+		}
+	}
+}
+
+function searchNow() {
+	stopTimer();
+	load(1, true);
+}
+function refresh() {
+	refreshing.value = true;
+	if (pendingSearch.value) searchNow();
+	else load(currentPage.value);
+}
+function changePage(value: number) {
+	if (value != currentPage.value) load(value);
+}
+function retry() {
+	if (invalidFilters) searchNow();
+	else load(currentPage.value);
+}
+function clearFilters() {
+	name.value = "";
+	code.value = "";
+	manager.value = "";
+	contact.value = "";
+	email.value = "";
+	level.value = "";
+	searchNow();
+}
+function toggleDetails(id: string) {
+	const index = expanded.value.indexOf(id);
+	if (index >= 0) expanded.value.splice(index, 1);
+	else expanded.value.push(id);
+}
+function openTransactions(item: Partner) {
+	router.push({
+		path: "/pages/business/customer-transactions",
+		query: { customer_id: item.id, name: item.name }
+	});
+}
+function clearSession() {
+	serial++;
+	stopTimer();
+	items.value = [];
+	expanded.value = [];
+	total.value = 0;
+	name.value = "";
+	code.value = "";
+	manager.value = "";
+	contact.value = "";
+	email.value = "";
+	level.value = "";
+	lastQuery = "";
+	invalidFilters = false;
+	appliedQuery = {
+		page: 1,
+		size: 20,
+		name: "",
+		code: "",
+		manager: "",
+		contact: "",
+		email: ""
+	} as PartnerQuery;
+	currentPage.value = 1;
+	loading.value = false;
+	refreshing.value = false;
+	error.value = "";
+}
+
+watch(name, () => {
+	stopTimer();
+	serial++;
+	loading.value = false;
+	pendingSearch.value = true;
+	timer = setTimeout(() => {
+		pendingSearch.value = false;
+		timer = 0;
+		load(1, true);
+	}, 350);
+});
+watch(allowed, (value: boolean) => {
+	if (value) load(1, true);
+	else clearSession();
+});
+onMounted(() => {
+	uni.$on("wms.session.changed", clearSession);
+	load(1, true);
+});
+onUnmounted(() => {
+	serial++;
+	stopTimer();
+	uni.$off("wms.session.changed", clearSession);
+});
+</script>
+
+<style lang="scss" scoped>
+.partner-filters {
+	padding: 8px 16px;
+}
+.partner-field {
+	margin-top: 12px;
+}
+.partner-image {
+	width: 100%;
+	height: 180px;
+	margin-top: 12px;
+}
+.partner-details {
+	margin-top: 4px;
+}
+.partner-balance {
+	margin-top: 16px;
+	padding: 12px;
+	background-color: #e7f0e9;
+	border-radius: 8px;
+}
+.partner-status {
+	font-size: 14px;
+	color: #526170;
+	padding: 6px 10px;
+	background-color: #f5f7f8;
+	border-radius: 6px;
+}
+</style>

@@ -1,0 +1,224 @@
+<template>
+	<view>
+		<cl-button type="light" border fluid :disabled="disabled" @tap="open">{{
+			selectedName == "" ? placeholder : selectedName
+		}}</cl-button>
+		<cl-popup
+			v-model="visible"
+			title="选择客户"
+			direction="bottom"
+			size="80%"
+			:swipe-close="false"
+			:pt="{
+				header: { className: 'shrink-0' },
+				container: { className: 'flex flex-col min-h-0 overflow-hidden' }
+			}"
+			@close="cancel"
+		>
+			<view class="picker-body">
+				<view class="picker-label"
+					><cl-text :size="14" color="#526170">客户名称</cl-text></view
+				>
+				<cl-input
+					v-model="keyword"
+					placeholder="搜索客户名称"
+					clearable
+					confirm-type="search"
+					@confirm="searchNow"
+				/>
+				<view class="picker-actions">
+					<cl-button type="light" border @tap="cancel">取消</cl-button>
+					<view v-if="allowAll" class="picker-action"
+						><cl-button type="light" border @tap="chooseAll">全部客户</cl-button></view
+					>
+				</view>
+				<view class="picker-results">
+					<view v-if="loading" class="picker-state"
+						><cl-loading /><cl-text :size="14" color="#526170"
+							>正在查找客户…</cl-text
+						></view
+					>
+					<view v-else-if="error != ''" class="picker-state"
+						><cl-text :size="14" color="#b91c1c">{{ error }}</cl-text
+						><cl-button @tap="searchNow">重试</cl-button></view
+					>
+					<view v-else-if="choices.length == 0" class="picker-state"
+						><cl-text :size="14" color="#526170">没有匹配的客户</cl-text></view
+					>
+					<scroll-view
+						v-else
+						class="picker-scroller"
+						direction="vertical"
+						:show-scrollbar="true"
+					>
+						<cl-list border>
+							<template v-for="(item, index) in choices" :key="item.id">
+								<cl-list-item justify="start" hoverable @tap="choose(item)">
+									<view class="picker-choice">
+										<cl-text
+											:size="16"
+											:color="item.id == selectedId ? '#166534' : '#17212b'"
+											>{{ item.name }}</cl-text
+										>
+										<view class="picker-code"
+											><cl-text :size="13" color="#526170">{{
+												item.code == ""
+													? "未填写客户编号"
+													: "客户编号 · " + item.code
+											}}</cl-text></view
+										>
+									</view>
+									<view v-if="item.id == selectedId" class="picker-selected">
+										<cl-icon name="check-line" :size="22" color="#166534" />
+										<cl-text :size="12" color="#166534">已选择</cl-text>
+									</view>
+								</cl-list-item>
+								<view v-if="index < choices.length - 1" class="picker-divider" />
+							</template>
+						</cl-list>
+					</scroll-view>
+				</view>
+			</view>
+		</cl-popup>
+	</view>
+</template>
+
+<script setup lang="ts">
+defineOptions({ styleIsolation: "app" });
+import { ref, watch, onUnmounted } from "vue";
+import { errorMessage } from "@/.cool";
+import { findCustomerChoices } from "@/services/customer-picker";
+import type { CustomerChoice } from "@/types/outbound";
+
+const props = defineProps({
+	selectedId: { type: String, default: "" },
+	selectedName: { type: String, default: "" },
+	placeholder: { type: String, default: "全部客户" },
+	allowAll: { type: Boolean, default: true },
+	disabled: { type: Boolean, default: false }
+});
+const emit = defineEmits(["select"]);
+const visible = ref(false),
+	keyword = ref(""),
+	loading = ref(false),
+	error = ref("");
+const choices = ref<CustomerChoice[]>([]);
+let sequence = 0,
+	timer = 0;
+
+function stopTimer(): void {
+	if (timer > 0) {
+		clearTimeout(timer);
+		timer = 0;
+	}
+}
+async function searchNow(): Promise<void> {
+	stopTimer();
+	if (!visible.value) return;
+	const ticket = ++sequence;
+	loading.value = true;
+	error.value = "";
+	choices.value = [];
+	try {
+		const result = await findCustomerChoices(keyword.value);
+		if (ticket != sequence || !visible.value) return;
+		choices.value = result;
+	} catch (cause) {
+		if (ticket == sequence && visible.value)
+			error.value = errorMessage(cause, "客户加载失败，请重试");
+	} finally {
+		if (ticket == sequence) loading.value = false;
+	}
+}
+function open(): void {
+	if (props.disabled) return;
+	visible.value = true;
+	searchNow();
+}
+function cancel(): void {
+	stopTimer();
+	sequence += 1;
+	visible.value = false;
+	loading.value = false;
+	choices.value = [];
+}
+function choose(item: CustomerChoice): void {
+	emit("select", item);
+	cancel();
+}
+function chooseAll(): void {
+	choose({ id: "", name: "", code: "" });
+}
+watch(keyword, () => {
+	stopTimer();
+	sequence += 1;
+	choices.value = [];
+	error.value = "";
+	if (!visible.value) return;
+	loading.value = true;
+	timer = setTimeout(() => {
+		searchNow();
+	}, 350);
+});
+watch(visible, (value: boolean) => {
+	if (!value) cancel();
+});
+uni.$on("wms.session.changed", cancel);
+onUnmounted(() => {
+	cancel();
+	uni.$off("wms.session.changed", cancel);
+});
+</script>
+
+<style scoped lang="scss">
+.picker-body {
+	flex: 1;
+	min-height: 0;
+	padding: 16px;
+	flex-direction: column;
+}
+.picker-results {
+	flex: 1;
+	min-height: 0;
+	overflow: hidden;
+}
+.picker-label {
+	margin-bottom: 8px;
+}
+.picker-actions {
+	flex-direction: row;
+	align-items: center;
+	margin-top: 12px;
+	margin-bottom: 12px;
+}
+.picker-action {
+	margin-left: 8px;
+}
+.picker-state {
+	padding: 24px 16px;
+	align-items: center;
+}
+.picker-scroller {
+	height: 100%;
+}
+.picker-choice {
+	flex: 1;
+	min-width: 0;
+	min-height: 52px;
+	justify-content: center;
+	padding-right: 12px;
+}
+.picker-code {
+	margin-top: 6px;
+}
+.picker-selected {
+	width: 48px;
+	align-items: center;
+	justify-content: center;
+}
+.picker-divider {
+	height: 1px;
+	margin: 0 12px;
+	background-color: #e6ebe7;
+}
+</style>

@@ -1,0 +1,258 @@
+<template>
+	<view class="material-model-select">
+		<cl-button type="light" border fluid :disabled="disabled" @tap="open">{{
+			modelValue == "" ? "选择物料编号" : modelValue
+		}}</cl-button>
+		<view class="material-model-hint">
+			<cl-text :size="12" color="#526170">{{
+				modelValue == ""
+					? "选择物料后，查询包含该物料的出库单"
+					: "已按所选物料编号筛选，点击可更换"
+			}}</cl-text>
+		</view>
+		<cl-popup
+			v-model="visible"
+			title="选择物料编号"
+			direction="bottom"
+			size="80%"
+			:swipe-close="false"
+			:pt="{
+				className: 'material-model-popup',
+				header: { className: 'shrink-0' },
+				container: { className: 'flex flex-col min-h-0 overflow-hidden' }
+			}"
+			@close="cancel"
+		>
+			<view class="material-model-body">
+				<cl-input
+					:model-value="keyword"
+					placeholder="输入部分或完整物料编号"
+					prefix-icon="search-line"
+					clearable
+					confirm-type="search"
+					@change="editKeyword"
+					@confirm="searchNow"
+				/>
+				<view class="material-model-actions">
+					<cl-button type="light" border @tap="cancel">取消</cl-button>
+					<view class="material-model-action">
+						<cl-button type="light" border @tap="chooseAll">全部物料</cl-button>
+					</view>
+				</view>
+				<view class="material-model-results">
+					<view v-if="loading" class="material-model-state">
+						<cl-loading />
+						<cl-text :size="14" color="#526170">正在搜索物料…</cl-text>
+					</view>
+					<view v-else-if="error != ''" class="material-model-state">
+						<cl-text :size="14" color="#b91c1c">{{ error }}</cl-text>
+						<cl-button type="light" text @tap="searchNow">重试</cl-button>
+					</view>
+					<view v-else-if="keyword.trim() == ''" class="material-model-state">
+						<cl-text :size="14" color="#526170">请输入物料编号进行搜索</cl-text>
+					</view>
+					<view v-else-if="options.length == 0" class="material-model-state">
+						<cl-text :size="14" color="#526170">没有匹配的物料，请调整编号</cl-text>
+					</view>
+					<scroll-view
+						v-else
+						class="material-model-options"
+						direction="vertical"
+						:show-scrollbar="true"
+					>
+						<cl-list border>
+							<template v-for="(option, index) in options" :key="option">
+								<cl-list-item justify="start" hoverable @tap="choose(option)">
+									<view class="material-model-option"
+										><cl-text
+											:size="16"
+											:color="option == modelValue ? '#166534' : '#17212b'"
+											>{{ option }}</cl-text
+										></view
+									>
+									<cl-icon
+										v-if="option == modelValue"
+										name="check-line"
+										:size="20"
+										color="#166534"
+									/>
+								</cl-list-item>
+								<view
+									v-if="index < options.length - 1"
+									class="material-model-divider"
+								/>
+							</template>
+						</cl-list>
+					</scroll-view>
+				</view>
+				<view v-if="!loading && options.length >= 10" class="material-model-hint"
+					><cl-text :size="12" color="#526170"
+						>最多显示 10 个候选，可继续输入缩小范围</cl-text
+					></view
+				>
+			</view>
+		</cl-popup>
+	</view>
+</template>
+
+<script setup lang="ts">
+import { computed, ref, watch, onUnmounted } from "vue";
+import { errorMessage } from "@/.cool";
+import { findMaterialModels } from "@/services/material";
+
+defineOptions({ styleIsolation: "app" });
+const props = defineProps({
+	modelValue: { type: String, default: "" },
+	disabled: { type: Boolean, default: false }
+});
+const emit = defineEmits(["update:modelValue", "change"]);
+const keyword = ref(props.modelValue);
+const options = ref<string[]>([]);
+const visible = ref(false),
+	loading = ref(false),
+	error = ref("");
+let sequence = 0,
+	timer = 0,
+	alive = true;
+
+function stopSearch(): void {
+	if (timer > 0) {
+		clearTimeout(timer);
+		timer = 0;
+	}
+	sequence += 1;
+	loading.value = false;
+	error.value = "";
+	options.value = [];
+}
+function selectModel(value: string): void {
+	if (value == props.modelValue) return;
+	emit("update:modelValue", value);
+	emit("change", value);
+}
+async function searchNow(): Promise<void> {
+	stopSearch();
+	const query = keyword.value.trim();
+	if (!alive || props.disabled || !visible.value || query == "") return;
+	loading.value = true;
+	const ticket = sequence;
+	try {
+		const result = await findMaterialModels(query);
+		if (!alive || ticket != sequence || !visible.value) return;
+		options.value = result;
+	} catch (cause) {
+		if (alive && ticket == sequence && visible.value)
+			error.value = errorMessage(cause, "物料搜索失败，请重试");
+	} finally {
+		if (ticket == sequence) loading.value = false;
+	}
+}
+function editKeyword(value: string): void {
+	if (props.disabled || !alive || !visible.value) return;
+	stopSearch();
+	keyword.value = value;
+	const query = value.trim();
+	// 弹窗内仅修改搜索草稿，选中候选或点击全部物料才提交筛选。
+	if (query == "") return;
+	loading.value = true;
+	timer = setTimeout(() => {
+		timer = 0;
+		searchNow();
+	}, 600);
+}
+function open(): void {
+	if (!alive || props.disabled || visible.value) return;
+	stopSearch();
+	keyword.value = props.modelValue;
+	visible.value = true;
+	if (keyword.value != "") searchNow();
+}
+function cancel(): void {
+	stopSearch();
+	// cl-popup 默认不缓存内容，关闭后会卸载输入框并释放焦点。
+	visible.value = false;
+	keyword.value = props.modelValue;
+}
+function choose(value: string): void {
+	if (!alive || props.disabled || !visible.value || !options.value.includes(value)) return;
+	cancel();
+	keyword.value = value;
+	selectModel(value);
+}
+function chooseAll(): void {
+	if (!alive || props.disabled || !visible.value) return;
+	cancel();
+	keyword.value = "";
+	selectModel("");
+}
+function clearSession(): void {
+	stopSearch();
+	keyword.value = "";
+	visible.value = false;
+}
+watch(
+	computed(() => props.modelValue),
+	(value: string) => {
+		if (!visible.value) keyword.value = value;
+	}
+);
+watch(
+	computed(() => props.disabled),
+	(value: boolean) => {
+		if (value) cancel();
+	}
+);
+uni.$on("wms.session.changed", clearSession);
+onUnmounted(() => {
+	alive = false;
+	stopSearch();
+	uni.$off("wms.session.changed", clearSession);
+});
+</script>
+
+<style scoped lang="scss">
+.material-model-body {
+	flex: 1;
+	min-height: 0;
+	padding: 16px;
+	flex-direction: column;
+}
+.material-model-actions {
+	flex-direction: row;
+	align-items: center;
+	margin-top: 12px;
+	margin-bottom: 12px;
+}
+.material-model-action {
+	margin-left: 8px;
+}
+.material-model-results {
+	flex: 1;
+	min-height: 0;
+	overflow: hidden;
+}
+.material-model-options {
+	height: 100%;
+}
+.material-model-state {
+	min-height: 72px;
+	padding: 12px;
+	align-items: center;
+	justify-content: center;
+}
+.material-model-option {
+	flex: 1;
+	min-width: 0;
+	min-height: 32px;
+	justify-content: center;
+	padding-right: 8px;
+}
+.material-model-divider {
+	height: 1px;
+	margin: 0 12px;
+	background-color: #e6ebe7;
+}
+.material-model-hint {
+	margin-top: 8px;
+}
+</style>

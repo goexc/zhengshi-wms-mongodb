@@ -1,0 +1,139 @@
+import { IPdfViewContext, CreatePdfViewContext } from "../interface.uts"
+import { UIView } from "UIKit"
+
+// PdfViewNative.swift 位于 app-ios 目录，按混编规范无需 import 即可直接使用
+
+// 组件实例注册表：以绑定的原生 UIView 为 key（iOS 下需 Hashable，UIView 符合），
+// 供 createPdfViewContext 查找命令式上下文
+const pdfViewRegistry = new Map<UIView, NativePdfView>()
+
+/**
+ * PDF 预览原生组件的 uts 胶水层（iOS / PDFKit）。
+ */
+export class NativePdfView {
+	$element : UniNativeViewElement
+	private native : PdfViewNative
+	private onLoadCb : ((pageCount : number) => void) | null = null
+	private onErrorCb : ((code : number, msg : string) => void) | null = null
+	private onPageChangeCb : ((page : number, pageCount : number) => void) | null = null
+
+	constructor(element : UniNativeViewElement,
+		enablePageSwipe : boolean,
+		onLoad : (pageCount : number) => void,
+		onError : (code : number, msg : string) => void,
+		onPageChange : (page : number, pageCount : number) => void) {
+		// 先创建原生对象并绑定到 native-view（Swift 要求 super.init 在 self 引用之前完成）
+		this.native = new PdfViewNative(enablePageSwipe)
+		this.$element = element
+		this.$element.bindIOSView(this.native.pdfView)
+		// 回调赋值在所有初始化完成后
+		this.onLoadCb = onLoad
+		this.onErrorCb = onError
+		this.onPageChangeCb = onPageChange
+		// 注意：pdfViewRegistry.set 不能放在 constructor 中，
+		// 因为 UTS 编译为 Swift 时 super.init() 在 constructor 末尾，
+		// 此处方法调用传入 this 会导致 'self used before super.init' 错误。
+		// 改为在构造后由调用方调用 register() 完成。
+	}
+
+	/**
+	 * 将当前实例注册到全局注册表，供 createPdfViewContext 查找。
+	 * 必须在构造完成后调用，因为 Swift 要求 super.init 在 self 引用之前完成。
+	 */
+	register() : void {
+		pdfViewRegistry.set(this.native.pdfView, this)
+	}
+
+	/**
+	 * 加载 PDF。src 可为本地路径（含 file://）或 http(s) 网络地址；page 1-based。
+	 */
+	loadSrc(src : string, page : number) : void {
+		this.native.loadSrc(src, page,
+			(pageCount : number) : void => {
+				this.onLoadCb?.(pageCount)
+			},
+			(code : number, msg : string) : void => {
+				this.onErrorCb?.(code, msg)
+			},
+			(page : number, pageCount : number) : void => {
+				this.onPageChangeCb?.(page, pageCount)
+			})
+	}
+
+	setPage(page : number) : void {
+		this.native.setPage(page)
+	}
+
+	getPageCount() : number {
+		return this.native.getPageCount()
+	}
+
+	getCurrentPage() : number {
+		return this.native.getCurrentPage()
+	}
+
+	reload() : void {
+		this.native.reload()
+	}
+
+	destroy() : void {
+		pdfViewRegistry.delete(this.native.pdfView)
+		this.native.destroy()
+		// 释放 uts 实例，避免内存泄露
+		UTSiOS.destroyInstance(this)
+	}
+}
+
+
+class PdfViewContext implements IPdfViewContext {
+	private view : NativePdfView | null
+	constructor(element : UniNativeViewElement) {
+		this.view = pdfViewRegistry.get(element.getIOSView()!)
+	}
+	setPage(page : number) : void {
+		this.view?.setPage(page)
+	}
+	getPageCount() : number {
+		return this.view?.getPageCount() ?? 0
+	}
+	getCurrentPage() : number {
+		return this.view?.getCurrentPage() ?? 0
+	}
+	reload() : void {
+		this.view?.reload()
+	}
+}
+
+function iterateElement(homeElement : UniElement) : UniNativeViewElement | null {
+	if ("NATIVE-VIEW" == homeElement.nodeName) {
+		return homeElement as UniNativeViewElement
+	}
+	for (const perChildEle of homeElement.children) {
+		const findEle = iterateElement(perChildEle)
+		if (findEle != null) {
+			return findEle
+		}
+	}
+	return null
+}
+
+export function createPdfViewContext(id : string, component : ComponentPublicInstance | null = null) : IPdfViewContext | null {
+	let root : UniElement | null = null
+	if (component == null) {
+		const pages = getCurrentPages()
+		if (pages.length > 0) {
+			const page = pages[pages.length - 1]
+			root = page.getElementById(id)
+		}
+	} else {
+		root = component?.$el as UniElement | null
+	}
+	if (root == null) {
+		return null
+	}
+	const nativeViewElement = iterateElement(root!)
+	if (nativeViewElement == null) {
+		return null
+	}
+	return new PdfViewContext(nativeViewElement!)
+}

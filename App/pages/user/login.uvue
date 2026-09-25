@@ -1,0 +1,144 @@
+<template>
+	<WmsPage title="正时 WMS" :back="false" :public-page="true">
+		<view class="login-content">
+			<view class="login-mark"><cl-icon name="box-3-line" :size="42" color="#166534" /></view>
+			<text class="login-title">欢迎回来</text
+			><text class="wms-muted">使用企业账号，连接你的仓储工作。</text>
+			<view class="login-form">
+				<text class="wms-label">手机号码</text>
+				<cl-input
+					v-model="mobile"
+					type="tel"
+					placeholder="请输入手机号码"
+					:maxlength="11"
+					:disabled="loading"
+					style="margin-top: 8px; margin-bottom: 20px"
+				/>
+				<text class="wms-label" style="margin-bottom: 8px">登录密码</text>
+				<cl-input
+					v-model="password"
+					password
+					placeholder="请输入密码"
+					:maxlength="100"
+					:disabled="loading"
+					:clearable="false"
+					@confirm="signIn"
+				/>
+				<text v-if="error != ''" class="wms-error" style="margin-top: 16px">{{
+					error
+				}}</text>
+				<cl-button
+					:loading="loading"
+					:disabled="loading || mobile.trim() == '' || password == ''"
+					style="margin-top: 24px"
+					@tap="signIn"
+					>登录</cl-button
+				>
+			</view>
+			<text class="wms-muted">账号由企业管理员开通。登录遇到问题，请联系管理员。</text>
+			<view class="login-link" @tap="openPrivacy"
+				><text class="toggle-label">使用与数据说明</text></view
+			>
+		</view>
+	</WmsPage>
+</template>
+<script setup lang="ts">
+import { ref } from "vue";
+import { request, errorMessage, parse, useStore, router } from "@/.cool";
+import type { LoginData } from "@/.cool/store/user";
+import WmsPage from "@/components/wms/Page.uvue";
+const { user } = useStore();
+const mobile = ref("");
+const password = ref("");
+const loading = ref(false);
+const error = ref("");
+async function signIn() {
+	if (loading.value) return;
+	if (!/^1\d{10}$/.test(mobile.value.trim())) {
+		error.value = "请输入有效的11位手机号码";
+		return;
+	}
+	if (password.value.length < 6) {
+		error.value = "密码至少需要6位";
+		return;
+	}
+	loading.value = true;
+	error.value = "";
+	try {
+		const raw = await request({
+			url: "/auth/login",
+			method: "POST",
+			data: { mobile: mobile.value.trim(), password: password.value, device_type: "app" }
+		});
+		if (raw == null) throw new Error("登录响应为空，请重试");
+		const data = parse<LoginData>(raw);
+		if (data == null) throw new Error("登录响应为空，请重试");
+		user.clear();
+		user.setToken({ token: data.token, exp: data.exp });
+		user.set(raw);
+		await user.get();
+		if (!user.hasCredential()) throw new Error("登录凭证已失效，请重试");
+		password.value = "";
+		const saved = uni.getStorageSync("wms.returnTo");
+		uni.removeStorageSync("wms.returnTo");
+		const target =
+			typeof saved == "string" &&
+			saved.startsWith("/pages/") &&
+			!saved.startsWith("/pages/user/login")
+				? saved
+				: "/pages/index/home";
+		router.push({ path: target, mode: "reLaunch" });
+	} catch (err) {
+		error.value = errorMessage(err, "登录失败，请重试");
+	} finally {
+		loading.value = false;
+	}
+}
+function openPrivacy() {
+	router.to("/pages/privacy/index");
+}
+</script>
+<style scoped>
+.login-content {
+	padding: 28px 24px;
+}
+.login-mark {
+	width: 76px;
+	height: 76px;
+	border-radius: 20px;
+	background-color: #eaf5ee;
+	justify-content: center;
+	align-items: center;
+	margin-bottom: 24px;
+}
+.login-title {
+	font-size: 30px;
+	line-height: 40px;
+	color: #17212b;
+	font-weight: 700;
+	margin-bottom: 8px;
+}
+.login-form {
+	margin-top: 28px;
+	margin-bottom: 24px;
+	padding: 20px;
+	border: 1px solid #d7dee3;
+	border-radius: 16px;
+	background-color: #ffffff;
+}
+.password-toggle {
+	min-height: 48px;
+	justify-content: center;
+	padding-left: 12px;
+}
+.toggle-label {
+	font-size: 15px;
+	color: #166534;
+}
+.login-link {
+	min-height: 48px;
+	justify-content: center;
+	align-items: center;
+	margin-top: 16px;
+}
+</style>

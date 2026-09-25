@@ -1,0 +1,20 @@
+import { PdfViewErrorCode, IPdfViewFail } from "./interface.uts"
+
+export const UniErrorSubject = 'ff-uni-pdf-view'
+
+export const PdfViewUniErrors : Map<PdfViewErrorCode, string> = new Map([
+	[9010001, 'pdf file path invalid or not exist'],
+	[9010002, 'download pdf from network failed'],
+	[9010003, 'pdf format invalid or parse failed'],
+	[9010004, 'pdf native view init failed'],
+])
+
+export class PdfViewFailImpl extends UniError implements IPdfViewFail {
+	override errCode : PdfViewErrorCode
+	constructor(errCode : PdfViewErrorCode) {
+		super()
+		this.errSubject = UniErrorSubject
+		this.errCode = errCode
+		this.errMsg = PdfViewUniErrors.get(errCode) ?? ""
+	}
+}

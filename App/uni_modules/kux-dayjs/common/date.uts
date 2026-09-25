@@ -1,0 +1,184 @@
+import { Lunar, LunarInfoType } from './calendar';
+
+export type DateType = {
+	fullDate : string;
+	year : number;
+	month : number;
+	date : number;
+	hour : number;
+	minute : number;
+	second : number;
+	millisecond : number;
+	day : number;
+	isToday : boolean;
+	lunar : string;
+};
+
+export type DateInfo = {
+	year : number,
+	month : number,
+	day : number,
+	hours : number,
+	minutes : number,
+	seconds : number,
+	milliseconds : number
+};
+
+export class DateUtil {
+	private lunar : Lunar;
+
+	private static readonly dateRegex = /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2})(?:\.(\d{1,3}))?)?)?(?:[ ]?(Z|[+-]\d{2}:\d{2}))?$/;
+
+
+	constructor() {
+		this.lunar = new Lunar();
+	};
+
+	/**
+	 * 计算阴历日期显示
+	 */
+	getlunar(year : number, month : number, date : number) : LunarInfoType {
+		return this.lunar.solar2lunar(year, month, date)
+	}
+
+	/**
+	 * 解析时间戳
+	 */
+	parseTimestamp(timestamp : number) : DateInfo {
+		let mTimestamp : number = timestamp;
+		// 定义每个时间单位的毫秒数
+		const millisecondsPerSecond : number = 1000;
+		const millisecondsPerMinute = 60 * millisecondsPerSecond;
+		const millisecondsPerHour = 60 * millisecondsPerMinute;
+		const millisecondsPerDay = 24 * millisecondsPerHour;
+
+		// 计算总天数
+		let totalDays = Math.floor(mTimestamp / millisecondsPerDay);
+		mTimestamp -= totalDays * millisecondsPerDay;
+
+		// 计算年、月、日
+		const startYear : number = 1970;
+		let year = startYear;
+		let month : number = 0;
+		let day : number = 0;
+
+		// 计算当前年是否为闰年
+		const isLeapYear = (year : number) : boolean => (year % 4 == 0 && year % 100 != 0) || year % 400 == 0;
+
+		// 计算年份
+		while (true) {
+			const daysInYear = isLeapYear(year) ? 366 : 365;
+			if (totalDays >= daysInYear) {
+				totalDays -= daysInYear;
+				year++;
+			} else {
+				break;
+			}
+		}
+
+		// 计算月份
+		const daysInMonth = [31, isLeapYear(year) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+		for (month = 0; month < daysInMonth.length; month++) {
+			if (totalDays < daysInMonth[month]) {
+				break;
+			}
+			totalDays -= daysInMonth[month];
+		}
+		month++; // 月份是从0开始的，所以需要+1
+		day = totalDays + 1; // 加1是因为总天数已经减去了一整天的毫秒数
+
+		// 计算小时、分钟、秒
+		const hours = Math.floor(mTimestamp / millisecondsPerHour) % 24;
+		mTimestamp -= hours * millisecondsPerHour;
+		const minutes = Math.floor(mTimestamp / millisecondsPerMinute) % 60;
+		mTimestamp -= minutes * millisecondsPerMinute;
+		const seconds = Math.floor(mTimestamp / millisecondsPerSecond) % 60;
+		const milliseconds = mTimestamp % millisecondsPerSecond;
+
+		return {
+			year,
+			month,
+			day,
+			hours,
+			minutes,
+			seconds,
+			milliseconds
+		} as DateInfo;
+	}
+
+	/**
+	 * 获取任意时间
+	 */
+	getDate(date : string) : DateType {
+		let dd : Date = new Date();
+
+		// 使用正则表达式解析日期和时间
+		const match = date.match(DateUtil.dateRegex);
+		if (match != null && match[1] != null && match[2] != null && match[3] != null && match.length > 0) {
+			// 解构匹配结果
+			// const [_, year, month, day, hour, minute, second, milllisceond] = match;
+			const yearR = parseInt(match[1]!, 10);
+			const monthR = parseInt(match[2]!, 10);
+			const dayR = parseInt(match[3]!, 10);
+			let hourR = 0;
+			if (match.length >= 5 && match[4] != null) {
+				hourR = parseInt(match[4]!, 10);
+			}
+			let minuteR = 0;
+			if (match.length >= 6 && match[5] != null) {
+				minuteR = parseInt(match[5]!, 10);
+			}
+			let secondR = 0;
+			if (match.length >= 7 && match[6] != null) {
+				secondR = parseInt(match[6]!, 10);
+			}
+			let millisceondR = 0;
+			if (match.length >= 8 && match[7] != null) {
+				millisceondR = parseInt(match[7]!, 10);
+			}
+			let timezoneOffset: string | null = null;
+			if (match.length >= 9 && match[8] != null) {
+				timezoneOffset = match[8];
+			}
+
+			// 创建 Date 对象
+			dd = new Date(yearR, monthR - 1, dayR, hourR, minuteR, secondR, millisceondR);
+
+			// 应用时区偏移
+			if (timezoneOffset != null && timezoneOffset != 'Z') {
+				const offsetSign = (timezoneOffset.split(''))[0] == '+' ? 1 : -1;
+				const offsetHours = 8 - parseInt(timezoneOffset.substring(1, 3), 10);
+				const offsetMinutes = parseInt(timezoneOffset.substring(4, 6), 10);
+				const offsetMilliseconds = (offsetHours * 60 + offsetMinutes) * 60 * 1000 * offsetSign;
+				dd = new Date(dd.getTime() + offsetMilliseconds);
+			}
+		}
+
+		const y = dd.getFullYear();
+		const m = dd.getMonth() + 1;
+		const d = dd.getDate();
+		const h = dd.getHours();
+		const M = dd.getMinutes();
+		const s = dd.getSeconds();
+		const ms = dd.getMilliseconds();
+
+		let nowDate = y + '-' + m + '-' + d;
+		const lunarData = this.getlunar(y, m, d);
+
+		const data : DateType = {
+			fullDate: nowDate,
+			year: y,
+			month: m,
+			date: d,
+			hour: h,
+			minute: M,
+			second: s,
+			millisecond: ms,
+			day: dd.getDay() + 1,
+			lunar: lunarData.IDayCn,
+			isToday: this.getlunar(y, m, d).isToday
+		};
+
+		return data;
+	};
+};

@@ -1,0 +1,93 @@
+{
+	"name": "正时 WMS",
+	"appid": "__UNI__2B8E41C",
+	"description": "正时 WMS 企业仓储移动端",
+	"versionName": "2.0.2",
+	"versionCode": "202",
+	"uni-app-x": {
+		"styleIsolationVersion": "2"
+	},
+	"quickapp": {},
+	"mp-weixin": {
+		"appid": "",
+		"setting": {
+			"urlCheck": false
+		},
+		"usingComponents": true
+	},
+	"mp-alipay": {
+		"usingComponents": true
+	},
+	"mp-baidu": {
+		"usingComponents": true
+	},
+	"mp-toutiao": {
+		"usingComponents": true
+	},
+	"uniStatistics": {
+		"enable": false
+	},
+	"vueVersion": "3",
+	"app": {
+		"distribute": {
+			"icons": {
+				"android": {
+					"hdpi": "static/logo.png",
+					"xhdpi": "static/logo.png",
+					"xxhdpi": "static/logo.png",
+					"xxxhdpi": "static/logo.png"
+				}
+			},
+			"splashScreens": {
+				"android": {
+					"xhdpi": "static/splash_screen.png",
+					"xxhdpi": "static/splash_screen.png",
+					"xxxhdpi": "static/splash_screen.png"
+				},
+				"android12": {
+					"icon": {
+						"xhdpi": "static/splash_screen.png",
+						"xxhdpi": "static/splash_screen.png",
+						"xxxhdpi": "static/splash_screen.png"
+					}
+				}
+			}
+		}
+	},
+	"app-android": {
+		"distribute": {
+			"modules": {},
+			"icons": {
+				"hdpi": "static/logo.png",
+				"xhdpi": "static/logo.png",
+				"xxhdpi": "static/logo.png",
+				"xxxhdpi": "static/logo.png"
+			},
+			"splashScreens": {
+				"default": {
+					"xhdpi": "static/splash_screen.png",
+					"xxhdpi": "static/splash_screen.png",
+					"xxxhdpi": "static/splash_screen.png"
+				},
+				"icon": {
+					"xhdpi": "static/splash_screen.png",
+					"xxhdpi": "static/splash_screen.png",
+					"xxxhdpi": "static/splash_screen.png"
+				}
+			}
+		}
+	},
+	"app-ios": {
+		"distribute": {
+			"modules": {},
+			"icons": {},
+			"splashScreens": {}
+		}
+	},
+	"web": {
+		"title": "正时 WMS",
+		"router": {
+			"base": "./"
+		}
+	}
+}

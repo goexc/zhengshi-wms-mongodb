@@ -1,0 +1,352 @@
+<template>
+	<WmsPage
+		title="出库单"
+		:refresher-enabled="true"
+		:refresher-triggered="refreshing"
+		@refresherrefresh="refresh"
+	>
+		<template #header>
+			<view class="order-filters">
+				<text class="wms-label">出库单号</text>
+				<view class="order-search-row">
+					<view class="order-search-input">
+						<cl-input
+							v-model="code"
+							clearable
+							placeholder="输入单号搜索"
+							prefix-icon="search-line"
+							confirm-type="search"
+							@confirm="searchNow"
+						/>
+					</view>
+					<view class="order-search-action">
+						<cl-button fluid :pt="{ label: { size: 16 } }" @tap="searchNow"
+							>搜索</cl-button
+						>
+					</view>
+					<view class="order-search-action">
+						<cl-button
+							type="light"
+							border
+							fluid
+							:pt="{ label: { size: 16 } }"
+							@tap="reset"
+							>重置</cl-button
+						>
+					</view>
+				</view>
+				<view class="order-total">
+					<text class="wms-muted">{{
+						loading && orders.length == 0 ? "正在查询…" : `共 ${total} 张单据`
+					}}</text>
+				</view>
+			</view>
+		</template>
+
+		<view class="wms-content">
+			<view class="wms-card">
+				<view class="filter-row">
+					<view class="filter-customer"
+						><CustomerPicker
+							:selected-id="customerID"
+							:selected-name="customerName"
+							@select="selectCustomer"
+					/></view>
+				</view>
+				<view class="filter-material">
+					<MaterialModelSelect
+						:key="materialPickerKey"
+						v-model="materialModel"
+						@change="searchNow"
+					/>
+				</view>
+			</view>
+			<view v-if="error != ''" class="wms-card"
+				><text class="wms-error">{{ error }}</text
+				><cl-button @tap="retry">重试</cl-button></view
+			>
+			<view v-if="loading && orders.length == 0" class="wms-empty"
+				><text class="wms-muted">正在加载出库单…</text></view
+			>
+			<view v-else-if="orders.length == 0 && error == ''" class="wms-empty"
+				><text class="wms-title">暂无出库单</text
+				><text class="wms-muted">尝试其他单号、客户或物料编号，或重置筛选。</text></view
+			>
+			<view
+				v-for="order in orders"
+				:key="order.id"
+				class="wms-card wms-record"
+				@tap="openOrder(order)"
+			>
+				<view class="wms-record-header wms-record-heading"
+					><text class="order-code">{{ order.code }}</text
+					><text class="order-status">{{
+						order.status != null && order.status != "" ? order.status! : "状态未提供"
+					}}</text></view
+				>
+				<view class="wms-record-body">
+					<text v-if="order.customer_name != ''" class="wms-text"
+						>客户 · {{ companyName(order.customer_name) }}</text
+					>
+					<text v-if="order.supplier_name != ''" class="wms-text"
+						>供应商 · {{ companyName(order.supplier_name) }}</text
+					>
+					<text class="wms-muted">{{
+						order.type != null && order.type != "" ? order.type! : "类型未提供"
+					}}</text>
+					<view class="wms-between wms-record-meta order-bottom"
+						><view
+							><text class="wms-label">单据金额（元）</text
+							><text class="wms-value">{{
+								formatMoney(order.total_amount)
+							}}</text></view
+						><view
+							><text class="wms-label">签收日期</text
+							><text class="wms-text">{{
+								order.receipt_time > 0 ? formatDate(order.receipt_time) : "未签收"
+							}}</text></view
+						></view
+					>
+					<text class="order-link">查看物料明细 →</text>
+				</view>
+			</view>
+			<view v-if="total > 0" class="wms-pagination">
+				<text class="wms-muted"
+					>第 {{ currentPage }} 页 · 共 {{ total }} 条 · 每页 20 条</text
+				>
+				<cl-pagination
+					:model-value="currentPage"
+					:total="total"
+					:size="20"
+					@change="changePage"
+				/>
+			</view>
+		</view>
+	</WmsPage>
+</template>
+
+<script setup lang="ts">
+import { ref, watch } from "vue";
+import { errorMessage, router, useStore, parseToObject } from "@/.cool";
+import WmsPage from "@/components/wms/Page.uvue";
+import CustomerPicker from "@/components/wms/CustomerPicker.uvue";
+import MaterialModelSelect from "@/components/wms/MaterialModelSelect.uvue";
+import { getOutboundPage, outboundQuery } from "@/services/outbound";
+import {
+	companyName as companyNameValue,
+	formatDate as formatDateValue,
+	formatMoney as formatMoneyValue
+} from "@/utils/wms-format";
+import type { OutboundOrder, CustomerChoice } from "@/types/outbound";
+function companyName(value: string): string {
+	return companyNameValue(value);
+}
+function formatDate(value: number): string {
+	return formatDateValue(value);
+}
+function formatMoney(value: number | null): string {
+	return formatMoneyValue(value);
+}
+
+const { user } = useStore();
+const code = ref(""),
+	customerID = ref(""),
+	customerName = ref(""),
+	materialModel = ref("");
+const materialPickerKey = ref(0);
+const loading = ref(false),
+	refreshing = ref(false),
+	error = ref(""),
+	total = ref(0),
+	currentPage = ref(1);
+const orders = ref<OutboundOrder[]>([]);
+let sequence = 0,
+	timer = 0,
+	initialized = false,
+	alive = true;
+function stopTimer(): void {
+	if (timer > 0) {
+		clearTimeout(timer);
+		timer = 0;
+	}
+}
+async function load(targetPage: number = 1): Promise<void> {
+	if (!alive || !user.hasCredential() || !user.canAccess("outbound")) return;
+	const ticket = ++sequence;
+	currentPage.value = targetPage;
+	orders.value = [];
+	const query = outboundQuery(targetPage);
+	query.code = code.value.trim();
+	query.customer_id = customerID.value;
+	query.model = materialModel.value;
+	loading.value = true;
+	error.value = "";
+	try {
+		const result = await getOutboundPage(query);
+		if (!alive || ticket != sequence) return;
+		total.value = result.total;
+		const lastPage = Math.max(1, Math.ceil(result.total / query.size));
+		if (targetPage > lastPage) {
+			load(lastPage);
+			return;
+		}
+		orders.value = result.list;
+		initialized = true;
+	} catch (cause) {
+		if (alive && ticket == sequence)
+			error.value = errorMessage(cause, "出库单加载失败，请重试");
+	} finally {
+		if (ticket == sequence) {
+			loading.value = false;
+			refreshing.value = false;
+		}
+	}
+}
+function invalidate(): void {
+	sequence += 1;
+	loading.value = false;
+	refreshing.value = false;
+	currentPage.value = 1;
+	total.value = 0;
+	orders.value = [];
+	error.value = "";
+}
+function searchNow(): void {
+	stopTimer();
+	invalidate();
+	refreshing.value = true;
+	load();
+}
+function refresh(): void {
+	stopTimer();
+	refreshing.value = true;
+	load(currentPage.value);
+}
+function changePage(value: number): void {
+	stopTimer();
+	if (value != currentPage.value) load(value);
+}
+function retry(): void {
+	load(currentPage.value);
+}
+function scheduleSearch(): void {
+	stopTimer();
+	invalidate();
+	timer = setTimeout(() => {
+		load();
+	}, 350);
+}
+function selectCustomer(item: CustomerChoice): void {
+	customerID.value = item.id;
+	customerName.value = item.name;
+	searchNow();
+}
+function reset(): void {
+	code.value = "";
+	customerID.value = "";
+	customerName.value = "";
+	materialModel.value = "";
+	materialPickerKey.value += 1;
+	searchNow();
+}
+function openOrder(order: OutboundOrder): void {
+	const query = { code: order.code } as UTSJSONObject;
+	if (materialModel.value != "") query["model"] = materialModel.value;
+	router.push({
+		path: "/pages/outbound/detail",
+		query,
+		params: { outboundOrder: parseToObject(order) }
+	});
+}
+function clearSession(): void {
+	stopTimer();
+	invalidate();
+	initialized = false;
+	code.value = "";
+	customerID.value = "";
+	customerName.value = "";
+	materialModel.value = "";
+	materialPickerKey.value += 1;
+}
+function ensureLoaded(): void {
+	if (!initialized && !loading.value) load();
+}
+watch(code, scheduleSearch);
+uni.$on("wms.session.changed", clearSession);
+uni.$on("wms.permissions.ready", ensureLoaded);
+onShow(ensureLoaded);
+onUnload(() => {
+	alive = false;
+	sequence += 1;
+	stopTimer();
+	uni.$off("wms.session.changed", clearSession);
+	uni.$off("wms.permissions.ready", ensureLoaded);
+});
+</script>
+
+<style scoped lang="scss">
+.order-filters {
+	padding: 8px 16px;
+}
+.order-search-row {
+	flex-direction: row;
+	align-items: center;
+}
+.order-search-input {
+	flex: 1;
+	min-width: 0;
+}
+.order-search-action {
+	width: 64px;
+	flex-shrink: 0;
+	margin-left: 8px;
+}
+.order-total {
+	margin-top: 8px;
+}
+.filter-row {
+	flex-direction: row;
+	align-items: center;
+}
+.filter-customer {
+	flex: 1;
+}
+.filter-material {
+	margin-top: 12px;
+}
+.order-code {
+	flex: 1;
+	min-width: 0;
+	font-size: 19px;
+	line-height: 28px;
+	font-weight: 700;
+	color: #ffffff;
+}
+.order-status {
+	font-size: 14px;
+	color: #166534;
+	background-color: #dcfce7;
+	padding: 6px 8px;
+	border-radius: 6px;
+	margin-left: 8px;
+}
+.order-bottom {
+	margin-top: 12px;
+	flex-wrap: wrap;
+}
+.order-link {
+	color: #166534;
+	font-size: 15px;
+	margin-top: 12px;
+	min-height: 32px;
+}
+.wms-large .order-code {
+	font-size: 22px;
+	line-height: 32px;
+}
+/* #ifdef H5 */
+.order-code {
+	overflow-wrap: anywhere;
+}
+/* #endif */
+</style>

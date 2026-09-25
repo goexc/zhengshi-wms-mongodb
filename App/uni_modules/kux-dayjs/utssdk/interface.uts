@@ -1,0 +1,1082 @@
+import { InfoType } from '../common/calendar';
+import { DateType } from '../common/date';
+
+export type LunarType = {
+	month : string;
+	date : string;
+};
+
+export type DatetimeUnit =
+	| 'day'
+	| 'd'
+	| 'month'
+	| 'M'
+	| 'year'
+	| 'y'
+	| 'hour'
+	| 'h'
+	| 'minute'
+	| 'm'
+	| 'second'
+	| 's'
+	| 'millisecond'
+	| 'ms'
+
+export type WeekUnit =
+	| 'week'
+	| 'w'
+
+export type DiffUnit =
+	| 'week'
+	| 'w'
+	| 'day'
+	| 'd'
+	| 'month'
+	| 'M'
+	| 'year'
+	| 'y'
+	| 'hour'
+	| 'h'
+	| 'minute'
+	| 'm'
+	| 'second'
+	| 's'
+	| 'millisecond'
+	| 'ms'
+	;
+
+export type DateFormat = {
+	year : number;
+	month : number;
+	date : number;
+	render : any;
+	lunar : LunarType;
+	fullLunar : InfoType;
+	diffDays : number;
+	isToday : boolean;
+	fullDate : string;
+};
+
+export type RelativeTime = {
+	s ?: string;
+	m ?: string;
+	mm ?: string;
+	h ?: string;
+	hh ?: string;
+	d ?: string;
+	dd ?: string;
+	mon ?: string;
+	mons ?: string;
+	y ?: string;
+	yy ?: string;
+};
+
+export type FromToOptions = {
+	isSuffix ?: boolean;
+	relativeTime ?: RelativeTime;
+};
+
+export type DatetimeOptions = {
+	years : number;
+	months : number;
+	date : number;
+	hours : number;
+	minutes : number;
+	seconds : number;
+	milliseconds : number;
+};
+
+export type DateDiff = {
+	date1 : Date,
+	date2 : Date
+};
+
+export type IsBetweenContains =
+	| '['
+	| ']'
+	| '[]'
+	| ''
+
+/**
+ * KuxDayjs实例
+ */
+export interface IKuxDayjs {
+	d: Date
+	dd: DateType
+	/**
+	 * 构造函数
+	 * @param {string} date 日期时间戳字符串，如果是想初始化时间戳可以直接把时间戳通过字符串形式传入。时间戳为毫秒形式
+	 * @param {boolean} isTimestamp 是否时间戳格式
+	 * @param {boolean} isCST 是否是中国标准时间，既UTC时间+8小时，`isTimestamp` 为 `true` 时生效，默认为 `true`
+	 */
+	// constructor(date ?: string, isTimestamp ?: boolean, isCST ?: boolean)
+
+	/**
+	 * 当前时间对象
+	 * @description 返回一个基于指定日期和时间的 KuxDayjs 对象
+	 * @param {string} date 日期时间字符串，比如：'2023-12-12 19:35:35'
+	 * @returns KuxDayjs
+	 */
+	dayjs(date : string) : IKuxDayjs;
+
+	/**
+	 * 基于当前时间复制一个 KuxDayjs 对象
+	 * @returns KuxDayjs
+	 * @example
+	 * const a = dayjs();
+	 * const b = a.clone();
+	 * // a 和 b 是两个独立的 KuxDayjs 对象
+	 */
+	clone() : IKuxDayjs;
+
+	/**
+	 * 日期格式化
+	 * @description 根据传入的占位符返回格式化后的日期
+	 * @param format 格式，如 'YYYY-MM-DD HH:mm:ss'
+	 * @returns string
+	 */
+	format(format : string) : string;
+
+	/**
+	 * 差异
+	 * @description 返回指定单位下两个日期时间之间的差异
+	 * @param {string} date 比较的日期
+	 * @returns number
+	 */
+	diff (date: string) : number
+	
+	/**
+	 * 差异
+	 * @description 返回指定单位下两个日期时间之间的差异
+	 * @param { IKuxDayjs } date 比较的日期对象
+	 * @returns number
+	 */
+	diff (date: IKuxDayjs): number
+	
+	/**
+	 * 差异
+	 * @description 返回指定单位下两个日期时间之间的差异
+	 * @param { IKuxDayjs } date 比较的日期对象
+	 * @param {DiffUnit} unit 单位，默认为 `day`
+	 * + week 周，缩写 `w`
+	 * + day 天，缩写 `d`
+	 * + month 月份，缩写 `M`
+	 * + year 年，缩写 `y`
+	 * + hour 小时，缩写 `h`
+	 * + minute 分钟，缩写 `m`
+	 * + second 秒，缩写 `s`
+	 * + millisecond 毫秒，缩写 `ms`
+	 * @returns number
+	 */
+	diff (date: IKuxDayjs, unit: DiffUnit | null): number
+	
+	/**
+	 * 差异
+	 * @description 返回指定单位下两个日期时间之间的差异
+	 * @param {string} date 比较的日期
+	 * @param {DiffUnit} unit 单位，默认为 `day`
+	 * + week 周，缩写 `w`
+	 * + day 天，缩写 `d`
+	 * + month 月份，缩写 `M`
+	 * + year 年，缩写 `y`
+	 * + hour 小时，缩写 `h`
+	 * + minute 分钟，缩写 `m`
+	 * + second 秒，缩写 `s`
+	 * + millisecond 毫秒，缩写 `ms`
+	 * @returns number
+	 */
+	diff (date: string, unit: DiffUnit | null): number
+	
+	/**
+	 * 差异
+	 * @description 返回指定单位下两个日期时间之间的差异
+	 * @param { IKuxDayjs } date 比较的日期对象
+	 * @param {DiffUnit} unit 单位，默认为 `day`
+	 * + week 周，缩写 `w`
+	 * + day 天，缩写 `d`
+	 * + month 月份，缩写 `M`
+	 * + year 年，缩写 `y`
+	 * + hour 小时，缩写 `h`
+	 * + minute 分钟，缩写 `m`
+	 * + second 秒，缩写 `s`
+	 * + millisecond 毫秒，缩写 `ms`
+	 * @param {boolean} strict 严格模式，设置为 `true` 时，会保持浮点数格式
+	 * @returns number
+	 */
+	diff (date: IKuxDayjs, unit: DiffUnit | null, strict: boolean | null): number
+	
+	/**
+	 * 差异
+	 * @description 返回指定单位下两个日期时间之间的差异
+	 * @param {string} date 比较的日期
+	 * @param {DiffUnit} unit 单位，默认为 `day`
+	 * + week 周，缩写 `w`
+	 * + day 天，缩写 `d`
+	 * + month 月份，缩写 `M`
+	 * + year 年，缩写 `y`
+	 * + hour 小时，缩写 `h`
+	 * + minute 分钟，缩写 `m`
+	 * + second 秒，缩写 `s`
+	 * + millisecond 毫秒，缩写 `ms`
+	 * @param {boolean} strict 严格模式，设置为 `true` 时，会保持浮点数格式
+	 * @returns number
+	 */
+	diff(date : string, unit : DiffUnit | null, strict : boolean | null) : number;
+	
+	diff(date: any, unit: DiffUnit | null, strict: boolean | null): number
+	
+	/**
+	 * 日历时间
+	 * @description 获取指定年月的日历面板数据
+	 * @returns {DateFormat} DateFormat[]
+	 */
+	calendar () : DateFormat[]
+	
+	/**
+	 * 日历时间
+	 * @description 获取指定年月的日历面板数据
+	 * @param {number} year 年
+	 * @returns {DateFormat} DateFormat[]
+	 */
+	calendar (year: number | null): DateFormat[];
+
+	/**
+	 * 日历时间
+	 * @description 获取指定年月的日历面板数据
+	 * @param {number} year 年
+	 * @param {number} month 月
+	 * @returns {DateFormat} DateFormat[]
+	 */
+	calendar(year : number | null, month : number | null) : DateFormat[];
+	
+	/**
+	 * 获取/设置毫秒数
+	 * @description 获取或设置毫秒
+	 * @returns 返回0-999的毫秒数
+	 */
+	millisecond() : number
+
+	/**
+	 * 获取/设置毫秒数
+	 * @description 获取或设置毫秒
+	 * @param {number} ms 0-999的毫秒数，如果大于-1就是设置操作，否则为获取操作
+	 * @returns 返回0-999的毫秒数
+	 */
+	millisecond(ms : number | null) : number;
+	
+	/**
+	 * 获取/设置秒数
+	 * @description 获取或设置秒
+	 * @returns {number} 返回0-59的秒数
+	 */
+	second () : number
+
+	/**
+	 * 获取/设置秒数
+	 * @description 获取或设置秒
+	 * @param {number} s 0-59的秒数，如果大于-1就是设置操作，否则为获取操作
+	 * @returns {number} 返回0-59的秒数
+	 */
+	second(s : number | null) : number;
+	
+	/**
+	 * 获取/设置分钟
+	 * @description 获取或设置分钟
+	 * @returns {number} 返回0-59的分钟数
+	 */
+	minute() : number
+
+	/**
+	 * 获取/设置分钟
+	 * @description 获取或设置分钟
+	 * @param {number} M 0-59的分钟数，如果大于-1就是设置操作，否则为获取操作
+	 * @returns {number} 返回0-59的分钟数
+	 */
+	minute(M : number | null) : number;
+	
+	/**
+	 * 获取/设置小时
+	 * @description 获取或设置小时
+	 * @returns {number} 返回0-23的小时数
+	 */
+	hour() : number
+
+	/**
+	 * 获取/设置小时
+	 * @description 获取或设置小时
+	 * @param {number} h 0-23的小时数，如果大于-1就是设置操作，否则为获取操作
+	 * @returns {number} 返回0-23的小时数
+	 */
+	hour(h : number | null) : number;
+	
+	/**
+	 * 获取/设置日期
+	 * @description 获取或设置日期
+	 * @returns {number} 返回1-31的日期数
+	 */
+	date(): number
+
+	/**
+	 * 获取/设置日期
+	 * @description 获取或设置日期
+	 * @param {number} d 日期数，传入参数就是设置操作，否则为获取操作。如果为 d 指定 0，那么日期就会被设置为上个月的最后一天。如果 d 被设置为负数，日期会设置为上个月最后一天往前数这个负数绝对值天数后的日期。-1 会设置为上月最后一天的前一天（译者注：例如当前为 4 月，如果 date(-2),则为 3 月 29 日）
+	 * @returns {number} 返回1-31的日期数
+	 */
+	date(d : number | null) : number;
+
+	/**
+	 * 获取星期几，0 表示星期天。目前仅支持获取，不支持设置操作
+	 * @description 获取或设置星期
+	 * @returns {number} 返回0-6的整数，0代表星期日，1代表星期一，以此类推。
+	 */
+	day() : number;
+
+	/**
+	 * 获取/设置时间
+	 * @description 获取或设置毫秒
+	 * @param {number} t 一个整数，表示从 1970-1-1 00:00:00 UTC 开始计时的毫秒数。 传入参数就是设置操作，否则为获取操作。
+	 * @returns {number} 返回UTC 1970 年 1 月 1 日 00:00:00 与更新日期之间的毫秒数（实际上是自变量的值）。
+	 */
+	time(t : number) : number;
+	
+	/**
+	 * 获取/设置月份
+	 * @description 获取或设置月份
+	 * @returns {number} n 
+	 * + 获取操作返回0-11的整数（表示一月到十二月）。
+	 * + 设置操作返回基于 1 January 1970 00:00:00 UTC 开始计算的毫秒数。
+	 */
+	month () : number
+
+	/**
+	 * 获取/设置月份
+	 * @description 获取或设置月份
+	 * @param {number} m 0-11的整数，如果m大于0则为设置操作，否则为获取操作
+	 * @returns {number} n 
+	 * + 获取操作返回0-11的整数（表示一月到十二月）。
+	 * + 设置操作返回基于 1 January 1970 00:00:00 UTC 开始计算的毫秒数。
+	 */
+	month(m : number | null) : number;
+	
+	/**
+	 * 获取/设置年
+	 * @description 获取或设置年份
+	 * @returns {number} 返回操作后的年份数
+	 */
+	year(): number
+
+	/**
+	 * 获取/设置年
+	 * @description 获取或设置年份
+	 * @param {number} y 大于1969的整数，如果大于1969则为设置操作，否则为获取操作
+	 * @returns {number} 返回操作后的年份数
+	 */
+	year(y : number | null) : number;
+	
+	/**
+	 * 增加
+	 * @description 返回增加一定时间的复制的 KuxDayjs 对象
+	 * + week 周，缩写 `w`
+	 * + day 天，缩写 `d`
+	 * + month 月份，缩写 `M`
+	 * + year 年，缩写 `y`
+	 * + hour 小时，缩写 `h`
+	 * + minute 分钟，缩写 `m`
+	 * + second 秒，缩写 `s`
+	 * + millisecond 毫秒，缩写 `ms`
+	 * @returns {Date} d 操作后的Date对象
+	 */
+	add() : IKuxDayjs
+	
+	/**
+	 * 增加
+	 * @description 返回增加一定时间的复制的 KuxDayjs 对象
+	 * @param {string} count 需要增加的整数，支持配合单位操作
+	 * + week 周，缩写 `w`
+	 * + day 天，缩写 `d`
+	 * + month 月份，缩写 `M`
+	 * + year 年，缩写 `y`
+	 * + hour 小时，缩写 `h`
+	 * + minute 分钟，缩写 `m`
+	 * + second 秒，缩写 `s`
+	 * + millisecond 毫秒，缩写 `ms`
+	 * @returns {Date} d 操作后的Date对象
+	 */
+	add(count: number | null): IKuxDayjs
+
+	/**
+	 * 增加
+	 * @description 返回增加一定时间的复制的 KuxDayjs 对象
+	 * @param {string} count 需要增加的整数，支持配合单位操作
+	 * @param {DiffUnit} unit 单位，默认为 `day`
+	 * + week 周，缩写 `w`
+	 * + day 天，缩写 `d`
+	 * + month 月份，缩写 `M`
+	 * + year 年，缩写 `y`
+	 * + hour 小时，缩写 `h`
+	 * + minute 分钟，缩写 `m`
+	 * + second 秒，缩写 `s`
+	 * + millisecond 毫秒，缩写 `ms`
+	 * @returns {Date} d 操作后的Date对象
+	 */
+	add(count : number | null, unit : DiffUnit | null) : IKuxDayjs;
+	
+	/**
+	 * 减去
+	 * @description 返回减去一定时间的复制的 KuxDayjs 对象
+	 * + week 周，缩写 `w`
+	 * + day 天，缩写 `d`
+	 * + month 月份，缩写 `M`
+	 * + year 年，缩写 `y`
+	 * + hour 小时，缩写 `h`
+	 * + minute 分钟，缩写 `m`
+	 * + second 秒，缩写 `s`
+	 * + millisecond 毫秒，缩写 `ms`
+	 * @returns {Date} d 操作后的Date对象
+	 */
+	subtract() : IKuxDayjs
+	
+	/**
+	 * 减去
+	 * @description 返回减去一定时间的复制的 KuxDayjs 对象
+	 * @param {string} count 需要减去的整数，支持配合单位操作
+	 * + week 周，缩写 `w`
+	 * + day 天，缩写 `d`
+	 * + month 月份，缩写 `M`
+	 * + year 年，缩写 `y`
+	 * + hour 小时，缩写 `h`
+	 * + minute 分钟，缩写 `m`
+	 * + second 秒，缩写 `s`
+	 * + millisecond 毫秒，缩写 `ms`
+	 * @returns {Date} d 操作后的Date对象
+	 */
+	subtract(count: number | null): IKuxDayjs
+
+	/**
+	 * 减去
+	 * @description 返回减去一定时间的复制的 KuxDayjs 对象
+	 * @param {string} count 需要减去的整数，支持配合单位操作
+	 * @param {DiffUnit} unit 单位，默认为 `day`
+	 * + week 周，缩写 `w`
+	 * + day 天，缩写 `d`
+	 * + month 月份，缩写 `M`
+	 * + year 年，缩写 `y`
+	 * + hour 小时，缩写 `h`
+	 * + minute 分钟，缩写 `m`
+	 * + second 秒，缩写 `s`
+	 * + millisecond 毫秒，缩写 `ms`
+	 * @returns {Date} d 操作后的Date对象
+	 */
+	subtract(count : number | null, unit : DiffUnit | null) : IKuxDayjs;
+
+	/**
+	 * 设置时间为今天
+	 */
+	today() : IKuxDayjs;
+
+	/**
+	 * 时间的开始
+	 * @description 返回复制的 KuxDayjs 对象，并设置到一个时间的开始。
+	 * @param {DiffUnit} unit 单位
+	 * + week 周，缩写 `w`
+	 * + day 天，缩写 `d`
+	 * + month 月份，缩写 `M`
+	 * + year 年，缩写 `y`
+	 * + hour 小时，缩写 `h`
+	 * + minute 分钟，缩写 `m`
+	 * + second 秒，缩写 `s`
+	 * @returns {Date} d 操作后的Date对象
+	 */
+	startOf(unit : DiffUnit) : IKuxDayjs;
+
+	/**
+	 * 时间的结束
+	 * @description 返回复制的 KuxDayjs 对象，并设置到一个时间的末尾。
+	 * @param {DiffUnit} unit 单位
+	 * + week 周，缩写 `w`
+	 * + day 天，缩写 `d`
+	 * + month 月份，缩写 `M`
+	 * + year 年，缩写 `y`
+	 * + hour 小时，缩写 `h`
+	 * + minute 分钟，缩写 `m`
+	 * + second 秒，缩写 `s`
+	 * @returns {Date} d 操作后的Date对象
+	 */
+	endOf(unit : DiffUnit) : IKuxDayjs;
+	
+	/**
+	 * 相对当前时间（前）
+	 * @description 返回现在到当前实例的相对时间
+	 * 
+	 * @returns string
+	 * 
+	 * @example 
+	 * ### 基本示例
+	 * const datetime = dayjs('2021-12-12 15:43:58');
+	 * console.log(datetime.fromNow()); // 输出 1年前
+	 * 
+	 * ### 自定义格式示例
+	 * const datetime = dayjs('2021-12-12 15:43:58');
+	 * const options: FromNowOptions = {
+	 *	 isSuffix: false,
+	 *   relativeTime: {
+	 *      y: '%s year ago'	 
+	 *   } as RelativeTime
+	 * };
+	 * console.log(datetime.fromNow(options)); // 输出 1 year ago
+	 */
+	fromNow(): string
+
+	/**
+	 * 相对当前时间（前）
+	 * @description 返回现在到当前实例的相对时间
+	 * @param {FromNowOptions} options 配置项
+	 * + isSuffix - boolean类型，是否自动携带后缀，为true的时候会自动添加“前”后缀，如 1年前；手动指定 `relativeTime` 时该项不生效
+	 * + relativeTime - RelativeTime类型，自定义格式，支持变量见下方说明
+	 * | 范围 | 键量 | 使用变量 | 说明 | 示例 |
+	 * | --- | --- | --- | --- | --- |
+	 * | 0 to 44seconds | s | %s | 几秒前 | %s seconds ago |
+	 * | 45 to 89 seconds | m | %m | 1分钟前 | %m minute ago |
+	 * | 90 seconds to 44 minutes | mm | %mm | 几分钟前 | %mm minutes ago |
+	 * | 45 to 89 minutes | h | %h | 1小时前 | %h hour ago |
+	 * | 90 minutes to 21 hours | hh | %hh | 几小时前 | %hh hours ago |
+	 * | 22 to 35 hours | d | d | %d | 1天前 | %d day ago |
+	 * | 36 hours to 25 days | dd | %dd | 几天前 | %dd days ago |
+	 * | 26 to 45 days | mon | %mon | 1个月前 | %mon month ago |
+	 * | 46 days to 10 months | mons | %mons | 几个月前 | %mons months ago |
+	 * | 11 months to 17 months | y | %y | 1年前 | %y year ago |
+	 * | 18 months + | yy | %yy | 几年前 | %yy years ago |
+	 * 
+	 * @returns string
+	 * 
+	 * @example 
+	 * ### 基本示例
+	 * const datetime = dayjs('2021-12-12 15:43:58');
+	 * console.log(datetime.fromNow()); // 输出 1年前
+	 * 
+	 * ### 自定义格式示例
+	 * const datetime = dayjs('2021-12-12 15:43:58');
+	 * const options: FromNowOptions = {
+	 *	 isSuffix: false,
+	 *   relativeTime: {
+	 *      y: '%s year ago'	 
+	 *   } as RelativeTime
+	 * };
+	 * console.log(datetime.fromNow(options)); // 输出 1 year ago
+	 */
+	fromNow(options : FromToOptions | null) : string;
+	
+	/**
+	 * 相对指定时间（前）
+	 * @description 返回 X 到当前实例的相对时间
+	 * @returns string
+	 * 
+	 * @example 
+	 * ### 基本示例
+	 * const datetime = dayjs('2021-12-12 15:43:58');
+	 * const a = dayjs('2022-12-12');
+	 * console.log(datetime.from(a)); // 输出 1年前
+	 * 
+	 * ### 自定义格式示例
+	 * const datetime = dayjs('2021-12-12 15:43:58');
+	 * const a = dayjs('2022-12-12');
+	 * const options: FromNowOptions = {
+	 *	 isSuffix: false,
+	 *   relativeTime: {
+	 *      y: '%s year ago'	 
+	 *   } as RelativeTime
+	 * };
+	 * console.log(datetime.from(a, options)); // 输出 1 year ago
+	 */
+	from(dayjs: IKuxDayjs): string
+
+	/**
+	 * 相对指定时间（前）
+	 * @description 返回 X 到当前实例的相对时间
+	 * @param {FromNowOptions} options 配置项
+	 * + isSuffix - boolean类型，是否自动携带后缀，为true的时候会自动添加“前”后缀，如 1年前；手动指定 `relativeTime` 时该项不生效
+	 * + relativeTime - RelativeTime类型，自定义格式，支持变量见下方说明
+	 * | 范围 | 键量 | 使用变量 | 说明 | 示例 |
+	 * | --- | --- | --- | --- | --- |
+	 * | 0 to 44seconds | s | %s | 几秒前 | %s seconds ago |
+	 * | 45 to 89 seconds | m | %m | 1分钟前 | %m minute ago |
+	 * | 90 seconds to 44 minutes | mm | %mm | 几分钟前 | %mm minutes ago |
+	 * | 45 to 89 minutes | h | %h | 1小时前 | %h hour ago |
+	 * | 90 minutes to 21 hours | hh | %hh | 几小时前 | %hh hours ago |
+	 * | 22 to 35 hours | d | d | %d | 1天前 | %d day ago |
+	 * | 36 hours to 25 days | dd | %dd | 几天前 | %dd days ago |
+	 * | 26 to 45 days | mon | %mon | 1个月前 | %mon month ago |
+	 * | 46 days to 10 months | mons | %mons | 几个月前 | %mons months ago |
+	 * | 11 months to 17 months | y | %y | 1年前 | %y year ago |
+	 * | 18 months + | yy | %yy | 几年前 | %yy years ago |
+	 * 
+	 * @returns string
+	 * 
+	 * @example 
+	 * ### 基本示例
+	 * const datetime = dayjs('2021-12-12 15:43:58');
+	 * const a = dayjs('2022-12-12');
+	 * console.log(datetime.from(a)); // 输出 1年前
+	 * 
+	 * ### 自定义格式示例
+	 * const datetime = dayjs('2021-12-12 15:43:58');
+	 * const a = dayjs('2022-12-12');
+	 * const options: FromNowOptions = {
+	 *	 isSuffix: false,
+	 *   relativeTime: {
+	 *      y: '%s year ago'	 
+	 *   } as RelativeTime
+	 * };
+	 * console.log(datetime.from(a, options)); // 输出 1 year ago
+	 */
+	from(dayjs : IKuxDayjs, options : FromToOptions | null) : string;
+	
+	/**
+	 * 相对当前时间（后）
+	 * @description 返回当前实例到现在的相对时间
+	 * 
+	 * @returns string
+	 * 
+	 * @example 
+	 * ### 基本示例
+	 * const datetime = dayjs('2021-12-12 15:43:58');
+	 * console.log(datetime.toNow()); // 输出 1年后
+	 * 
+	 * ### 自定义格式示例
+	 * const datetime = dayjs('2021-12-12 15:43:58');
+	 * const options: FromToOptions = {
+	 *	 isSuffix: false,
+	 *   relativeTime: {
+	 *      y: '%s year after'	 
+	 *   } as RelativeTime
+	 * };
+	 * console.log(datetime.toNow(options)); // 输出 1 year after
+	 */
+	toNow(): string
+
+	/**
+	 * 相对当前时间（后）
+	 * @description 返回当前实例到现在的相对时间
+	 * @param {FromNowOptions} options 配置项
+	 * + isSuffix - boolean类型，是否自动携带后缀，为true的时候会自动添加“后”后缀，如 1年后；手动指定 `relativeTime` 时该项不生效
+	 * + relativeTime - RelativeTime类型，自定义格式，支持变量见下方说明
+	 * | 范围 | 键量 | 使用变量 | 说明 | 示例 |
+	 * | --- | --- | --- | --- | --- |
+	 * | 0 to 44seconds | s | %s | 几秒后 | %s seconds after |
+	 * | 45 to 89 seconds | m | %m | 1分钟后 | %m minute after |
+	 * | 90 seconds to 44 minutes | mm | %mm | 几分钟后 | %mm minutes after |
+	 * | 45 to 89 minutes | h | %h | 1小时后 | %h hour after |
+	 * | 90 minutes to 21 hours | hh | %hh | 几小时后 | %hh hours after |
+	 * | 22 to 35 hours | d | d | %d | 1天后 | %d day after |
+	 * | 36 hours to 25 days | dd | %dd | 几天后 | %dd days after |
+	 * | 26 to 45 days | mon | %mon | 1个月后 | %mon month after |
+	 * | 46 days to 10 months | mons | %mons | 几个月后 | %mons months after |
+	 * | 11 months to 17 months | y | %y | 1年后 | %y year after |
+	 * | 18 months + | yy | %yy | 几年后 | %yy years after |
+	 * 
+	 * @returns string
+	 * 
+	 * @example 
+	 * ### 基本示例
+	 * const datetime = dayjs('2021-12-12 15:43:58');
+	 * console.log(datetime.toNow()); // 输出 1年后
+	 * 
+	 * ### 自定义格式示例
+	 * const datetime = dayjs('2021-12-12 15:43:58');
+	 * const options: FromToOptions = {
+	 *	 isSuffix: false,
+	 *   relativeTime: {
+	 *      y: '%s year after'	 
+	 *   } as RelativeTime
+	 * };
+	 * console.log(datetime.toNow(options)); // 输出 1 year after
+	 */
+	toNow(options : FromToOptions | null) : string;
+	
+	/**
+	 * 相对指定时间（后）
+	 * @description 返回当前实例到 X 的相对时间
+	 * 
+	 * @returns string
+	 * 
+	 * @example 
+	 * ### 基本示例
+	 * const datetime = dayjs('2021-12-12 15:43:58');
+	 * const a = dayjs('2022-12-12');
+	 * console.log(datetime.to(a)); // 输出 1年后
+	 * 
+	 * ### 自定义格式示例
+	 * const datetime = dayjs('2021-12-12 15:43:58');
+	 * const a = dayjs('2022-12-12');
+	 * const options: FromToOptions = {
+	 *	 isSuffix: false,
+	 *   relativeTime: {
+	 *      y: '%s year after'	 
+	 *   } as RelativeTime
+	 * };
+	 * console.log(datetime.to(a, options)); // 输出 1 year after
+	 */
+	to(date: IKuxDayjs): string
+
+	/**
+	 * 相对指定时间（后）
+	 * @description 返回当前实例到 X 的相对时间
+	 * @param {FromNowOptions} options 配置项
+	 * + isSuffix - boolean类型，是否自动携带后缀，为true的时候会自动添加“前”后缀，如 1年后；手动指定 `relativeTime` 时该项不生效
+	 * + relativeTime - RelativeTime类型，自定义格式，支持变量见下方说明
+	 * | 范围 | 键量 | 使用变量 | 说明 | 示例 |
+	 * | --- | --- | --- | --- | --- |
+	 * | 0 to 44seconds | s | %s | 几秒后 | %s seconds after |
+	 * | 45 to 89 seconds | m | %m | 1分钟后 | %m minute after |
+	 * | 90 seconds to 44 minutes | mm | %mm | 几分钟后 | %mm minutes after |
+	 * | 45 to 89 minutes | h | %h | 1小时后 | %h hour after |
+	 * | 90 minutes to 21 hours | hh | %hh | 几小时后 | %hh hours after |
+	 * | 22 to 35 hours | d | d | %d | 1天后 | %d day after |
+	 * | 36 hours to 25 days | dd | %dd | 几天后 | %dd days after |
+	 * | 26 to 45 days | mon | %mon | 1个月后 | %mon month after |
+	 * | 46 days to 10 months | mons | %mons | 几个月后 | %mons months after |
+	 * | 11 months to 17 months | y | %y | 1年后 | %y year after |
+	 * | 18 months + | yy | %yy | 几年后 | %yy years after |
+	 * 
+	 * @returns string
+	 * 
+	 * @example 
+	 * ### 基本示例
+	 * const datetime = dayjs('2021-12-12 15:43:58');
+	 * const a = dayjs('2022-12-12');
+	 * console.log(datetime.to(a)); // 输出 1年后
+	 * 
+	 * ### 自定义格式示例
+	 * const datetime = dayjs('2021-12-12 15:43:58');
+	 * const a = dayjs('2022-12-12');
+	 * const options: FromToOptions = {
+	 *	 isSuffix: false,
+	 *   relativeTime: {
+	 *      y: '%s year after'	 
+	 *   } as RelativeTime
+	 * };
+	 * console.log(datetime.to(a, options)); // 输出 1 year after
+	 */
+	to(date : IKuxDayjs, options : FromToOptions | null) : string;
+
+	/**
+	 * Unix时间戳（毫秒）
+	 * @description 返回当前实例的 UNIX 时间戳，13位数字，毫秒
+	 * @returns number
+	 */
+	valueOf() : number;
+
+	/**
+	 * Unix时间戳
+	 * @description 返回当前实例的 UNIX 时间戳，10位数字，秒。
+	 * @returns number
+	 */
+	unix() : number;
+
+	/**
+	 * 是否闰年
+	 * @description 查询 KuxDayjs 对象的年份是否是闰年
+	 * @returns {boolean} boolean
+	 * @example
+	 * const date = dayjs('2000-01-01');
+	 * console.log(date.isLeapYear()); // 输出 true
+	 */
+	isLeapYear() : boolean;
+
+	/**
+	 * 获取月天数
+	 * @description 获取当前月份包含的天数
+	 * @returns number
+	 * @example
+	 * const date = dayjs('2023-12-12');
+	 * console.log(date.daysInMonth()); // 输出 31
+	 */
+	daysInMonth() : number;
+
+	/**
+	 * 转Date
+	 * @description 从KuxDayjs中获取原生的Date对象
+	 * @returns Date
+	 */
+	toDate() : Date;
+
+	/**
+	 * 转数组
+	 * @description 返回一个包含各个时间信息的 Array
+	 * @returns number[]
+	 * @example
+	 * const datetime = dayjs('2023-12-13 10:16:18');
+	 * console.log(datetime.toArray()); // 输出 [2023,12,13,10,16,18,0]
+	 */
+	toArray() : number[];
+
+	/**
+	 * 转JSON
+	 * @description 序列化为 ISO 8601 格式的字符串
+	 * @returns string
+	 * @example
+	 * const datetime = dayjs('2023-12-13 10:16:18');
+	 * console.log(datetime.toJSON()); // 输出 2023-12-13T10:16:18.000Z
+	 */
+	toJSON() : string;
+
+	/**
+	 * 转对象
+	 * @description 返回包含时间信息的 Object
+	 * @returns DatetimeOptions
+	 * @example
+	 * const datetime = dayjs('2023-12-13 10:16:18');
+	 * console.log(datetime.toObject()); // 输出 {"date":13,"hours":10,"milliseconds":0,"minutes":16,"months":12,"seconds":18,"years":2023}
+	 */
+	toObject() : DatetimeOptions;
+
+	/**
+	 * 转字符串
+	 * @description 返回包含时间信息的"RFC 822" 或 "RFC 5322" 格式字符串
+	 * @returns string
+	 * @example
+	 * const datetime = dayjs('2023-12-13 10:16:18');
+	 * console.log(datetime.toRFCString()); // 输出 Wed, 13 Dec 2023 10:16:18 GMT
+	 */
+	toRFCString() : string;
+	
+	/**
+	 * 是否之前
+	 * @description 表示 KuxDayjs 对象是否在另一个提供的日期时间之前
+	 * @param {string} datetime 日期时间字符串，仅支持 'YYYY-MM-DD HH:mm:ss.S'格式
+	 * @returns {boolean} boolean
+	 * @example
+	 * const datetime = dayjs('2023-12-13 10:16:18');
+	 * console.log(datetime.isBefore('2024-12-12')); // 输出 true
+	 * console.log(datetime.isBefore('2024-12-12', 'year')); // 输出 true
+	 */
+	isBefore(datetime: string): boolean
+
+	/**
+	 * 是否之前
+	 * @description 表示 KuxDayjs 对象是否在另一个提供的日期时间之前
+	 * @param {string} datetime 日期时间字符串，仅支持 'YYYY-MM-DD HH:mm:ss.S'格式
+	 * @param {DiffUnit} unit 比较单位，默认为ms
+	 * + year - 年，缩写为 `y`
+	 * + month - 月，缩写为 `M`
+	 * + day - 日，缩写为 `d`
+	 * + hour - 小时，缩写为 `h`
+	 * + minute - 分钟，缩写为 `m`
+	 * + second - 秒，缩写为 `s`
+	 * + millisecond - 毫秒，缩写为 `ms`
+	 * @returns {boolean} boolean
+	 * @example
+	 * const datetime = dayjs('2023-12-13 10:16:18');
+	 * console.log(datetime.isBefore('2024-12-12')); // 输出 true
+	 * console.log(datetime.isBefore('2024-12-12', 'year')); // 输出 true
+	 */
+	isBefore(datetime : string, unit : DiffUnit | null) : boolean;
+	
+	/**
+	 * 是否相同
+	 * @description 表示 KuxDayjs 对象是否和另一个提供的日期时间相同
+	 * @param {string} datetime 日期时间字符串，仅支持 'YYYY-MM-DD HH:mm:ss.S'格式
+	 * @returns {boolean} boolean
+	 * @example
+	 * const datetime = dayjs('2023-12-13 10:16:18');
+	 * console.log(datetime.isSame('2023-12-12')); // 输出 false
+	 * console.log(datetime.isSame('2023-12-12', 'year')); // 输出 true
+	 */
+	isSame(datetime: string): boolean
+
+	/**
+	 * 是否相同
+	 * @description 表示 KuxDayjs 对象是否和另一个提供的日期时间相同
+	 * @param {string} datetime 日期时间字符串，仅支持 'YYYY-MM-DD HH:mm:ss.S'格式
+	 * @param {DatetimeUnit} unit 比较单位，默认为ms
+	 * + year - 年，缩写为 `y`
+	 * + month - 月，缩写为 `M`
+	 * + day - 日，缩写为 `d`
+	 * + hour - 小时，缩写为 `h`
+	 * + minute - 分钟，缩写为 `m`
+	 * + second - 秒，缩写为 `s`
+	 * + millisecond - 毫秒，缩写为 `ms`
+	 * @returns {boolean} boolean
+	 * @example
+	 * const datetime = dayjs('2023-12-13 10:16:18');
+	 * console.log(datetime.isSame('2023-12-12')); // 输出 false
+	 * console.log(datetime.isSame('2023-12-12', 'year')); // 输出 true
+	 */
+	isSame(datetime : string, unit : DatetimeUnit | null) : boolean;
+	
+	/**
+	 * 是否之后
+	 * @description 表示 KuxDayjs 对象是否在另一个提供的日期时间之后
+	 * @param {string} datetime 日期时间字符串，仅支持 'YYYY-MM-DD HH:mm:ss.S'格式
+	 * @returns {boolean} boolean
+	 * @example
+	 * const datetime = dayjs('2023-12-13 10:16:18');
+	 * console.log(datetime.isAfter('2023-12-12')); // 输出 true
+	 * console.log(datetime.isAfter('2023-12-12', 'year')); // 输出 true
+	 */
+	isAfter(datetime: string): boolean
+
+	/**
+	 * 是否之后
+	 * @description 表示 KuxDayjs 对象是否在另一个提供的日期时间之后
+	 * @param {string} datetime 日期时间字符串，仅支持 'YYYY-MM-DD HH:mm:ss.S'格式
+	 * @param {DatetimeUnit} unit 比较单位，默认为ms
+	 * + year - 年，缩写为 `y`
+	 * + month - 月，缩写为 `M`
+	 * + day - 日，缩写为 `d`
+	 * + hour - 小时，缩写为 `h`
+	 * + minute - 分钟，缩写为 `m`
+	 * + second - 秒，缩写为 `s`
+	 * + millisecond - 毫秒，缩写为 `ms`
+	 * @returns {boolean} boolean
+	 * @example
+	 * const datetime = dayjs('2023-12-13 10:16:18');
+	 * console.log(datetime.isAfter('2023-12-12')); // 输出 true
+	 * console.log(datetime.isAfter('2023-12-12', 'year')); // 输出 true
+	 */
+	isAfter(datetime : string, unit : DatetimeUnit | null) : boolean;
+	
+	/**
+	 * 是否相同或之前
+	 * @description 表示 KuxDayjs 对象是和另一个提供的日期时间相同或在其之前
+	 * @param {string} datetime 日期时间字符串，仅支持 'YYYY-MM-DD HH:mm:ss.S'格式
+	 * @returns {boolean} boolean
+	 * @example
+	 * const datetime = dayjs('2023-12-13 10:16:18');
+	 * console.log(datetime.isSameOrBefore('2023-12-12')); // 输出 false
+	 * console.log(datetime.isSameOrBefore('2023-12-12', 'year')); // 输出 true
+	 */
+	isSameOrBefore(datetime: string): boolean
+
+	/**
+	 * 是否相同或之前
+	 * @description 表示 KuxDayjs 对象是和另一个提供的日期时间相同或在其之前
+	 * @param {string} datetime 日期时间字符串，仅支持 'YYYY-MM-DD HH:mm:ss.S'格式
+	 * @param {DatetimeUnit} unit 比较单位，默认为ms
+	 * + year - 年，缩写为 `y`
+	 * + month - 月，缩写为 `M`
+	 * + day - 日，缩写为 `d`
+	 * + hour - 小时，缩写为 `h`
+	 * + minute - 分钟，缩写为 `m`
+	 * + second - 秒，缩写为 `s`
+	 * + millisecond - 毫秒，缩写为 `ms`
+	 * @returns {boolean} boolean
+	 * @example
+	 * const datetime = dayjs('2023-12-13 10:16:18');
+	 * console.log(datetime.isSameOrBefore('2023-12-12')); // 输出 false
+	 * console.log(datetime.isSameOrBefore('2023-12-12', 'year')); // 输出 true
+	 */
+	isSameOrBefore(datetime : string, unit : DatetimeUnit | null) : boolean;
+	
+	/**
+	 * 是否相同或之后
+	 * @description 表示 KuxDayjs 对象是否和另一个提供的日期时间相同或在其之后
+	 * @param {string} datetime 日期时间字符串，仅支持 'YYYY-MM-DD HH:mm:ss.S'格式
+	 * @returns {boolean} boolean
+	 * @example
+	 * const datetime = dayjs('2023-12-13 10:16:18');
+	 * console.log(datetime.isSameOrAfter('2023-12-12')); // 输出 true
+	 * console.log(datetime.isSameOrAfter('2023-12-12', 'year')); // 输出 true
+	 */
+	isSameOrAfter(datetime: string): boolean
+
+	/**
+	 * 是否相同或之后
+	 * @description 表示 KuxDayjs 对象是否和另一个提供的日期时间相同或在其之后
+	 * @param {string} datetime 日期时间字符串，仅支持 'YYYY-MM-DD HH:mm:ss.S'格式
+	 * @param {DatetimeUnit} unit 比较单位，默认为ms
+	 * + year - 年，缩写为 `y`
+	 * + month - 月，缩写为 `M`
+	 * + day - 日，缩写为 `d`
+	 * + hour - 小时，缩写为 `h`
+	 * + minute - 分钟，缩写为 `m`
+	 * + second - 秒，缩写为 `s`
+	 * + millisecond - 毫秒，缩写为 `ms`
+	 * @returns {boolean} boolean
+	 * @example
+	 * const datetime = dayjs('2023-12-13 10:16:18');
+	 * console.log(datetime.isSameOrAfter('2023-12-12')); // 输出 true
+	 * console.log(datetime.isSameOrAfter('2023-12-12', 'year')); // 输出 true
+	 */
+	isSameOrAfter(datetime : string, unit : DatetimeUnit | null) : boolean;
+	
+	/**
+	 * 是否两者之间
+	 * @description 表示 KuxDayjs 对象是否在其他两个的日期时间之间
+	 * @param {string} datetime1 日期时间字符串，仅支持 'YYYY-MM-DD HH:mm:ss.S'格式
+	 * @param {string} datetime2 日期时间字符串，仅支持 'YYYY-MM-DD HH:mm:ss.S'格式
+	 * @returns {boolean} boolean
+	 * @example
+	 * const date = dayjs('2023-12-13');
+	 * console.log(date.isBetween('2023-12-13', '2023-12-14', 'day')); // 输出 false
+	 * console.log(date.isBetween('2023-12-13', '2023-12-14', 'day', '[')); // 输出 true 
+	 */
+	isBetween(datetime1: string, datetime2: string): boolean
+	
+	/**
+	 * 是否两者之间
+	 * @description 表示 KuxDayjs 对象是否在其他两个的日期时间之间
+	 * @param {string} datetime1 日期时间字符串，仅支持 'YYYY-MM-DD HH:mm:ss.S'格式
+	 * @param {string} datetime2 日期时间字符串，仅支持 'YYYY-MM-DD HH:mm:ss.S'格式
+	 * @param {DatetimeUnit} unit 比较单位，默认为 `ms`
+	 * + year - 年，缩写为 `y`
+	 * + month - 月，缩写为 `M`
+	 * + day - 日，缩写为 `d`
+	 * + hour - 小时，缩写为 `h`
+	 * + minute - 分钟，缩写为 `m`
+	 * + second - 秒，缩写为 `s`
+	 * + millisecond - 毫秒，缩写为 `ms`
+	 * @returns {boolean} boolean
+	 * @example
+	 * const date = dayjs('2023-12-13');
+	 * console.log(date.isBetween('2023-12-13', '2023-12-14', 'day')); // 输出 false
+	 * console.log(date.isBetween('2023-12-13', '2023-12-14', 'day', '[')); // 输出 true 
+	 */
+	isBetween(datetime1: string, datetime2: string, unit: DatetimeUnit | null): boolean
+
+	/**
+	 * 是否两者之间
+	 * @description 表示 KuxDayjs 对象是否在其他两个的日期时间之间
+	 * @param {string} datetime1 日期时间字符串，仅支持 'YYYY-MM-DD HH:mm:ss.S'格式
+	 * @param {string} datetime2 日期时间字符串，仅支持 'YYYY-MM-DD HH:mm:ss.S'格式
+	 * @param {DatetimeUnit} unit 比较单位，默认为 `ms`
+	 * + year - 年，缩写为 `y`
+	 * + month - 月，缩写为 `M`
+	 * + day - 日，缩写为 `d`
+	 * + hour - 小时，缩写为 `h`
+	 * + minute - 分钟，缩写为 `m`
+	 * + second - 秒，缩写为 `s`
+	 * + millisecond - 毫秒，缩写为 `ms`
+	 * @param {IsBetweenContains} contains 包含关系，见下方说明
+	 * + `[` - 向前包含，等同于 `<=`
+	 * + `]` - 向后包含，等同于 `>=`
+	 * + `[]` - 前后都包含
+	 * @returns {boolean} boolean
+	 * @example
+	 * const date = dayjs('2023-12-13');
+	 * console.log(date.isBetween('2023-12-13', '2023-12-14', 'day')); // 输出 false
+	 * console.log(date.isBetween('2023-12-13', '2023-12-14', 'day', '[')); // 输出 true 
+	 */
+	isBetween(datetime1 : string, datetime2 : string, unit : DatetimeUnit | null, contains : IsBetweenContains | null) : boolean;
+
+	/**
+	 * 是否是Dayjs
+	 * @description 这表示一个变量是否为 KuxDayjs 对象
+	 * @param {any} dayjs 判断的对象
+	 * @returns {boolean} boolean
+	 * @example
+	 * const now = dayjs();
+	 * console.log(now.isDayjs(dayjs())); // 输出 true
+	 * console.log(now.isDayjs(new Date())); // 输出 false
+	 */
+	isDayjs(dayjs : any) : boolean;
+}
+
+/**
+ * 创建的KuxDayjs实例
+ * @param {string} date 日期时间戳字符串，如果是想初始化时间戳可以直接把时间戳通过字符串形式传入。时间戳为毫秒形式
+ * @param {boolean} isTimestamp 是否是时间戳格式
+ * @param {boolean} isCST 是否是中国标准时间，既UTC时间+8小时，`isTimestamp` 为 `true` 时生效，默认为 `true`
+ * @returns KuxDayjs实例
+ */
+export declare function dayjs(date ?: string, isTimestamp ?: boolean, isCST ?: boolean) : IKuxDayjs;

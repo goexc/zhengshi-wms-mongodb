@@ -1,0 +1,138 @@
+<template>
+	<!-- #ifdef APP -->
+	<scroll-view
+		:style="{ flex: 1 }"
+		direction="vertical"
+		:scroll-top="scrollViewTop"
+		:scroll-with-animation="true"
+		:refresher-enabled="refresherEnabled"
+		:refresher-triggered="refresherTriggered"
+		:lower-threshold="lowerThreshold"
+		@scroll="onScroll"
+		@refresherrefresh="refresh"
+		@scrolltolower="reachBottom"
+	>
+		<cl-back-top v-if="backTop"></cl-back-top>
+		<theme></theme>
+		<ui></ui>
+		<slot></slot>
+	</scroll-view>
+	<!-- #endif -->
+
+	<!-- #ifndef APP -->
+	<cl-back-top v-if="backTop"></cl-back-top>
+	<theme></theme>
+	<ui></ui>
+	<slot></slot>
+	<!-- #endif -->
+</template>
+
+<script setup lang="ts">
+import { ref, watch, onUnmounted } from "vue";
+import Theme from "./theme.uvue";
+import Ui from "./ui.uvue";
+import { config } from "@/config";
+import { scroller } from "@/.cool";
+
+defineOptions({
+	name: "cl-page"
+});
+
+const props = defineProps({
+	// 是否显示回到顶部按钮
+	backTop: {
+		type: Boolean,
+		default: config.backTop
+	},
+	refresherEnabled: {
+		type: Boolean,
+		default: false
+	},
+	refresherTriggered: {
+		type: Boolean,
+		default: false
+	},
+	lowerThreshold: {
+		type: Number,
+		default: 180
+	}
+});
+
+const emit = defineEmits(["refresherrefresh", "scrolltolower"]);
+
+function refresh() {
+	if (props.refresherEnabled) {
+		emit("refresherrefresh");
+	} else {
+		// #ifndef APP
+		uni.stopPullDownRefresh();
+		// #endif
+	}
+}
+
+function reachBottom() {
+	if (!props.refresherTriggered) emit("scrolltolower");
+}
+
+// Web/小程序沿用页面滚动；App 的事件来自上方唯一的 scroll-view。
+// #ifndef APP
+const offReachBottom = scroller.onEvent("reachBottom", reachBottom);
+const offRefresh = scroller.onEvent("refresh", refresh);
+onUnmounted(() => {
+	offReachBottom();
+	offRefresh();
+});
+watch(
+	() => props.refresherTriggered,
+	(value: boolean) => {
+		if (!value) uni.stopPullDownRefresh();
+	}
+);
+// #endif
+
+// 滚动距离
+const scrollTop = ref(0);
+
+// scroll-view 滚动位置
+const scrollViewTop = ref(0);
+
+// view 滚动事件
+function onScroll(e: UniScrollEvent) {
+	// 触发滚动事件
+	scroller.emit(e.detail.scrollTop);
+}
+
+// 页面滚动事件
+scroller.on((top) => {
+	scrollTop.value = top;
+});
+
+// 滚动到指定位置
+function scrollTo(top: number) {
+	// #ifdef H5
+	window.scrollTo({ top, behavior: "smooth" });
+	// #endif
+
+	// #ifdef MP
+	uni.pageScrollTo({
+		scrollTop: top,
+		duration: 300
+	});
+	// #endif
+
+	// #ifdef APP
+	scrollViewTop.value = top;
+	// #endif
+}
+
+// 回到顶部
+function scrollToTop() {
+	scrollTo(0 + Math.random() / 1000);
+}
+
+defineExpose({
+	scrollTop,
+	scrollTo,
+	scrollToTop
+});
+</script>

@@ -1,0 +1,249 @@
+<template>
+	<WmsPage
+		title="客户流水"
+		:refresher-enabled="allowed"
+		:refresher-triggered="refreshing"
+		@refresherrefresh="refresh"
+	>
+		<template #header
+			><view v-if="allowed" class="ledger-header"
+				><text class="wms-muted">{{ customerName }} · 共 {{ total }} 笔</text
+				><text class="wms-muted"
+					>金额方向以流水记录为准，当前余额请查看客户资料。</text
+				></view
+			></template
+		>
+
+		<view class="wms-content">
+			<view v-if="!allowed" class="wms-empty"
+				><text class="wms-title">暂无访问权限</text
+				><text class="wms-muted">请联系管理员开通客户查询权限。</text></view
+			>
+			<template v-else>
+				<view v-for="(item, index) in items" :key="index" class="wms-card wms-record"
+					><view class="wms-record-header"
+						><view class="wms-record-heading"
+							><text class="wms-record-title">{{
+								item.type != null && item.type != "" ? item.type! : "往来记录"
+							}}</text
+							><text class="wms-record-badge">{{
+								transactionStatus(
+									item.status != null && item.status != "" ? item.status! : ""
+								)
+							}}</text></view
+						></view
+					><view class="wms-record-body"
+						><view class="wms-record-meta"
+							><text class="wms-label">{{ transactionDirection(item) }}</text>
+							<text class="wms-value">￥{{ formatMoney(item.amount ?? null) }}</text>
+							<text class="wms-muted">{{ transactionTime(item.time) }}</text></view
+						><view class="ledger-field"
+							><text class="wms-label">来源</text
+							><text class="wms-text">{{
+								transactionSource(
+									item.source_type != null && item.source_type != ""
+										? item.source_type!
+										: ""
+								)
+							}}</text
+							><text class="wms-text" selectable>{{
+								item.source_code != null && item.source_code != ""
+									? item.source_code!
+									: "未记录单号"
+							}}</text></view
+						>
+						<view v-if="item.remark != ''" class="ledger-field"
+							><text class="wms-label">备注</text
+							><text class="wms-text" selectable>{{ item.remark }}</text></view
+						>
+						<view
+							v-if="(item.annex != null && item.annex != '' ? item.annex! : '') != ''"
+							class="ledger-field"
+							><text class="wms-label">附件</text
+							><view class="wms-actions"
+								><cl-button
+									type="light"
+									v-for="(attachment, attachmentIndex) in attachments(item.annex)"
+									:key="attachmentIndex"
+									@tap="openAttachment(attachment)"
+									>{{ imageAttachment(attachment) ? "预览图片 " : "复制附件链接 "
+									}}{{ attachmentIndex + 1 }}</cl-button
+								></view
+							></view
+						></view
+					></view
+				>
+				<view v-if="error != ''" class="wms-card"
+					><text class="wms-error">{{ error }}</text
+					><cl-button type="light" @tap="retry">重试</cl-button></view
+				>
+				<view v-if="loading" class="wms-empty"
+					><text class="wms-muted">正在加载流水…</text></view
+				>
+				<view v-else-if="items.length == 0 && error == ''" class="wms-empty"
+					><text class="wms-title">暂无客户流水</text
+					><text class="wms-muted">后续应收、回款与调整记录会在此显示。</text></view
+				>
+				<view v-if="total > 0" class="wms-pagination">
+					<text class="wms-muted"
+						>第 {{ currentPage }} 页 · 共 {{ total }} 条 · 每页 20 条</text
+					>
+					<cl-pagination
+						:model-value="currentPage"
+						:total="total"
+						:size="20"
+						@change="changePage"
+					/>
+				</view>
+			</template>
+		</view>
+	</WmsPage>
+</template>
+
+<script setup lang="ts">
+import { computed, ref, watch } from "vue";
+import WmsPage from "@/components/wms/Page.uvue";
+import { errorMessage, useStore } from "@/.cool";
+import {
+	fetchCustomerTransactions,
+	transactionDirection as transactionDirectionValue,
+	transactionSource as transactionSourceValue,
+	transactionStatus as transactionStatusValue
+} from "@/services/business";
+import type { CustomerTransaction } from "@/types/business";
+import { formatDate, formatMoney as formatMoneyValue } from "@/utils/wms-format";
+import {
+	materialImageUrl as fileImageUrl,
+	previewMaterialImage as previewFileImage
+} from "@/utils/material-image";
+function formatMoney(value: number | null): string {
+	return formatMoneyValue(value);
+}
+function transactionDirection(value: CustomerTransaction): string {
+	return transactionDirectionValue(value);
+}
+function transactionSource(value: string): string {
+	return transactionSourceValue(value);
+}
+function transactionStatus(value: string): string {
+	return transactionStatusValue(value);
+}
+
+const { user } = useStore();
+const allowed = computed((): boolean => user.canAccess("customer"));
+const customerId = ref("");
+const customerName = ref("客户应收往来");
+const items = ref<CustomerTransaction[]>([]);
+const total = ref(0);
+const loading = ref(false);
+const refreshing = ref(false);
+const currentPage = ref(1);
+const error = ref("");
+let serial = 0;
+
+async function load(targetPage: number = 1) {
+	if (!allowed.value) {
+		refreshing.value = false;
+		return;
+	}
+	currentPage.value = targetPage;
+	items.value = [];
+	const current = ++serial;
+	loading.value = true;
+	error.value = "";
+	try {
+		const result = await fetchCustomerTransactions(customerId.value, targetPage);
+		if (current != serial) return;
+		total.value = result.total;
+		const lastPage = Math.max(1, Math.ceil(result.total / 20));
+		if (targetPage > lastPage) {
+			load(lastPage);
+			return;
+		}
+		// 每页保留接口返回的全部记录，不按金额、时间等业务字段去重。
+		items.value = result.list ?? [];
+	} catch (err) {
+		if (current == serial) error.value = errorMessage(err, "流水加载失败，请检查网络后重试");
+	} finally {
+		if (current == serial) {
+			loading.value = false;
+			refreshing.value = false;
+		}
+	}
+}
+
+function refresh() {
+	refreshing.value = true;
+	load(currentPage.value);
+}
+function changePage(value: number) {
+	if (value != currentPage.value) load(value);
+}
+function retry() {
+	load(currentPage.value);
+}
+function transactionTime(value: number): string {
+	if (!Number.isFinite(value) || value <= 0) return "—";
+	const date = new Date(value * 1000);
+	return `${formatDate(value)} ${`${date.getHours()}`.padStart(2, "0")}:${`${date.getMinutes()}`.padStart(2, "0")}:${`${date.getSeconds()}`.padStart(2, "0")}`;
+}
+function attachments(value: string): string[] {
+	return value
+		.split(",")
+		.map((part: string): string => part.trim())
+		.filter((part: string): boolean => part != "");
+}
+function imageAttachment(value: string): boolean {
+	return /\.(png|jpe?g|gif|webp|bmp)(\?.*)?$/i.test(value);
+}
+function openAttachment(value: string) {
+	const url = fileImageUrl(value);
+	if (imageAttachment(value)) previewFileImage(url);
+	else
+		uni.setClipboardData({
+			data: url,
+			fail: () => uni.showToast({ title: "复制失败，请重试", icon: "none" })
+		});
+}
+function clearSession() {
+	serial++;
+	items.value = [];
+	customerId.value = "";
+	customerName.value = "客户应收往来";
+	total.value = 0;
+	currentPage.value = 1;
+	loading.value = false;
+	refreshing.value = false;
+	error.value = "";
+}
+
+watch(allowed, (value: boolean) => {
+	if (value && customerId.value != "") load(1);
+	else if (!value) {
+		serial++;
+		items.value = [];
+		total.value = 0;
+		loading.value = false;
+		refreshing.value = false;
+	}
+});
+onLoad((query: UTSJSONObject) => {
+	customerId.value = `${query["customer_id"] ?? ""}`;
+	customerName.value = `${query["name"] ?? "客户应收往来"}`;
+	uni.$on("wms.session.changed", clearSession);
+	load(1);
+});
+onUnload(() => {
+	serial++;
+	uni.$off("wms.session.changed", clearSession);
+});
+</script>
+
+<style lang="scss" scoped>
+.ledger-header {
+	padding: 0 16px 12px;
+}
+.ledger-field {
+	margin-top: 12px;
+}
+</style>

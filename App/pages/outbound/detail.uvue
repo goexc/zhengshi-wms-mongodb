@@ -1,0 +1,311 @@
+<template>
+	<WmsPage title="出库单详情">
+		<view class="wms-content">
+			<view v-if="loading" class="wms-card"
+				><text class="wms-muted">正在加载单据与物料…</text></view
+			>
+			<view v-if="error != ''" class="wms-card"
+				><text class="wms-error">{{ error }}</text
+				><cl-button @tap="load">重新加载</cl-button></view
+			>
+			<view v-if="order != null" class="wms-card wms-record"
+				><view class="wms-record-header detail-order-header"
+					><view class="wms-record-heading"
+						><text class="wms-record-title">{{ order!.code }}</text
+						><text class="detail-status">{{ order!.status }}</text></view
+					></view
+				><view class="wms-record-body"
+					><text class="wms-muted">{{ order!.type }}</text>
+					<view v-if="order!.customer_name != ''" class="wms-section"
+						><text class="wms-label">客户</text
+						><text class="wms-text">{{ order!.customer_name }}</text></view
+					>
+					<view v-if="order!.supplier_name != ''" class="wms-section"
+						><text class="wms-label">供应商</text
+						><text class="wms-text">{{ order!.supplier_name }}</text></view
+					>
+					<view class="wms-section"
+						><text class="wms-label">单据金额（元）</text
+						><text class="wms-value">{{ formatMoney(order!.total_amount) }}</text></view
+					>
+					<view class="wms-between"
+						><text class="wms-label">出库日期</text
+						><text class="wms-text">{{
+							order!.departure_time > 0 ? formatDate(order!.departure_time) : "未出库"
+						}}</text></view
+					>
+					<view class="wms-between"
+						><text class="wms-label">签收日期</text
+						><text class="wms-text">{{
+							order!.receipt_time > 0 ? formatDate(order!.receipt_time) : "未签收"
+						}}</text></view
+					>
+					<view v-if="order!.carrier_name != ''" class="wms-between"
+						><text class="wms-label">承运商</text
+						><text class="wms-text">{{ order!.carrier_name }}</text></view
+					>
+					<view v-if="order!.remark != ''" class="wms-section"
+						><text class="wms-label">备注</text
+						><text class="wms-text">{{ order!.remark }}</text></view
+					></view
+				></view
+			>
+			<view class="wms-section"
+				><text class="wms-title">物料明细 · {{ materials.length }} 项</text
+				><text class="wms-muted">展示开单时的物料和价格记录。</text></view
+			>
+			<view
+				v-if="highlightModel != '' && !loading && error == ''"
+				class="detail-match-summary"
+			>
+				<text class="wms-label">筛选物料编号</text>
+				<text class="detail-filter-model">{{ highlightModel }}</text>
+				<text class="wms-muted">{{
+					matchedCount > 0
+						? `已突出显示 ${matchedCount} 项匹配明细，其他明细仍完整保留。`
+						: "当前明细中未找到该编号，已保留完整单据内容。"
+				}}</text>
+			</view>
+			<view v-if="!loading && materials.length == 0 && error == ''" class="wms-empty"
+				><text class="wms-muted">此单据暂无物料明细</text></view
+			>
+			<view
+				v-for="(item, index) in materials"
+				:key="item.id"
+				class="wms-card wms-record detail-material"
+				:class="{ 'detail-material-match': matchesMaterial(item) }"
+				><view
+					class="wms-record-header detail-material-header"
+					:class="{ 'detail-header-match': matchesMaterial(item) }"
+					><text
+						class="wms-record-title detail-material-title"
+						:class="{ 'detail-model-match': matchesMaterial(item) }"
+						>{{
+							item.model != null && item.model != "" ? item.model! : "型号未提供"
+						}}</text
+					></view
+				><view class="wms-record-body"
+					><view class="wms-between">
+						<text class="wms-label">{{ index + 1 }} / {{ materials.length }}</text>
+						<view v-if="matchesMaterial(item)" class="detail-match-badge">
+							<cl-icon name="search-line" :size="14" color="#b42318" />
+							<cl-text :size="12" color="#b42318">筛选物料</cl-text>
+						</view> </view
+					><text class="wms-text">{{ item.name }}</text>
+					<text class="detail-spec">{{
+						item.specification != null && item.specification != ""
+							? item.specification!
+							: "规格未提供"
+					}}</text>
+					<view class="wms-between"
+						><text class="wms-label">数量</text
+						><text class="wms-value"
+							>{{ quantityText(item.quantity)
+							}}{{ item.unit != null && item.unit != "" ? item.unit! : "单位" }}</text
+						></view
+					>
+					<view class="wms-between"
+						><text class="wms-label">单价（元）</text
+						><text class="wms-text">{{ formatMoney(item.price) }}</text></view
+					>
+					<view class="wms-between"
+						><text class="wms-label">行小计（元）</text
+						><text class="wms-text">{{
+							formatMoney(outboundLineAmount(item))
+						}}</text></view
+					>
+					<cl-button
+						v-if="item.model != '' && user.canAccess('material')"
+						type="light"
+						border
+						fluid
+						@tap="openMaterial(item)"
+						>查询物料</cl-button
+					></view
+				></view
+			>
+		</view>
+	</WmsPage>
+</template>
+
+<script setup lang="ts">
+import { computed, ref } from "vue";
+import { errorMessage, router, useStore, storage } from "@/.cool";
+import WmsPage from "@/components/wms/Page.uvue";
+import {
+	getExactOutboundOrder,
+	getOutboundMaterials,
+	normalizeOutboundOrder,
+	outboundLineAmount as outboundLineAmountValue
+} from "@/services/outbound";
+import {
+	formatDate as formatDateValue,
+	formatMoney as formatMoneyValue,
+	formatQuantity
+} from "@/utils/wms-format";
+import type { OutboundOrder, OutboundMaterial } from "@/types/outbound";
+function formatDate(value: number): string {
+	return formatDateValue(value);
+}
+function formatMoney(value: number | null): string {
+	return formatMoneyValue(value);
+}
+function outboundLineAmount(value: OutboundMaterial): number | null {
+	return outboundLineAmountValue(value);
+}
+
+const { user } = useStore();
+const code = ref(""),
+	highlightModel = ref(""),
+	error = ref(""),
+	loading = ref(false);
+const order = ref<OutboundOrder | null>(null),
+	materials = ref<OutboundMaterial[]>([]);
+let sequence = 0,
+	alive = true,
+	loaded = false;
+
+function matchesMaterial(item: OutboundMaterial): boolean {
+	// 与出库单筛选一致，精确匹配开单时记录的完整编号。
+	return highlightModel.value != "" && item.model == highlightModel.value;
+}
+const matchedCount = computed((): number => {
+	return materials.value.filter((item: OutboundMaterial): boolean => matchesMaterial(item))
+		.length;
+});
+
+function quantityText(value: number | null): string {
+	return value == null ? "未提供" : formatQuantity(value);
+}
+async function load(): Promise<void> {
+	if (!alive || !user.hasCredential() || !user.canAccess("outbound")) return;
+	const ticket = ++sequence;
+	if (code.value == "") {
+		error.value = "缺少出库单号，请返回列表重新选择";
+		return;
+	}
+	loading.value = true;
+	error.value = "";
+	try {
+		const rows = await getOutboundMaterials(code.value);
+		if (!alive || ticket != sequence) return;
+		materials.value = rows;
+		loaded = true;
+		const current = await getExactOutboundOrder(code.value);
+		if (!alive || ticket != sequence) return;
+		order.value = current;
+		if (current == null) error.value = "未找到此单号的单据概览，请确认权限或返回列表重试";
+	} catch (cause) {
+		if (alive && ticket == sequence) error.value = errorMessage(cause, "出库单详情加载失败");
+	} finally {
+		if (ticket == sequence) loading.value = false;
+	}
+}
+function openMaterial(item: OutboundMaterial): void {
+	if (item.model == "" || !user.canAccess("material")) return;
+	router.push({ path: "/pages/material/index", query: { model: item.model } });
+}
+function clearSession(): void {
+	sequence += 1;
+	loaded = false;
+	order.value = null;
+	materials.value = [];
+	loading.value = false;
+	error.value = "";
+}
+function ensureLoaded(): void {
+	if (!loaded && !loading.value) load();
+}
+uni.$on("wms.session.changed", clearSession);
+uni.$on("wms.permissions.ready", ensureLoaded);
+onLoad((query: UTSJSONObject) => {
+	const value = `${query["code"] ?? ""}`;
+	code.value = value;
+	const model = query["model"];
+	highlightModel.value = typeof model == "string" ? (model as string).trim() : "";
+	const params = router.params();
+	const snapshotValue = params["outboundOrder"];
+	if (snapshotValue != null) {
+		const snapshot = normalizeOutboundOrder(snapshotValue);
+		if (snapshot.code == code.value) order.value = snapshot;
+		storage.remove("router-params");
+	}
+	load();
+});
+onUnload(() => {
+	alive = false;
+	sequence += 1;
+	uni.$off("wms.session.changed", clearSession);
+	uni.$off("wms.permissions.ready", ensureLoaded);
+});
+</script>
+
+<style scoped lang="scss">
+$match-accent: #b42318;
+$match-surface: #fff5f3;
+$match-border: #efb1a9;
+
+.detail-order-header {
+	background-color: #103f2b;
+}
+.detail-material-header {
+	background-color: #cfe4d5;
+}
+.detail-material-title {
+	color: #14532d;
+}
+.detail-match-summary {
+	padding: 12px 16px;
+	margin-bottom: 16px;
+	background-color: #f0f4f2;
+	border-radius: 8px;
+}
+.detail-filter-model {
+	font-size: 16px;
+	line-height: 24px;
+	font-weight: 600;
+	color: #17212b;
+	margin-top: 4px;
+	margin-bottom: 4px;
+}
+.detail-material-match {
+	background-color: $match-surface;
+	border-color: $match-border;
+	border-left-width: 4px;
+}
+.detail-model-match {
+	color: $match-accent;
+}
+.detail-header-match {
+	background-color: #ffe4df;
+	border-bottom: 1px solid $match-border;
+}
+/* #ifdef H5 */
+.detail-filter-model,
+.detail-model-match {
+	overflow-wrap: anywhere;
+}
+/* #endif */
+.detail-match-badge {
+	flex-direction: row;
+	align-items: center;
+	padding: 4px 8px;
+	background-color: #ffe4df;
+	border-radius: 6px;
+}
+.detail-status {
+	color: #166534;
+	font-size: 15px;
+	padding: 6px 8px;
+	background-color: #dcfce7;
+	border-radius: 6px;
+	margin-left: 8px;
+}
+.detail-spec {
+	font-size: 18px;
+	font-weight: 600;
+	color: #17212b;
+	margin-top: 8px;
+	margin-bottom: 16px;
+}
+</style>

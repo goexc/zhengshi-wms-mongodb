@@ -1,0 +1,492 @@
+<template>
+	<WmsPage
+		title="物料"
+		:refresher-enabled="true"
+		:refresher-triggered="refreshing"
+		@refresherrefresh="refresh"
+	>
+		<template #header>
+			<view class="material-search">
+				<view class="wms-row">
+					<view class="material-search-input">
+						<cl-input
+							v-model="keyword"
+							placeholder="输入型号搜索"
+							prefix-icon="search-line"
+							clearable
+							confirm-type="search"
+							@confirm="search"
+							@clear="search"
+						/>
+					</view>
+					<cl-button size="large" @tap="search">搜索</cl-button>
+				</view>
+			</view>
+		</template>
+
+		<view class="wms-content">
+			<view class="wms-between material-heading">
+				<text class="wms-title">物料清单</text>
+				<text class="wms-muted">本页 {{ items.length }} 条 / 共 {{ total }} 条</text>
+			</view>
+			<view v-if="loading && items.length == 0" class="wms-empty">
+				<cl-loading :loading="true" />
+				<text class="wms-muted">正在加载物料…</text>
+			</view>
+			<view v-for="item in items" :key="item.id" class="wms-card wms-record material-card"
+				><view class="wms-record-header"
+					><text class="material-model wms-record-title">{{
+						item.model != null && item.model != "" ? item.model! : "未填写型号"
+					}}</text></view
+				><view class="wms-record-body"
+					><view class="wms-row">
+						<view
+							v-if="item.image.length > 0 && !failedImages.includes(item.id)"
+							class="material-thumbnail"
+							aria-label="预览物料图纸"
+							@tap.stop
+						>
+							<cl-image
+								:src="materialImageUrl(item.image)"
+								:width="80"
+								:height="88"
+								mode="aspectFit"
+								preview
+								lazy-load
+								@error="imageFailed(item.id)"
+							/>
+						</view>
+						<view v-else class="material-placeholder">
+							<cl-icon name="image-line" :size="28" color="#66756d" />
+							<text class="material-image-label">{{
+								item.image.length > 0 ? "图片加载失败" : "暂无图片"
+							}}</text>
+						</view>
+						<view style="flex: 1">
+							<text class="wms-text">{{
+								item.name != null && item.name != "" ? item.name! : "未填写名称"
+							}}</text>
+							<text class="wms-muted"
+								>规格
+								{{
+									item.specification != null && item.specification != ""
+										? item.specification!
+										: "未填写"
+								}}</text
+							>
+							<text class="wms-muted"
+								>材质
+								{{
+									item.material != null && item.material != ""
+										? item.material!
+										: "未填写"
+								}}</text
+							>
+						</view>
+					</view>
+					<text v-if="item.remark.length > 0" class="material-remark"
+						>备注：{{ item.remark }}</text
+					>
+					<view v-if="priceCount(item) > 0" class="material-prices" @tap.stop>
+						<view class="wms-between material-prices-heading">
+							<cl-text :size="16" color="#17212b">客户价格</cl-text>
+							<cl-text :size="14" color="#526170">{{ priceCount(item) }} 条</cl-text>
+						</view>
+						<cl-list :border="false" :pt="{ list: { className: '!rounded-none' } }">
+							<template v-for="(price, index) in item.prices" :key="index">
+								<cl-list-item justify="start">
+									<view class="material-price-content">
+										<view class="material-price-main">
+											<view class="material-price-customer">
+												<cl-text :size="16" color="#17212b" selectable>{{
+													materialPriceCustomerName(price.customer_name)
+												}}</cl-text>
+											</view>
+											<view class="material-price-details">
+												<view class="material-price-amount">
+													<cl-text
+														:size="22"
+														color="#b42318"
+														:pt="{ className: 'font-bold' }"
+														selectable
+														>¥ {{ formatMoney(price.price) }}</cl-text
+													>
+												</view>
+												<view class="material-price-date">
+													<cl-text :size="14" color="#526170"
+														>{{ formatDate(price.since) }} 生效</cl-text
+													>
+												</view>
+											</view>
+										</view>
+									</view>
+								</cl-list-item>
+								<view
+									v-if="index < priceCount(item) - 1"
+									class="material-price-divider"
+								/>
+							</template>
+						</cl-list>
+					</view>
+					<view v-if="canEdit || item.image.length > 0" class="material-card-footer">
+						<cl-button
+							v-if="item.image.length > 0"
+							type="light"
+							size="large"
+							:loading="savingImageId == item.id"
+							:disabled="savingImageId != ''"
+							@tap="saveImage(item)"
+							>保存图纸</cl-button
+						>
+						<cl-button
+							v-if="canEdit"
+							type="light"
+							size="large"
+							:pt="{ className: item.image.length > 0 ? 'ml-3' : '' }"
+							@tap="edit(item)"
+							>编辑物料</cl-button
+						>
+					</view></view
+				></view
+			>
+			<view v-if="loadError.length > 0" class="wms-card">
+				<text class="wms-error">{{ loadError }}</text>
+				<cl-button type="light" size="large" @tap="retry">重新加载</cl-button>
+			</view>
+			<view v-else-if="!loading && items.length == 0" class="wms-empty">
+				<cl-icon name="search-line" :size="36" color="#66756d" />
+				<text class="wms-title">没有找到物料</text>
+				<text class="wms-muted">{{
+					appliedKeyword.length > 0
+						? "请调整型号或清空搜索条件"
+						: "物料录入后会显示在这里"
+				}}</text>
+				<cl-button
+					v-if="appliedKeyword.length > 0"
+					type="light"
+					size="large"
+					@tap="clearSearch"
+					>清空搜索</cl-button
+				>
+			</view>
+			<view v-if="total > 0 &amp;&amp; !pendingSearch" class="wms-pagination">
+				<text class="wms-muted"
+					>第 {{ currentPage }} 页 · 共 {{ total }} 条 · 每页 20 条</text
+				>
+				<cl-pagination
+					:model-value="currentPage"
+					:total="total"
+					:size="20"
+					@change="changePage"
+				/>
+			</view>
+		</view>
+	</WmsPage>
+</template>
+
+<script setup lang="ts">
+import { computed, ref, watch } from "vue";
+import WmsPage from "@/components/wms/Page.uvue";
+import { errorMessage, router, storage, useStore } from "@/.cool";
+import { getMaterials } from "@/services/material";
+import type { Material } from "@/types/material";
+import {
+	materialImageUrl as materialImageUrlValue,
+	saveMaterialImage
+} from "@/utils/material-image";
+import {
+	formatMoney as formatMoneyValue,
+	formatDate as formatDateValue,
+	materialPriceCustomerName as materialPriceCustomerNameValue
+} from "@/utils/wms-format";
+function materialPriceCustomerName(value: string | null): string {
+	return materialPriceCustomerNameValue(value);
+}
+function materialImageUrl(value: string, thumbnail: boolean = false): string {
+	return materialImageUrlValue(value, thumbnail);
+}
+function formatMoney(value: number | null): string {
+	return formatMoneyValue(value);
+}
+function formatDate(value: number): string {
+	return formatDateValue(value);
+}
+
+const { user } = useStore();
+const canEdit = computed((): boolean => user.hasPermission("material:material:edit"));
+const savingImageId = ref("");
+let imageSequence = 0;
+const keyword = ref("");
+const appliedKeyword = ref("");
+const items = ref<Material[]>([]);
+const failedImages = ref<string[]>([]);
+const total = ref(0);
+const loading = ref(false);
+const refreshing = ref(false);
+const currentPage = ref(1);
+const loadError = ref("");
+let sequence = 0;
+let loaded = false;
+let changed = false;
+let searchTimer = 0;
+const pendingSearch = ref(false);
+let interruptedQuery = false;
+
+async function load(targetPage: number = 1, reset: boolean = false) {
+	if (!user.hasCredential() || !user.canAccess("material")) {
+		refreshing.value = false;
+		return;
+	}
+	const serial = ++sequence;
+	currentPage.value = targetPage;
+	interruptedQuery = false;
+	items.value = [];
+	failedImages.value = [];
+	if (reset) total.value = 0;
+	loading.value = true;
+	loadError.value = "";
+	try {
+		const result = await getMaterials({
+			page: targetPage,
+			size: 20,
+			model: appliedKeyword.value
+		});
+		if (serial != sequence) return;
+		total.value = result.total;
+		const lastPage = Math.max(1, Math.ceil(result.total / 20));
+		if (targetPage > lastPage) {
+			load(lastPage);
+			return;
+		}
+		items.value = result.list;
+		loaded = true;
+	} catch (error) {
+		if (serial == sequence) loadError.value = errorMessage(error, "物料加载失败，请重试");
+	} finally {
+		if (serial == sequence) {
+			loading.value = false;
+			refreshing.value = false;
+		}
+	}
+}
+
+function cancelSearchTimer() {
+	if (searchTimer > 0) {
+		clearTimeout(searchTimer);
+		searchTimer = 0;
+	}
+	pendingSearch.value = false;
+}
+function search() {
+	cancelSearchTimer();
+	appliedKeyword.value = keyword.value.trim();
+	load(1, true);
+}
+function clearSearch() {
+	keyword.value = "";
+	search();
+}
+function refresh() {
+	refreshing.value = true;
+	if (pendingSearch.value || keyword.value.trim() != appliedKeyword.value) search();
+	else load(currentPage.value);
+}
+function changePage(value: number) {
+	if (value != currentPage.value) load(value);
+}
+function retry() {
+	load(currentPage.value);
+}
+function imageFailed(id: string) {
+	if (!failedImages.value.includes(id)) failedImages.value.push(id);
+}
+function priceCount(item: Material): number {
+	return item.prices?.length ?? 0;
+}
+function edit(item: Material) {
+	if (!canEdit.value || item.id == "") return;
+	router.push({ path: "/pages/material/edit", query: { id: item.id } });
+}
+async function saveImage(item: Material) {
+	if (item.image.length == 0 || savingImageId.value != "") return;
+	const ticket = ++imageSequence;
+	savingImageId.value = item.id;
+	try {
+		const message = await saveMaterialImage(materialImageUrl(item.image));
+		if (ticket == imageSequence) uni.showToast({ title: message, icon: "none" });
+	} catch (error) {
+		if (ticket == imageSequence)
+			uni.showToast({ title: errorMessage(error, "图片保存失败，请重试"), icon: "none" });
+	} finally {
+		if (ticket == imageSequence) savingImageId.value = "";
+	}
+}
+function markChanged() {
+	changed = true;
+}
+function permissionsReady() {
+	if (!loaded && !loading.value) load(1, true);
+}
+function clearSession() {
+	imageSequence++;
+	savingImageId.value = "";
+	cancelSearchTimer();
+	interruptedQuery = false;
+	sequence++;
+	items.value = [];
+	failedImages.value = [];
+	keyword.value = "";
+	appliedKeyword.value = "";
+	total.value = 0;
+	currentPage.value = 1;
+	loaded = false;
+	loading.value = false;
+	refreshing.value = false;
+	loadError.value = "";
+}
+
+watch(keyword, () => {
+	cancelSearchTimer();
+	if (keyword.value.trim() == appliedKeyword.value) {
+		// Typing can cancel a still-running applied query. Returning to the same
+		// text must restart that query instead of leaving an empty, idle page.
+		if (interruptedQuery) load(1, true);
+		return;
+	}
+	// 输入期间立即作废旧请求，并暂时隐藏旧查询的分页器。
+	interruptedQuery = interruptedQuery || loading.value || !loaded;
+	sequence++;
+	loading.value = false;
+	refreshing.value = false;
+	pendingSearch.value = true;
+	searchTimer = setTimeout(() => {
+		search();
+	}, 350);
+});
+
+onLoad((query: UTSJSONObject) => {
+	keyword.value = `${query["model"] ?? ""}`;
+	appliedKeyword.value = keyword.value;
+	uni.$on("wms.material.changed", markChanged);
+	uni.$on("wms.session.changed", clearSession);
+	uni.$on("wms.permissions.ready", permissionsReady);
+});
+onShow(() => {
+	const params = router.params();
+	if (params["materialModel"] != null) {
+		keyword.value = `${params["materialModel"]}`;
+		storage.remove("router-params");
+		search();
+		return;
+	}
+	if (!loaded || changed) {
+		changed = false;
+		load(1, true);
+	}
+});
+onUnload(() => {
+	imageSequence++;
+	cancelSearchTimer();
+	sequence++;
+	uni.$off("wms.material.changed", markChanged);
+	uni.$off("wms.session.changed", clearSession);
+	uni.$off("wms.permissions.ready", permissionsReady);
+});
+</script>
+
+<style lang="scss" scoped>
+.material-search {
+	padding: 12px 16px;
+}
+.material-search-input {
+	flex: 1;
+	min-width: 0;
+	margin-right: 8px;
+}
+.material-heading {
+	margin-bottom: 12px;
+}
+.material-card {
+	margin-bottom: 12px;
+}
+.material-thumbnail {
+	width: 80px;
+	height: 88px;
+	margin-right: 14px;
+	border-radius: 10px;
+	background-color: #f2f5f3;
+}
+.material-placeholder {
+	width: 80px;
+	height: 88px;
+	margin-right: 14px;
+	align-items: center;
+	justify-content: center;
+	background-color: #f2f5f3;
+	border-radius: 10px;
+}
+.material-image-label {
+	font-size: 12px;
+	color: #66756d;
+	margin-top: 6px;
+}
+.material-model {
+	font-size: 20px;
+	font-weight: 700;
+	color: #ffffff;
+	margin-bottom: 0;
+}
+.material-remark {
+	font-size: 14px;
+	color: #68552c;
+	line-height: 22px;
+	margin-top: 12px;
+}
+.material-card-footer {
+	flex-direction: row;
+	justify-content: flex-end;
+	margin-top: 12px;
+	padding-top: 12px;
+	border-top: 1px solid #a9bfae;
+}
+.material-prices {
+	margin-top: 14px;
+	border: 1px solid #a9bfae;
+	border-radius: 8px;
+	overflow: hidden;
+}
+.material-prices-heading {
+	padding: 8px 12px;
+	background-color: #e7f0e9;
+}
+.material-price-content {
+	flex: 1;
+	min-width: 0;
+	/* #ifdef H5 */
+	overflow-wrap: anywhere;
+	/* #endif */
+}
+.material-price-main {
+	flex-direction: row;
+	align-items: flex-start;
+	justify-content: space-between;
+}
+.material-price-customer {
+	flex: 1;
+	min-width: 0;
+	padding-top: 4px;
+}
+.material-price-date {
+	margin-top: 4px;
+}
+.material-price-details {
+	flex-shrink: 0;
+	margin-left: 12px;
+	align-items: flex-end;
+}
+.material-price-divider {
+	height: 1px;
+	margin: 0 12px;
+	background-color: #a9bfae;
+}
+</style>

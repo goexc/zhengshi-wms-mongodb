@@ -1,0 +1,300 @@
+import { IPdfViewContext, CreatePdfViewContext } from "../interface.uts"
+import { BuilderNode } from "@kit.ArkUI"
+import { pdfViewManager, pdfService } from "@kit.PDFKit"
+import { buildPdfView } from "./builder.ets"
+import { common } from "@kit.AbilityKit"
+import { fileIo } from "@kit.CoreFileKit"
+import { http } from "@kit.NetworkKit"
+import { hilog } from "@kit.PerformanceAnalysisKit"
+
+const TAG = 'UniPdfView'
+const DOMAIN = 0x0000
+
+// 组件实例注册表
+const pdfViewRegistry = new Map<UniNativeViewElement, NativePdfView>()
+
+// PDF 视图参数类型 - 仅包含 PdfView 支持的参数
+interface PdfViewParams {
+  controller: pdfViewManager.PdfController
+  enablePageSwipe: boolean
+}
+
+/**
+ * PDF 预览原生组件的 uts 胶水层（鸿蒙 / PDFKit 方案）。
+ *
+ * 依据官方 PdfView 组件 / pdfViewManager 文档：
+ * - registerPageCountChangedListener 必须在 loadDocument 之前调用，且只能注册一次（在 constructor 中完成）。
+ * - loadDocument 不支持重复调用，二次加载前必须先 releaseDocument 释放当前文档。
+ * - loadDocument 返回 Promise<ParseResult>（API 20+）。
+ * - getPageIndex / goToPage 均为 0-based。
+ */
+export class NativePdfView {
+  $element: UniNativeViewElement
+  private controller: pdfViewManager.PdfController = new pdfViewManager.PdfController()
+  private builder: BuilderNode<[PdfViewParams]> | null = null
+  private params: PdfViewParams
+  private context: common.UIAbilityContext | null = null
+  private currentSrc: string = ''
+  private currentPage: number = 1
+  private pageCount: number = 0
+  private isLoaded: boolean = false
+  private tempFilePath: string = ''
+
+  private onLoadCb: ((pageCount: number) => void) | null = null
+  private onErrorCb: ((code: number, msg: string) => void) | null = null
+  private onPageChangeCb: ((page: number, pageCount: number) => void) | null = null
+
+  constructor(element: UniNativeViewElement,
+    enablePageSwipe: boolean,
+    onLoad: (pageCount: number) => void,
+    onError: (code: number, msg: string) => void,
+    onPageChange: (page: number, pageCount: number) => void) {
+    this.$element = element
+    this.onLoadCb = onLoad
+    this.onErrorCb = onError
+    this.onPageChangeCb = onPageChange
+
+    this.context = UTSHarmony.getUIAbilityContext() as common.UIAbilityContext
+
+    this.params = {
+      controller: this.controller,
+      enablePageSwipe: enablePageSwipe
+    }
+
+    // 注册页数变化监听器（必须在 loadDocument 之前调用，且只能调用一次）
+    this.controller.registerPageCountChangedListener((pageCount: number): void => {
+      hilog.info(DOMAIN, TAG, `PDF loaded, pageCount: ${pageCount.toString()}`)
+      this.pageCount = pageCount
+      this.onLoadCb?.(pageCount)
+    })
+
+    this.builder = this.$element.bindHarmonyWrappedBuilder(
+      wrapBuilder<[PdfViewParams]>(buildPdfView),
+      this.params
+    )
+
+    this.$element.bindHarmonyController(this.controller)
+    pdfViewRegistry.set(this.$element, this)
+  }
+
+  /**
+   * 释放当前已加载的文档。loadDocument 不支持重复调用，二次加载前必须先释放。
+   */
+  private releaseCurrentDocument(): void {
+    if (this.isLoaded) {
+      try {
+        this.controller.releaseDocument()
+      } catch (e) {
+        hilog.error(DOMAIN, TAG, `releaseDocument failed: ${e}`)
+      }
+      this.isLoaded = false
+      this.pageCount = 0
+    }
+  }
+
+  /**
+   * 下载网络 PDF 到沙箱临时目录，返回本地文件路径。失败时抛出异常。
+   */
+  private async downloadToFile(src: string): Promise<string> {
+    hilog.info(DOMAIN, TAG, `Downloading PDF from: ${src}`)
+    const httpClient = http.createHttp()
+    try {
+      // expectDataType 必须显式指定 ARRAY_BUFFER，否则默认 STRING，
+      // response.result 运行时为 string，访问 byteLength 会得到 undefined。
+      const options: http.HttpRequestOptions = {
+        method: http.RequestMethod.GET,
+        expectDataType: http.HttpDataType.ARRAY_BUFFER,
+        connectTimeout: 60000,
+        readTimeout: 60000
+      }
+      const response: http.HttpResponse = await httpClient.request(src, options)
+      if (response.responseCode !== 200 || response.result == null) {
+        throw new Error('responseCode: ' + response.responseCode.toString())
+      }
+
+      const resultData = response.result as ArrayBuffer
+      const tempDir = this.context?.filesDir ?? ''
+      const fileName = 'pdf_' + Date.now().toString() + '.pdf'
+      const filePath = tempDir + '/' + fileName
+
+      hilog.info(DOMAIN, TAG, `Saving PDF to: ${filePath}, download size: ${resultData.byteLength.toString()}`)
+
+      // 写入二进制数据到沙箱文件
+      const file = fileIo.openSync(filePath, fileIo.OpenMode.CREATE | fileIo.OpenMode.WRITE_ONLY | fileIo.OpenMode.TRUNC)
+      fileIo.writeSync(file.fd, resultData)
+      fileIo.closeSync(file.fd)
+
+      // 校验落盘大小
+      const stat = fileIo.statSync(filePath)
+      hilog.info(DOMAIN, TAG, `File saved, size on disk: ${stat.size.toString()}`)
+
+      this.tempFilePath = filePath
+      return filePath
+    } finally {
+      httpClient.destroy()
+    }
+  }
+
+  async loadSrc(src: string, page: number): Promise<void> {
+    this.currentSrc = src
+    this.currentPage = page
+
+    let filePath: string = ''
+
+    if (src.startsWith('http://') || src.startsWith('https://')) {
+      // 网络 PDF：先下载到本地沙箱
+      try {
+        filePath = await this.downloadToFile(src)
+      } catch (e) {
+        hilog.error(DOMAIN, TAG, `Download exception: ${e}`)
+        this.onErrorCb?.(9010002, '网络 PDF 下载失败: ' + e)
+        return
+      }
+    } else {
+      // 本地路径
+      filePath = src
+      if (filePath.startsWith('file://')) {
+        filePath = filePath.substring('file://'.length)
+      }
+      hilog.info(DOMAIN, TAG, `Loading local PDF: ${filePath}`)
+    }
+
+    // 二次加载前必须先释放当前文档（loadDocument 不支持重复调用）
+    this.releaseCurrentDocument()
+
+    // 校验文件存在
+    const fileExists = fileIo.accessSync(filePath)
+    hilog.info(DOMAIN, TAG, `File exists: ${fileExists}, path: ${filePath}`)
+    if (!fileExists) {
+      this.onErrorCb?.(9010001, '文件路径无效或文件不存在: ' + filePath)
+      return
+    }
+
+    // 通过 controller 加载 PDF 文档
+    try {
+      hilog.info(DOMAIN, TAG, `Calling loadDocument with filePath: ${filePath}`)
+
+      const loadResult: pdfService.ParseResult = await this.controller.loadDocument(filePath)
+      hilog.info(DOMAIN, TAG, `loadDocument result: ${loadResult}`)
+
+      if (loadResult !== pdfService.ParseResult.PARSE_SUCCESS) {
+        hilog.error(DOMAIN, TAG, `PDF parse failed, result: ${loadResult}`)
+        this.onErrorCb?.(9010003, 'PDF 文件解析失败')
+        return
+      }
+
+      this.isLoaded = true
+
+      // loadDocument 成功后，手动获取页数（监听器触发时机不稳定，作为兜底）
+      const pageCount = this.controller.getPageCount()
+      hilog.info(DOMAIN, TAG, `getPageCount returned: ${pageCount.toString()}`)
+
+      if (pageCount > 0) {
+        this.pageCount = pageCount
+        this.onLoadCb?.(pageCount)
+      } else {
+        // getPageCount 返回 0，等待监听器回调
+        hilog.info(DOMAIN, TAG, `getPageCount returned 0, waiting for listener callback`)
+      }
+
+      // 跳转到指定页（0-based）
+      if (page > 1 && pageCount > 0) {
+        this.controller.goToPage(page - 1)
+        this.currentPage = page
+      }
+    } catch (e) {
+      hilog.error(DOMAIN, TAG, `loadDocument failed: ${e}`)
+      this.isLoaded = false
+      this.onErrorCb?.(9010003, 'PDF 文件加载失败: ' + e)
+    }
+  }
+
+  setPage(page: number): void {
+    if (page > 0 && page <= this.pageCount) {
+      this.currentPage = page
+      this.controller.goToPage(page - 1) // PDFKit 页码从 0 开始
+      this.onPageChangeCb?.(page, this.pageCount)
+    }
+  }
+
+  getPageCount(): number {
+    return this.controller.getPageCount()
+  }
+
+  getCurrentPage(): number {
+    return this.controller.getPageIndex() + 1 // 转换为 1-based
+  }
+
+  reload(): void {
+    if (this.currentSrc.length > 0) {
+      this.loadSrc(this.currentSrc, this.currentPage)
+    }
+  }
+
+  destroy(): void {
+    // 释放当前已加载的文档，避免资源泄漏
+    this.releaseCurrentDocument()
+
+    pdfViewRegistry.delete(this.$element)
+    if (this.tempFilePath.length > 0) {
+      try {
+        fileIo.unlinkSync(this.tempFilePath)
+      } catch (e) {
+      }
+      this.tempFilePath = ''
+    }
+  }
+}
+
+class PdfViewContext implements IPdfViewContext {
+  private view: NativePdfView | null
+  constructor(element: UniNativeViewElement) {
+    this.view = pdfViewRegistry.get(element)
+  }
+  setPage(page: number): void {
+    this.view?.setPage(page)
+  }
+  getPageCount(): number {
+    return this.view?.getPageCount() ?? 0
+  }
+  getCurrentPage(): number {
+    return this.view?.getCurrentPage() ?? 0
+  }
+  reload(): void {
+    this.view?.reload()
+  }
+}
+
+function iterateElement(homeElement: UniElement): UniNativeViewElement | null {
+  if ("NATIVE-VIEW" == homeElement.nodeName) {
+    return homeElement as UniNativeViewElement
+  }
+  for (const perChildEle of homeElement.children) {
+    const findEle = iterateElement(perChildEle)
+    if (findEle != null) {
+      return findEle
+    }
+  }
+  return null
+}
+
+export function createPdfViewContext(id: string, component: ComponentPublicInstance | null = null): IPdfViewContext | null {
+  let root: UniElement | null = null
+  if (component == null) {
+    const pages = getCurrentPages()
+    if (pages.length > 0) {
+      const page = pages[pages.length - 1]
+      root = page.getElementById(id)
+    }
+  } else {
+    root = component.$el as UniElement | null
+  }
+  if (root == null) {
+    return null
+  }
+  const nativeViewElement = iterateElement(root!)
+  if (nativeViewElement == null) {
+    return null
+  }
+  return new PdfViewContext(nativeViewElement!)
+}

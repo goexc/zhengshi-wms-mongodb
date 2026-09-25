@@ -1,0 +1,31 @@
+<template>
+	<WmsPage title="使用与数据说明" :public-page="true"
+		><view class="wms-content"
+			><view class="wms-card"
+				><text class="wms-title">企业业务数据</text
+				><text class="wms-text" style="margin-top: 16px"
+					>应用使用企业账号登录
+					WMS，按已分配权限读取物料、出库单、客户、供应商及计划数据。密码仅用于登录请求，不保存到本机。</text
+				></view
+			><view class="wms-card"
+				><text class="wms-value">本机存储</text
+				><text class="wms-text" style="margin-top: 12px"
+					>应用在本机保存登录凭证、基础账号资料和显示偏好。退出登录会清除账号及当前查询状态。请妥善保管用于登录的设备。</text
+				></view
+			><view class="wms-card"
+				><text class="wms-value">图片与系统权限</text
+				><text class="wms-text" style="margin-top: 12px"
+					>仅在主动保存图片时使用系统相册能力。拒绝授权不影响其他查询。复制资料、拨打电话等操作由你主动触发。</text
+				></view
+			><view class="wms-card"
+				><text class="wms-value">业务操作</text
+				><text class="wms-text" style="margin-top: 12px"
+					>物料编辑需要对应权限，保存后修改企业系统中的物料资料。业务数据和账号权限问题，请联系企业系统管理员。</text
+				></view
+			></view
+		></WmsPage
+	>
+</template>
+<script setup lang="ts">
+import WmsPage from "@/components/wms/Page.uvue";
+</script>

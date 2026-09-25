@@ -1,0 +1,296 @@
+<template>
+	<WmsPage
+		title="计划任务"
+		:refresher-enabled="allowed"
+		:refresher-triggered="refreshing"
+		@refresherrefresh="refresh"
+	>
+		<template #header>
+			<view v-if="allowed" class="plan-header">
+				<view class="wms-actions"
+					><cl-button :type="status == '' ? 'primary' : 'light'" @tap="filter('')"
+						>全部</cl-button
+					><cl-button
+						:type="status == '执行中' ? 'primary' : 'light'"
+						@tap="filter('执行中')"
+						>执行中</cl-button
+					><cl-button
+						:type="status == '已完成' ? 'primary' : 'light'"
+						@tap="filter('已完成')"
+						>已完成</cl-button
+					></view
+				>
+				<text class="wms-muted">{{
+					total == null
+						? "已加载 " + items.length + " 项"
+						: "共 " + total + " 项 · 已加载 " + items.length + " 项"
+				}}</text>
+			</view>
+		</template>
+
+		<view class="wms-content">
+			<view v-if="!allowed" class="wms-empty"
+				><text class="wms-title">暂无访问权限</text
+				><text class="wms-muted">请联系管理员开通计划查询权限。</text></view
+			>
+			<template v-else>
+				<view v-for="item in items" :key="item.id" class="wms-card wms-record"
+					><view class="wms-record-header"
+						><view class="wms-record-heading"
+							><text class="wms-record-title" selectable>{{
+								item.material_model != null && item.material_model != ""
+									? item.material_model!
+									: "未填写型号"
+							}}</text
+							><text class="plan-status">{{
+								item.status != null && item.status != ""
+									? item.status!
+									: "状态未记录"
+							}}</text></view
+						></view
+					><view class="wms-record-body"
+						><text class="wms-label">{{
+							item.type != null && item.type != "" ? item.type! : "计划"
+						}}</text
+						><text class="wms-text" selectable>{{
+							item.material_name != null && item.material_name != ""
+								? item.material_name!
+								: "未填写物料名称"
+						}}</text>
+						<view class="plan-field"
+							><text class="wms-label">计划数量</text
+							><text class="wms-value"
+								>{{ formatQuantity(item.material_quantity) }}
+								{{ item.material_unit }}</text
+							></view
+						>
+						<view class="plan-field"
+							><text class="wms-label">截止时间</text
+							><text class="wms-text">{{
+								formatDate(item.deadline ?? 0)
+							}}</text></view
+						>
+						<text v-if="overdue(item)" class="wms-error">已超过计划截止时间</text>
+						<view v-if="expanded.indexOf(item.id) >= 0" class="plan-details">
+							<image
+								v-if="
+									(item.material_image != null && item.material_image != ''
+										? item.material_image!
+										: '') != ''
+								"
+								class="plan-image"
+								:src="fileImageUrl(item.material_image)"
+								mode="aspectFit"
+								@tap="previewFileImage(fileImageUrl(item.material_image))"
+							/>
+							<view class="plan-field"
+								><text class="wms-label">客户</text
+								><text class="wms-text" selectable>{{
+									item.customer_name != null && item.customer_name != ""
+										? item.customer_name!
+										: "未关联客户"
+								}}</text></view
+							>
+							<view class="plan-field"
+								><text class="wms-label">供应商</text
+								><text class="wms-text" selectable>{{
+									item.supplier_name != null && item.supplier_name != ""
+										? item.supplier_name!
+										: "未关联供应商"
+								}}</text></view
+							>
+							<view class="plan-field"
+								><text class="wms-label">计划标识</text
+								><text class="wms-muted" selectable>{{ item.id }}</text></view
+							>
+						</view>
+						<view class="wms-actions"
+							><cl-button type="light" @tap="toggleDetails(item.id)">{{
+								expanded.indexOf(item.id) >= 0 ? "收起详情" : "计划详情"
+							}}</cl-button
+							><cl-button
+								v-if="item.material_model != '' && user.canAccess('material')"
+								type="primary"
+								@tap="openMaterial(item)"
+								>查询物料</cl-button
+							></view
+						></view
+					></view
+				>
+				<view v-if="error != ''" class="wms-card"
+					><text class="wms-error">{{ error }}</text
+					><cl-button type="light" @tap="retry">重试</cl-button></view
+				>
+				<view v-if="loading" class="wms-empty"
+					><text class="wms-muted">正在加载计划…</text></view
+				>
+				<view v-else-if="items.length == 0 && error == ''" class="wms-empty"
+					><text class="wms-title">暂无{{ status }}计划</text
+					><text class="wms-muted">可切换状态查看其他计划。</text></view
+				>
+				<view v-if="total > 0" class="wms-pagination">
+					<text class="wms-muted"
+						>第 {{ currentPage }} 页 · 共 {{ total }} 条 · 每页 20 条</text
+					>
+					<cl-pagination
+						:model-value="currentPage"
+						:total="total"
+						:size="20"
+						@change="changePage"
+					/>
+				</view>
+			</template>
+		</view>
+	</WmsPage>
+</template>
+
+<script setup lang="ts">
+import { computed, ref, watch } from "vue";
+import WmsPage from "@/components/wms/Page.uvue";
+import { errorMessage, router, useStore } from "@/.cool";
+import { fetchPlans } from "@/services/plan";
+import type { Plan } from "@/types/plan";
+import {
+	formatDate as formatDateValue,
+	formatQuantity as formatQuantityValue
+} from "@/utils/wms-format";
+import { materialImageUrl, previewMaterialImage } from "@/utils/material-image";
+function formatDate(value: number): string {
+	return formatDateValue(value);
+}
+function formatQuantity(value: number): string {
+	return formatQuantityValue(value);
+}
+function fileImageUrl(value: string): string {
+	return materialImageUrl(value);
+}
+function previewFileImage(value: string): void {
+	previewMaterialImage(value);
+}
+
+const { user } = useStore();
+const allowed = computed((): boolean => user.canAccess("plan"));
+const status = ref("");
+const items = ref<Plan[]>([]);
+const expanded = ref<string[]>([]);
+const total = ref(0);
+const loading = ref(false);
+const refreshing = ref(false);
+const currentPage = ref(1);
+const error = ref("");
+let serial = 0;
+
+async function load(targetPage: number = 1) {
+	if (!allowed.value) {
+		refreshing.value = false;
+		return;
+	}
+	const current = ++serial;
+	currentPage.value = targetPage;
+	items.value = [];
+	expanded.value = [];
+	loading.value = true;
+	error.value = "";
+	try {
+		const result = await fetchPlans(targetPage, status.value);
+		if (current != serial) return;
+		total.value = result.total;
+		const lastPage = Math.max(1, Math.ceil(result.total / 20));
+		if (targetPage > lastPage) {
+			load(lastPage);
+			return;
+		}
+		// 每页保留接口返回的全部记录，不按金额、时间等业务字段去重。
+		items.value = result.list ?? [];
+	} catch (err) {
+		if (current == serial) error.value = errorMessage(err, "计划加载失败，请检查网络后重试");
+	} finally {
+		if (current == serial) {
+			loading.value = false;
+			refreshing.value = false;
+		}
+	}
+}
+
+function filter(value: string) {
+	if (status.value == value) return;
+	status.value = value;
+	items.value = [];
+	expanded.value = [];
+	total.value = 0;
+	currentPage.value = 1;
+	load(1);
+}
+function refresh() {
+	refreshing.value = true;
+	load(currentPage.value);
+}
+function changePage(value: number) {
+	if (value != currentPage.value) load(value);
+}
+function retry() {
+	load(currentPage.value);
+}
+function toggleDetails(id: string) {
+	const index = expanded.value.indexOf(id);
+	if (index >= 0) expanded.value.splice(index, 1);
+	else expanded.value.push(id);
+}
+function overdue(item: Plan): boolean {
+	const deadline = item.deadline ?? 0;
+	return item.status == "执行中" && deadline > 0 && deadline < Math.floor(Date.now() / 1000);
+}
+function openMaterial(item: Plan) {
+	if (item.material_model == "" || !user.canAccess("material")) return;
+	router.push({ path: "/pages/material/index", query: { model: item.material_model } });
+}
+function clearSession() {
+	serial++;
+	items.value = [];
+	expanded.value = [];
+	total.value = 0;
+	status.value = "";
+	currentPage.value = 1;
+	loading.value = false;
+	refreshing.value = false;
+	error.value = "";
+}
+
+watch(allowed, (value: boolean) => {
+	if (value) load(1);
+	else clearSession();
+});
+onLoad(() => {
+	uni.$on("wms.session.changed", clearSession);
+	load(1);
+});
+onUnload(() => {
+	serial++;
+	uni.$off("wms.session.changed", clearSession);
+});
+</script>
+
+<style lang="scss" scoped>
+.plan-header {
+	padding: 0 16px 12px;
+}
+.plan-field {
+	margin-top: 12px;
+}
+.plan-details {
+	margin-top: 4px;
+}
+.plan-image {
+	width: 100%;
+	height: 180px;
+	margin-top: 12px;
+}
+.plan-status {
+	font-size: 14px;
+	color: #166534;
+	padding: 6px 10px;
+	background-color: #dcfce7;
+	border-radius: 6px;
+	margin-left: 8px;
+}
+</style>

@@ -1,0 +1,220 @@
+<template>
+	<cl-page
+		:refresher-enabled="accessible && refresherEnabled"
+		:refresher-triggered="refresherTriggered"
+		:lower-threshold="lowerThreshold"
+		@refresherrefresh="refresh"
+		@scrolltolower="reachBottom"
+	>
+		<view class="wms-page" :class="{ 'wms-large': largeText }">
+			<cl-sticky ref="stickyRef">
+				<view class="shell-header">
+					<cl-topbar
+						:title="title"
+						:show-back="back && active == ''"
+						safe-area-top
+						:height="56"
+						background-color="#166534"
+						color="#ffffff"
+					>
+						<view class="shell-heading"
+							><text class="shell-title">{{ title }}</text></view
+						>
+					</cl-topbar>
+					<slot v-if="accessible" name="header"></slot>
+				</view>
+			</cl-sticky>
+			<slot v-if="accessible"></slot>
+			<view v-else class="wms-empty">
+				<text class="wms-title">{{ accessTitle }}</text>
+				<text class="wms-muted" style="margin-top: 12px; margin-bottom: 20px">{{
+					accessMessage
+				}}</text>
+				<cl-button v-if="!authenticated" @tap="signIn">前往登录</cl-button>
+				<cl-button v-else :loading="user.loading.value" @tap="retryAccess"
+					>重新加载权限</cl-button
+				>
+			</view>
+			<cl-footer
+				v-if="active != ''"
+				:height="76"
+				background-color="#ffffff"
+				:pt="{ content: { className: '!p-0' } }"
+			>
+				<view class="shell-tabs">
+					<view
+						v-for="item in tabs"
+						:key="item.path"
+						class="shell-tab"
+						hover-class="shell-pressed"
+						@tap="openTab(item.path)"
+					>
+						<view :class="active == item.path ? 'shell-icon-active' : 'shell-icon'"
+							><cl-icon
+								:name="item.icon"
+								:size="22"
+								:color="active == item.path ? '#166534' : '#526170'"
+						/></view>
+						<text
+							:class="active == item.path ? 'shell-tab-active' : 'shell-tab-label'"
+							>{{ item.name }}</text
+						>
+					</view>
+				</view>
+			</cl-footer>
+			<cl-safe-area v-else type="bottom" />
+		</view>
+	</cl-page>
+</template>
+<script setup lang="ts">
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from "vue";
+import { router, useStore } from "@/.cool";
+import { largeText } from "@/utils/wms-display";
+defineOptions({ styleIsolation: "app" });
+const props = defineProps({
+	title: { type: String, default: "正时 WMS" },
+	active: { type: String, default: "" },
+	back: { type: Boolean, default: true },
+	publicPage: { type: Boolean, default: false },
+	refresherEnabled: { type: Boolean, default: false },
+	refresherTriggered: { type: Boolean, default: false },
+	lowerThreshold: { type: Number, default: 180 }
+});
+const emit = defineEmits(["refresherrefresh", "scrolltolower"]);
+const { user } = useStore();
+const stickyRef = ref<ClStickyComponentPublicInstance | null>(null);
+const tick = ref(0);
+type TabItem = { name: string; path: string; icon: string };
+const tabs: TabItem[] = [
+	{ name: "工作台", path: "/pages/index/home", icon: "home-5-line" },
+	{ name: "我的", path: "/pages/index/my", icon: "user-3-line" }
+];
+const authenticated = computed((): boolean => {
+	const revision = user.revision.value + tick.value;
+	return revision >= 0 && user.token != null;
+});
+const feature = computed((): string => {
+	const path = props.active != "" ? props.active : router.path();
+	if (path.includes("/material/")) return "material";
+	if (path.includes("/outbound/")) return "outbound";
+	if (path.includes("/business/customer")) return "customer";
+	if (path.includes("/business/supplier")) return "supplier";
+	if (path.includes("/plan/")) return "plan";
+	return "";
+});
+const accessible = computed(
+	(): boolean =>
+		props.publicPage ||
+		(authenticated.value && (feature.value == "" || user.canAccess(feature.value)))
+);
+const accessTitle = computed((): string =>
+	!authenticated.value
+		? "请先登录"
+		: user.permissionError.value != ""
+			? "权限加载失败"
+			: !user.permissionsReady.value
+				? "正在确认访问权限"
+				: "暂无访问权限"
+);
+const accessMessage = computed((): string =>
+	!authenticated.value
+		? "使用企业账号登录后继续查询。"
+		: user.permissionError.value != ""
+			? user.permissionError.value
+			: "请确认账号已分配对应业务权限。可联系管理员后重新加载。"
+);
+function hideNativeTabs() {
+	if (props.active != "") uni.hideTabBar({ animation: false });
+}
+function refresh() {
+	if (accessible.value && props.refresherEnabled) emit("refresherrefresh");
+}
+function reachBottom() {
+	if (accessible.value) emit("scrolltolower");
+}
+function openTab(path: string) {
+	router.to(path);
+}
+function signIn() {
+	router.login();
+}
+function retryAccess() {
+	user.get();
+}
+function refreshSession() {
+	tick.value++;
+}
+function updateSticky() {
+	nextTick(() => {
+		stickyRef.value?.getRect();
+	});
+}
+watch(
+	computed(() => `${accessible.value}:${largeText.value}`),
+	updateSticky
+);
+onResize((_options: OnResizeOptions) => {
+	updateSticky();
+});
+onMounted(() => {
+	hideNativeTabs();
+	updateSticky();
+	uni.$on("wms.session.changed", refreshSession);
+	if (!props.publicPage && !user.hasCredential()) router.login();
+});
+onUnmounted(() => {
+	uni.$off("wms.session.changed", refreshSession);
+});
+</script>
+<style scoped>
+.shell-header {
+	background-color: #ffffff;
+	border-bottom: 1px solid #9bb3a3;
+}
+.shell-heading {
+	align-items: center;
+	padding: 0 44px;
+	width: 100%;
+}
+.shell-title {
+	font-size: 22px;
+	line-height: 30px;
+	font-weight: 700;
+	color: #ffffff;
+}
+.shell-tabs {
+	height: 76px;
+	flex-direction: row;
+	background-color: #ffffff;
+	border-top: 1px solid #9bb3a3;
+}
+.shell-tab {
+	flex: 1;
+	align-items: center;
+	justify-content: center;
+	padding: 8px 0;
+	min-height: 60px;
+}
+.shell-icon {
+	padding: 3px 16px;
+}
+.shell-icon-active {
+	padding: 3px 16px;
+	border-radius: 12px;
+	background-color: #eaf5ee;
+}
+.shell-tab-label {
+	margin-top: 3px;
+	font-size: 13px;
+	color: #526170;
+}
+.shell-tab-active {
+	margin-top: 3px;
+	font-size: 13px;
+	font-weight: 700;
+	color: #166534;
+}
+.shell-pressed {
+	background-color: #eaf5ee;
+}
+</style>

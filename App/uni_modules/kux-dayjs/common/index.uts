@@ -1,0 +1,1464 @@
+import { DateFormat, LunarType, DiffUnit, FromToOptions, DatetimeOptions, IsBetweenContains, DatetimeUnit, IKuxDayjs } from "../utssdk/interface.uts";
+import { Lunar } from './calendar';
+import { DateType, DateUtil } from './date';
+import { MONTHS, WEEKDAYS, MONTH_DAYS } from './constant';
+import { floor } from './utils';
+
+class KuxDayjs implements IKuxDayjs {
+	public d : Date
+	public dd : DateType
+	private lunar : Lunar
+	private dateUtil : DateUtil
+	private dateStr : string
+	private uniVersion : number
+
+	constructor(date : string = '', isTimestamp : boolean = false, isCST : boolean = true) {
+		this.uniVersion = uni.getSystemInfoSync().uniCompileVersionCode;
+		this.dateStr = date;
+		this.lunar = new Lunar();
+		this.dateUtil = new DateUtil();
+		const dd = this.dateUtil.getDate(date);
+		this.dd = dd;
+		this.d = new Date(dd.year, dd.month - 1, dd.date, dd.hour, dd.minute, dd.second, dd.millisecond);
+		// if (this.uniVersion >= 4.0) {
+		// 	this.d = new Date(date);
+		// }
+		if (isTimestamp) {
+			let timestamp = parseInt(date);
+			if (isCST) {
+				timestamp += 8 * 3600 * 1000;
+			}
+			this.fromTimestamp(timestamp);
+		}
+	}
+
+	/**
+	 * 根据时间戳实例化
+	 * @param {number} timestamp 时间戳
+	 */
+	private fromTimestamp(timestamp : number) : KuxDayjs {
+		const dd = this.dateUtil.parseTimestamp(timestamp);
+		this.dd = this.dateUtil.getDate(`${`${dd.year}`.padStart(2, '0')}-${`${dd.month}`.padStart(2, '0')}-${`${dd.day}`.padStart(2, '0')} ${`${dd.hours}`.padStart(2, '0')}:${`${dd.minutes}`.padStart(2, '0')}:${`${dd.seconds}`.padStart(2, '0')}.${`${dd.milliseconds}`.padStart(3, '0')}`);
+		this.d = new Date(dd.year, dd.month - 1, dd.day, dd.hours, dd.minutes, dd.seconds, dd.milliseconds);
+
+		return this;
+	}
+
+	/**
+	 * 当前时间对象
+	 * @description 返回一个基于指定日期和时间的 KuxDayjs 对象
+	 * @param {string} date 日期时间字符串，比如：'2023-12-12 19:35:35'
+	 */
+	dayjs(date : string) : IKuxDayjs {
+		this.dateStr = date;
+		this.lunar = new Lunar();
+		this.dateUtil = new DateUtil();
+		const dd = this.dateUtil.getDate(date);
+		this.dd = dd;
+		// this.d = new Date(dd.year, dd.month - 1, dd.date, dd.hour, dd.minute, dd.second, dd.millisecond);
+		if (this.uniVersion >= 4.0) {
+			this.d = new Date(date);
+		}
+
+		return this;
+	}
+
+	/**
+	 * 基于当前时间复制一个 KuxDayjs 对象
+	 * @returns {KuxDayjs}
+	 * @example
+	 * const a = dayjs();
+	 * const b = a.clone();
+	 * // a 和 b 是两个独立的 KuxDayjs 对象
+	 */
+	clone() : IKuxDayjs {
+		return new KuxDayjs();
+	}
+
+	/**
+	 * 日期格式化
+	 * @description 根据传入的占位符返回格式化后的日期
+	 * @param format 格式，如 'YYYY-MM-DD HH:mm:ss'
+	 * @returns string
+	 */
+	format(format : string) : string {
+		const YYYY = `${this.d.getFullYear()}`;
+		const YY = YYYY.slice(-2);
+		const M = `${this.d.getMonth() + 1}`;
+		const MM = M.padStart(2, '0');
+		const DD = `${this.d.getDate()}`.padStart(2, '0');
+		const HH = `${this.d.getHours()}`.padStart(2, '0');
+		const mm = `${this.d.getMinutes()}`.padStart(2, '0');
+		const ss = `${this.d.getSeconds()}`.padStart(2, '0');
+		const SSS = `${this.d.getMilliseconds()}`.padStart(3, '0');
+
+		// 上午/下午
+		let ampm = 'AM';
+		let ampmCN = '上午';
+		let ampmZN = 'am';
+		let formattedHours = HH;
+		if (Math.abs(parseInt(HH)) >= 12 && (format.includes('A') || format.includes('a') || format.includes('AA'))) {
+			ampm = 'PM';
+			ampmCN = '下午';
+			ampmZN = 'pm';
+			formattedHours = `${(Math.abs(parseInt(HH)) - 12)}`.padStart(2, '0');
+		}
+
+		return format
+			.replace('YYYY', YYYY)
+			.replace('YY', YY)
+			.replace('MM', MM)
+			.replace('DD', DD)
+			.replace('HH', formattedHours)
+			.replace('mm', mm)
+			.replace('ss', ss)
+			.replace('SSS', SSS)
+			.replace('AA', ampmCN)
+			.replace('A', ampm)
+			.replace('a', ampmZN)
+	}
+	
+	private _diffCommon(dd: DateType, time1: number, time2: number, unit: DiffUnit, strict: boolean): number {
+		// 计算两个日期的毫秒数差
+		const diffInMilliseconds = Math.abs(time1 - time2);
+		// 秒数差
+		const diffSeconds = diffInMilliseconds / 1000;
+		// 分钟差
+		const diffMinutes = diffSeconds / 60;
+		// 小时差
+		const diffHours = diffMinutes / 60;
+		// 天数差
+		const diffDays = diffHours / 24;
+		// 周数差
+		// const diffWeeks = diffDays / 7;
+		const week1 = Math.ceil((new Date(dd.year, dd.month, dd.date).getDate() - 1) / 7);
+		const week2 = Math.ceil((this.d.getDate() - 1) / 7);
+		const diffWeeks = Math.abs(week1 - week2);
+		// 月数差
+		const year1 = dd.year;
+		const year2 = this.d.getFullYear();
+		const month1 = dd.month;
+		const month2 = this.d.getMonth() + 1;
+		
+		const diffMonths = (year1 - year2) * 12 + (month1 - month2);
+		
+		// 年数差
+		const diffYear = year1 - year2;
+		
+		// 判断单位
+		let data : number;
+		
+		switch (unit) {
+			case 'millisecond':
+				data = diffInMilliseconds;
+				break;
+			case 'ms':
+				data = diffInMilliseconds;
+				break;
+			case 'second':
+				data = diffSeconds;
+				break;
+			case 's':
+				data = diffSeconds;
+				break;
+			case 'minute':
+				data = diffMinutes;
+				break;
+			case 'M':
+				data = diffMinutes;
+				break;
+			case 'hour':
+				data = diffHours;
+				break;
+			case 'h':
+				data = diffHours;
+				break;
+			case 'week':
+				data = diffWeeks;
+				break;
+			case 'w':
+				data = diffWeeks;
+				break;
+			case 'month':
+				data = diffMonths;
+				break;
+			case 'm':
+				data = diffMonths;
+				break;
+			case 'y':
+				data = diffYear;
+				break;
+			case 'year':
+				data = diffYear;
+				break;
+			default:
+				data = diffDays;
+				break;
+		}
+		
+		if (!strict) {
+			// data = Math.floor(data);
+			data = floor(data);
+		}
+		
+		return Math.abs(data);
+	}
+	
+	private _diffByDate(date: IKuxDayjs, unit: DiffUnit, strict: boolean): number {
+		const time1 = this.d.getTime();
+		const time2 = date.d.getTime();
+		
+		return this._diffCommon(date.dd, time1, time2, unit, strict);
+	}
+
+	private _diff(date : string, unit : DiffUnit, strict : boolean) : number {
+		// 将日期转换为毫秒数
+		const time1 = this.d.getTime();
+		const dd = this.dateUtil.getDate(date);
+		const time2 = new Date(dd.year, dd.month - 1, dd.date, dd.hour, dd.minute, dd.second, dd.millisecond).getTime();
+
+		return this._diffCommon(dd, time1, time2, unit, strict);
+	}
+	
+	diff(date : IKuxDayjs) : number
+
+	diff(date : string) : number
+	
+	diff(date : IKuxDayjs, unit : DiffUnit | null) : number
+
+	diff(date : string, unit : DiffUnit | null) : number
+	
+	diff(date : IKuxDayjs, unit : DiffUnit | null, strict : boolean | null): number
+
+	diff(date : string, unit : DiffUnit | null, strict : boolean | null) : number
+	
+	// #ifndef APP-HARMONY
+	diff(date : any, unit : DiffUnit | null, strict : boolean | null) : number {
+		// #ifdef APP-ANDROID
+		if (date instanceof IKuxDayjs) {
+			return this._diffByDate(date as IKuxDayjs, unit ?? 'ms', strict ?? false);
+		}
+		// #endif
+		// #ifndef APP-ANDROID
+		if (date instanceof KuxDayjs) {
+			return this._diffByDate(date as IKuxDayjs, unit ?? 'ms', strict ?? false);
+		}
+		// #endif
+		
+		return this._diff(`${date}`, unit ?? 'ms', strict ?? false);
+	}
+	// #endif
+	// #ifdef APP-HARMONY
+	diff(date : any, unit ?: DiffUnit | null, strict ?: boolean | null) : number {
+		// #ifdef APP-ANDROID
+		if (date instanceof IKuxDayjs) {
+			return this._diffByDate(date as IKuxDayjs, unit ?? 'ms', strict ?? false);
+		}
+		// #endif
+		// #ifndef APP-ANDROID
+		if (date instanceof KuxDayjs) {
+			return this._diffByDate(date as IKuxDayjs, unit ?? 'ms', strict ?? false);
+		}
+		// #endif
+		
+		return this._diff(`${date}`, unit ?? 'ms', strict ?? false);
+	}
+	// #endif
+
+	private _calendar(year : number, month : number) : DateFormat[] {
+		let outDate : DateFormat[] = [];
+		let date = new Date();
+		let curYear = year;
+		let curMonth = month;
+
+		if (isNaN(curYear) || curYear < 1900) {
+			curYear = date.getFullYear();
+		}
+
+		if (isNaN(curMonth) || curMonth < 1) {
+			curMonth = date.getMonth() + 1;
+		}
+
+		// 获取当月第一天
+		const firstDayOfThisMonth = new Date(curYear, curMonth - 1, 1);
+		const preMonthDay = firstDayOfThisMonth.getDay();
+		// 获取上月的最后一天，即本月第0天
+		const lastDayOfPreMonth = new Date(curYear, curMonth - 1, 0);
+		const lastDateOfLastMonth = lastDayOfPreMonth.getDate();
+		// 获取本月最后一天，即下月第0天
+		const lastDayOfThisMonth = new Date(curYear, curMonth, 0);
+		const lastDateOfThisMonth = lastDayOfThisMonth.getDate();
+
+		// 获取周日期数据，一个月最多跨6周，即6 * 7格式排版
+		for (let i = 0; i < 6 * 7; i++) {
+			// 获取当前排序日期
+			let thisYear : number = curYear,
+				thisMonth : number = curMonth,
+				dateN : number = i + 1 - preMonthDay,
+				cursorDate : number = dateN;
+
+			if (dateN <= 0) {
+				thisMonth -= 1;
+				cursorDate = dateN + lastDateOfLastMonth;
+			} else if (dateN > lastDateOfThisMonth) {
+				// date大于本月最后一天为下月预留天数
+				thisMonth += 1;
+				cursorDate = dateN - lastDateOfThisMonth;
+			}
+
+			if (thisMonth == 13) {
+				thisMonth = 1;
+				thisYear += 1;
+			}
+			if (thisMonth == 0) {
+				thisMonth = 12;
+				thisYear -= 1;
+			}
+
+			// 计算该日期与当前时间的天数差
+			// const diffInDays = this.diff()
+			const startDate = new Date(thisYear, thisMonth - 1, cursorDate);
+			const endDate = new Date(this.d.getFullYear(), this.d.getMonth(), this.d.getDate());
+			const fullDate = `${thisYear}-${`${thisMonth}`.padStart(2, '0')}-${`${cursorDate}`.padStart(2, '0')}`;
+
+			let diffInDays = this.diff(fullDate);
+			// let diffInDays = 0;
+
+			if (startDate.getTime() < endDate.getTime()) {
+				diffInDays *= -1;
+			}
+
+			outDate.push({
+				year: thisYear,
+				month: thisMonth,
+				date: cursorDate,
+				isToday: this.dateUtil.getlunar(thisYear, thisMonth, cursorDate).isToday,
+				diffDays: diffInDays,
+				render: {},
+				lunar: {
+					month: this.lunar.toChinaMonth(this.lunar.solar_date(thisYear, thisMonth, cursorDate).lunarM),
+					date: this.lunar.toChinaDay(this.lunar.solar_date(thisYear, thisMonth, cursorDate).lunarD)
+				} as LunarType,
+				fullLunar: this.lunar.solar_date(thisYear, thisMonth, cursorDate),
+				fullDate
+			} as DateFormat)
+		}
+
+		return outDate;
+	}
+
+	calendar() : DateFormat[]
+
+	calendar(year : number | null) : DateFormat[]
+
+	// #ifndef APP-HARMONY
+	calendar(year : number | null, month : number | null) : DateFormat[] {
+		return this._calendar(year ?? 0, month ?? 0);
+	}
+	// #endif
+	// #ifdef APP-HARMONY
+	calendar(year ?: number | null, month ?: number | null) : DateFormat[] {
+		return this._calendar(year ?? 0, month ?? 0);
+	}
+	// #endif
+
+	private _millsecond(ms : number) : number {
+		if (ms > -1) {
+			return this.d.getTime();
+		}
+
+		return this.d.setMilliseconds(ms);
+	}
+
+	millisecond() : number
+
+	// #ifndef APP-HARMONY
+	millisecond(ms : number | null) : number {
+		return this._millsecond(ms ?? -1);
+	}
+	// #endif
+	// #ifdef APP-HARMONY
+	millisecond(ms ?: number | null) : number {
+		return this._millsecond(ms ?? -1);
+	}
+	// #endif
+
+	private _second(s : number) : number {
+		if (s > -1) {
+			return this.d.setSeconds(s);
+		}
+
+		return this.d.getSeconds();
+	}
+
+	second() : number
+
+	// #ifndef APP-HARMONY
+	second(s : number | null) : number {
+		return this._second(s ?? -1);
+	}
+	// #endif
+	// #ifdef APP-HARMONY
+	second(s ?: number | null) : number {
+		return this._second(s ?? -1);
+	}
+	// #endif
+
+	private _minute(M : number) : number {
+		if (M > -1) {
+			return this.d.setMinutes(M);
+		}
+
+		return this.d.getMinutes();
+	}
+
+	minute() : number
+
+	// #ifndef APP-HARMONY
+	minute(M : number | null) : number {
+		return this._minute(M ?? -1);
+	}
+	// #endif
+	// #ifdef APP-HARMONY
+	minute(M ?: number | null) : number {
+		return this._minute(M ?? -1);
+	}
+	// #endif
+
+	private _hour(h : number) : number {
+		if (h > -1) {
+			return this.d.setHours(h);
+		}
+
+		return this.d.getHours();
+	}
+
+	hour() : number
+
+	// #ifndef APP-HARMONY
+	hour(h : number | null) : number {
+		return this._hour(h ?? -1);
+	}
+	// #endif
+	// #ifdef APP-HARMONY
+	hour(h ?: number | null) : number {
+		return this._hour(h ?? -1);
+	}
+	// #endif
+
+	private _date(d : number | null) : number {
+		if (d != null) {
+			return this.d.setDate(d);
+		}
+
+		return this.d.getDate();
+	}
+
+	date() : number
+
+	// #ifndef APP-HARMONY
+	date(d : number | null) : number {
+		return this._date(d);
+	}
+	// #endif
+	// #ifdef APP-HARMONY
+	date(d ?: number | null) : number {
+		return this._date(d);
+	}
+	// #endif
+
+	/**
+	 * 获取星期几，0 表示星期天。目前仅支持获取，不支持设置操作
+	 * @description 获取或设置星期
+	 * @returns {number} 返回0-6的整数，0代表星期日，1代表星期一，以此类推。
+	 */
+	day() : number {
+		return this.d.getDay();
+	}
+
+	/**
+	 * 获取/设置时间
+	 * @description 获取或设置毫秒
+	 * @param {number} t 一个整数，表示从 1970-1-1 00:00:00 UTC 开始计时的毫秒数。 传入参数就是设置操作，否则为获取操作。
+	 * @returns {number} 返回UTC 1970 年 1 月 1 日 00:00:00 与更新日期之间的毫秒数（实际上是自变量的值）。
+	 */
+	time(t : number) : number {
+		if (!isNaN(parseInt(`${t}`))) {
+			return this.d.setTime(parseInt(`${t}`));
+		}
+
+		return this.d.getTime();
+	}
+
+	private _month(m : number) : number {
+		if (m > -1) {
+			return this.d.setMonth(m);
+		}
+
+		return this.d.getMonth();
+	}
+
+	month() : number
+
+	// #ifndef APP-HARMONY
+	month(m : number | null) : number {
+		return this._month(m ?? -1);
+	}
+	// #endif
+	// #ifdef APP-HARMONY
+	month(m ?: number | null) : number {
+		return this._month(m ?? -1);
+	}
+	// #endif
+
+	private _year(y : number) : number {
+		if (y > 1969) {
+			return this.d.setFullYear(y);
+		}
+
+		return this.d.getFullYear();
+	}
+
+	year() : number
+
+	// #ifndef APP-HARMONY
+	year(y : number | null) : number {
+		return this._year(y ?? 1969);
+	}
+	// #endif
+	// #ifdef APP-HARMONY
+	year(y ?: number | null) : number {
+		return this._year(y ?? 1969);
+	}
+	// #endif
+
+	private _add(count : number, unit : DiffUnit) : IKuxDayjs {
+		if (count < 0) {
+			console.warn('【kux-dayjs:add】请输入大于0的数字');
+			return this;
+		}
+		if (unit == 'day' || unit == 'd') {
+			this.d.setDate(this.d.getDate() + count);
+		} else if (unit == 'month' || unit == 'M') {
+			this.d.setMonth(this.d.getMonth() + count);
+		} else if (unit == 'year' || unit == 'y') {
+			this.d.setFullYear(this.d.getFullYear() + count);
+		} else if (unit == 'week' || unit == 'w') {
+			this.d.setDate((this.d.getDate() + 7) * count);
+		} else if (unit == 'hour' || unit == 'h') {
+			this.d.setHours(this.d.getHours() + count);
+		} else if (unit == 'minute' || unit == 'm') {
+			this.d.setMinutes(this.d.getMinutes() + count);
+		} else if (unit == 'second' || unit == 's') {
+			this.d.setSeconds(this.d.getSeconds() + count);
+		} else if (unit == 'millisecond' || unit == 'ms') {
+			this.d.setMilliseconds(this.d.getMilliseconds() + count);
+		}
+
+		return this;
+	}
+
+	add() : IKuxDayjs
+
+	add(count : number | null) : IKuxDayjs
+
+	// #ifndef APP-HARMONY
+	add(count : number | null, unit : DiffUnit | null) : IKuxDayjs {
+		return this._add(count ?? 0, unit ?? 'day');
+	}
+	// #endif
+	// #ifdef APP-HARMONY
+	add(count ?: number | null, unit ?: DiffUnit | null) : IKuxDayjs {
+		return this._add(count ?? 0, unit ?? 'day');
+	}
+	// #endif
+
+	private _subtract(count : number, unit : DiffUnit) : IKuxDayjs {
+		if (count < 0) {
+			console.warn('【kux-dayjs:subtract】请输入大于0的数字');
+			return this;
+		}
+		if (unit == 'day' || unit == 'd') {
+			this.d.setDate(this.d.getDate() - count);
+		} else if (unit == 'month' || unit == 'M') {
+			this.d.setMonth(this.d.getMonth() - count);
+		} else if (unit == 'year' || unit == 'y') {
+			this.d.setFullYear(this.d.getFullYear() - count);
+		} else if (unit == 'week' || unit == 'w') {
+			this.d.setDate((this.d.getDate() - 7) * count);
+		} else if (unit == 'hour' || unit == 'h') {
+			this.d.setHours(this.d.getHours() - count);
+		} else if (unit == 'minute' || unit == 'm') {
+			this.d.setMinutes(this.d.getMinutes() - count);
+		} else if (unit == 'second' || unit == 's') {
+			this.d.setSeconds(this.d.getSeconds() - count);
+		} else if (unit == 'millisecond' || unit == 'ms') {
+			this.d.setMilliseconds(this.d.getMilliseconds() - count);
+		}
+
+		return this;
+	}
+
+	subtract() : IKuxDayjs
+
+	subtract(count : number | null) : IKuxDayjs
+
+	/**
+	 * 减去
+	 * @description 返回减去一定时间的复制的 KuxDayjs 对象
+	 * @param {string} count 需要减去的整数，支持配合单位操作
+	 * @param {DiffUnit} unit 单位，默认为 `day`
+	 * + week 周，缩写 `w`
+	 * + day 天，缩写 `d`
+	 * + month 月份，缩写 `M`
+	 * + year 年，缩写 `y`
+	 * + hour 小时，缩写 `h`
+	 * + minute 分钟，缩写 `m`
+	 * + second 秒，缩写 `s`
+	 * + millisecond 毫秒，缩写 `ms`
+	 * @returns {Date} d 操作后的Date对象
+	 */
+	// #ifndef APP-HARMONY
+	subtract(count : number | null, unit : DiffUnit | null) : IKuxDayjs {
+		return this._subtract(count ?? 0, unit ?? 'day');
+	}
+	// #endif
+	// #ifdef APP-HARMONY
+	subtract(count ?: number | null, unit ?: DiffUnit | null) : IKuxDayjs {
+		return this._subtract(count ?? 0, unit ?? 'day');
+	}
+	// #endif
+
+	/**
+	 * 设置时间为0时0分0秒0毫秒
+	 */
+	private _setTimeStart() : IKuxDayjs {
+		this.d.setHours(0);
+		this.d.setMinutes(0);
+		this.d.setSeconds(0);
+		this.d.setMilliseconds(0);
+
+		return this;
+	}
+
+	/**
+	 * 设置时间为23时59分59秒999毫秒
+	 */
+	private _setTimeEnd() {
+		this.d.setHours(23);
+		this.d.setMinutes(59);
+		this.d.setSeconds(59);
+		this.d.setMilliseconds(999);
+	}
+
+	/**
+	 * 设置时间为今天
+	 */
+	today() : IKuxDayjs {
+		this.d = new Date();
+
+		return this;
+	}
+
+	/**
+	 * 时间的开始
+	 * @description 返回复制的 KuxDayjs 对象，并设置到一个时间的开始。
+	 * @param {DiffUnit} unit 单位
+	 * + week 周，缩写 `w`
+	 * + day 天，缩写 `d`
+	 * + month 月份，缩写 `M`
+	 * + year 年，缩写 `y`
+	 * + hour 小时，缩写 `h`
+	 * + minute 分钟，缩写 `m`
+	 * + second 秒，缩写 `s`
+	 * @returns {Date} d 操作后的Date对象
+	 */
+	startOf(unit : DiffUnit) : IKuxDayjs {
+		// this.today();
+
+		if (unit == 'week' || unit == 'w') {
+			const day = this.d.getDay();
+			this.d.setDate((this.d.getDate() - day + (day == 0 ? -6 : 1)));
+			this._setTimeStart();
+		} else if (unit == 'day' || unit == 'd') {
+			this._setTimeStart();
+		} else if (unit == 'month' || unit == 'M') {
+			this.d.setDate(1);
+			this._setTimeStart();
+		} else if (unit == 'year' || unit == 'y') {
+			this.d.setMonth(0);
+			this.d.setDate(1);
+			this._setTimeStart();
+		} else if (unit == 'hour' || unit == 'h') {
+			this.d.setMinutes(0);
+			this.d.setSeconds(0);
+			this.d.setMilliseconds(0);
+		} else if (unit == 'minute' || unit == 'm') {
+			this.d.setSeconds(0);
+			this.d.setMilliseconds(0);
+		} else if (unit == 'second' || unit == 's') {
+			this.d.setMilliseconds(0);
+		}
+
+		return this;
+	}
+
+	/**
+	 * 时间的结束
+	 * @description 返回复制的 KuxDayjs 对象，并设置到一个时间的末尾。
+	 * @param {DiffUnit} unit 单位
+	 * + week 周，缩写 `w`
+	 * + day 天，缩写 `d`
+	 * + month 月份，缩写 `M`
+	 * + year 年，缩写 `y`
+	 * + hour 小时，缩写 `h`
+	 * + minute 分钟，缩写 `m`
+	 * + second 秒，缩写 `s`
+	 * @returns {Date} d 操作后的Date对象
+	 */
+	endOf(unit : DiffUnit) : IKuxDayjs {
+		// this.today();
+
+		if (unit == 'week' || unit == 'w') {
+			const day = this.d.getDay();
+			this.d.setDate(this.d.getDate() + (7 - day));
+			this._setTimeEnd();
+		} else if (unit == 'day' || unit == 'd') {
+			this._setTimeEnd();
+		} else if (unit == 'month' || unit == 'M') {
+			const year = this.d.getFullYear();
+			const month = this.d.getMonth() + 1;
+			this.d = new Date(year, month, 0);
+			this._setTimeEnd();
+		} else if (unit == 'year' || unit == 'y') {
+			const year = this.d.getFullYear();
+			this.d = new Date(year, 11, 31);
+			this._setTimeEnd();
+		} else if (unit == 'hour' || unit == 'h') {
+			this.d.setMinutes(59);
+			this.d.setSeconds(59);
+			this.d.setMilliseconds(999);
+		} else if (unit == 'minute' || unit == 'm') {
+			this.d.setSeconds(59);
+			this.d.setMilliseconds(999);
+		} else if (unit == 'second' || unit == 's') {
+			this.d.setMilliseconds(999);
+		}
+
+		return this;
+	};
+
+	private _fromOrto(date : Date, options : FromToOptions = {
+		isSuffix: false,
+		relativeTime: {
+			s: '',
+			m: '',
+			mm: '',
+			h: '',
+			hh: '',
+			d: '',
+			dd: '',
+			mon: '',
+			mons: '',
+			y: '',
+			yy: ''
+		}
+	} as FromToOptions, type : 'from' | 'to' = 'from') : string {
+		const now = date.getTime();
+		let diff = now - this.d.getTime();
+		const diffSeconds = Math.floor(diff / 1000);
+		const diffMinutes = Math.floor(diffSeconds / 60);
+		const diffHours = Math.floor(diffMinutes / 60);
+		const diffDays = Math.floor(diffHours / 24);
+		const diffMonths = Math.floor(diffDays / 30.44);
+		const diffYears = Math.floor(diffMonths / 12);
+
+		const isSuffix = options.isSuffix ?? false;
+		const s = options.relativeTime?.s ?? '';
+		const m = options.relativeTime?.m ?? '';
+		const mm = options.relativeTime?.mm ?? '';
+		const h = options.relativeTime?.h ?? '';
+		const hh = options.relativeTime?.hh ?? '';
+		const d = options.relativeTime?.d ?? '';
+		const dd = options.relativeTime?.dd ?? '';
+		const mon = options.relativeTime?.mon ?? '';
+		const mons = options.relativeTime?.mons ?? '';
+		const y = options.relativeTime?.y ?? '';
+		const yy = options.relativeTime?.yy ?? '';
+
+		let outStr = '';
+		let suffix = isSuffix ? '' : (type == 'from' ? '前' : '后');
+
+		if (diffSeconds > 0 && diffSeconds < 45) {
+			outStr = `${diffSeconds}秒${suffix}`;
+			if (s.includes('%s')) {
+				outStr = s;
+				outStr = outStr.replace('%s', `${diffSeconds}`);
+			}
+		} else if (diffSeconds >= 45 && diffSeconds <= 89) {
+			outStr = `1分钟${suffix}`;
+			if (m.includes('%m')) {
+				outStr = m;
+				outStr = outStr.replace('%m', `1`);
+			}
+		} else if (diffSeconds >= 90 && diffMinutes <= 44) {
+			outStr = `${diffMinutes}分钟${suffix}`;
+			if (mm.includes('%mm')) {
+				outStr = mm;
+				outStr = outStr.replace('%mm', `${diffMinutes}`);
+			}
+		} else if (diffMinutes >= 45 && diffMinutes <= 89) {
+			outStr = `1小时${suffix}`;
+			if (h.includes('%h')) {
+				outStr = h;
+				outStr = outStr.replace('%h', '1');
+			}
+		} else if (diffMinutes >= 90 && diffHours <= 21) {
+			outStr = `${diffHours}小时${suffix}`;
+			if (hh.includes('%hh')) {
+				outStr = hh;
+				outStr = outStr.replace('%hh', `${diffHours}`);
+			}
+		} else if (diffHours >= 22 && diffHours <= 35) {
+			outStr = `1天${suffix}`;
+			if (d.includes('%d')) {
+				outStr = d;
+				outStr = outStr.replace('%d', `1`);
+			}
+		} else if (diffHours >= 36 && diffDays <= 25) {
+			outStr = `${diffDays}天${suffix}`;
+			if (dd.includes('%dd')) {
+				outStr = dd;
+				outStr = outStr.replace('%dd', `${diffDays}`);
+			}
+		} else if (diffDays >= 26 && diffDays <= 45) {
+			outStr = `1个月${suffix}`;
+			if (mon.includes('%mon')) {
+				outStr = mon;
+				outStr = outStr.replace('%mon', '1');
+			}
+		} else if (diffDays >= 46 && diffMonths <= 10) {
+			outStr = `${diffMonths}个月${suffix}`;
+			if (mons.includes('%mons')) {
+				outStr = mons;
+				outStr = outStr.replace('%mons', `${diffMonths}`);
+			}
+		} else if (diffMonths >= 11 && diffMonths <= 17) {
+			outStr = `1年${suffix}`;
+			if (y.includes('%y')) {
+				outStr = y;
+				outStr = outStr.replace('%y', '1');
+			}
+		} else if (diffMonths >= 18) {
+			outStr = `${diffYears}年${suffix}`;
+			if (yy.includes('%yy')) {
+				outStr = yy;
+				outStr = outStr.replace('%yy', `${diffYears}`);
+			}
+		}
+
+		return outStr;
+	};
+
+	private _fromNow(options : FromToOptions) : string {
+		return this._fromOrto(new Date(), options);
+	}
+
+	fromNow() : string
+
+	// #ifndef APP-HARMONY
+	fromNow(options : FromToOptions | null) : string {
+		return this._fromNow(options ?? {
+			isSuffix: false,
+			relativeTime: {
+				s: '',
+				m: '',
+				mm: '',
+				h: '',
+				hh: '',
+				d: '',
+				dd: '',
+				mon: '',
+				mons: '',
+				y: '',
+				yy: ''
+			}
+		} as FromToOptions)
+	}
+	// #endif
+	// #ifdef APP-HARMONY
+	fromNow(options ?: FromToOptions | null) : string {
+		return this._fromNow(options ?? {
+			isSuffix: false,
+			relativeTime: {
+				s: '',
+				m: '',
+				mm: '',
+				h: '',
+				hh: '',
+				d: '',
+				dd: '',
+				mon: '',
+				mons: '',
+				y: '',
+				yy: ''
+			}
+		} as FromToOptions)
+	}
+	// #endif
+
+	private _from(dayjs : IKuxDayjs, options : FromToOptions) : string {
+		return this._fromOrto(dayjs.d, options);
+	}
+
+	from(dayjs : IKuxDayjs) : string
+
+	// #ifndef APP-HARMONY
+	from(dayjs : IKuxDayjs, options : FromToOptions | null) : string {
+		return this._from(dayjs, options ?? {
+			isSuffix: false,
+			relativeTime: {
+				s: '',
+				m: '',
+				mm: '',
+				h: '',
+				hh: '',
+				d: '',
+				dd: '',
+				mon: '',
+				mons: '',
+				y: '',
+				yy: ''
+			}
+		} as FromToOptions);
+	}
+	// #endif
+	// #ifdef APP-HARMONY
+	from(dayjs : IKuxDayjs, options ?: FromToOptions | null) : string {
+		return this._from(dayjs, options ?? {
+			isSuffix: false,
+			relativeTime: {
+				s: '',
+				m: '',
+				mm: '',
+				h: '',
+				hh: '',
+				d: '',
+				dd: '',
+				mon: '',
+				mons: '',
+				y: '',
+				yy: ''
+			}
+		} as FromToOptions);
+	}
+	// #endif
+
+	private _toNow(options : FromToOptions) : string {
+		return this._fromOrto(new Date(), options);
+	}
+
+	toNow() : string
+
+	// #ifndef APP-HARMONY
+	toNow(options : FromToOptions | null) : string {
+		return this._toNow(options ?? {
+			isSuffix: false,
+			relativeTime: {
+				s: '',
+				m: '',
+				mm: '',
+				h: '',
+				hh: '',
+				d: '',
+				dd: '',
+				mon: '',
+				mons: '',
+				y: '',
+				yy: ''
+			}
+		} as FromToOptions);
+	}
+	// #endif
+	// #ifdef APP-HARMONY
+	toNow(options ?: FromToOptions | null) : string {
+		return this._toNow(options ?? {
+			isSuffix: false,
+			relativeTime: {
+				s: '',
+				m: '',
+				mm: '',
+				h: '',
+				hh: '',
+				d: '',
+				dd: '',
+				mon: '',
+				mons: '',
+				y: '',
+				yy: ''
+			}
+		} as FromToOptions);
+	}
+	// #endif
+
+	private _to(date: IKuxDayjs, options : FromToOptions) : string {
+		return this._fromOrto(date.d, options);
+	}
+
+	to(date: IKuxDayjs) : string
+
+	// #ifndef APP-HARMONY
+	to(date: IKuxDayjs, options : FromToOptions | null) : string {
+		return this._to(date, options ?? {
+			isSuffix: false,
+			relativeTime: {
+				s: '',
+				m: '',
+				mm: '',
+				h: '',
+				hh: '',
+				d: '',
+				dd: '',
+				mon: '',
+				mons: '',
+				y: '',
+				yy: ''
+			}
+		} as FromToOptions);
+	}
+	// #endif
+	// #ifdef APP-HARMONY
+	to(date: IKuxDayjs, options ?: FromToOptions | null) : string {
+		return this._to(date, options ?? {
+			isSuffix: false,
+			relativeTime: {
+				s: '',
+				m: '',
+				mm: '',
+				h: '',
+				hh: '',
+				d: '',
+				dd: '',
+				mon: '',
+				mons: '',
+				y: '',
+				yy: ''
+			}
+		} as FromToOptions);
+	}
+	// #endif
+
+	/**
+	 * Unix时间戳（毫秒）
+	 * @description 返回当前实例的 UNIX 时间戳，13位数字，毫秒
+	 */
+	valueOf() : number {
+		return this.d.getTime();
+	}
+
+	/**
+	 * Unix时间戳
+	 * @description 返回当前实例的 UNIX 时间戳，10位数字，秒。
+	 */
+	unix() : number {
+		return Math.floor(this.valueOf() / 1000);
+	}
+
+	/**
+	 * 是否闰年
+	 * @description 查询 KuxDayjs 对象的年份是否是闰年
+	 * @returns {boolean}
+	 * @example
+	 * const date = dayjs('2000-01-01');
+	 * console.log(date.isLeapYear()); // 输出 true
+	 */
+	isLeapYear() : boolean {
+		return (this.dd.year % 4 == 0 && this.dd.year % 100 != 0) || this.dd.year % 400 == 0;
+	}
+
+	/**
+	 * 获取月天数
+	 * @description 获取当前月份包含的天数
+	 * @example
+	 * const date = dayjs('2023-12-12');
+	 * console.log(date.daysInMonth()); // 输出 31
+	 */
+	daysInMonth() : number {
+
+		// 如果是闰年，2月有 29 天
+		if (this.dd.month == 2 && this.isLeapYear()) {
+			return 29;
+		}
+
+		return MONTH_DAYS[this.dd.month - 1];
+	}
+
+	/**
+	 * 转Date
+	 * @description 从KuxDayjs中获取原生的Date对象
+	 */
+	toDate() : Date {
+		return this.d;
+	}
+
+	/**
+	 * 转数组
+	 * @description 返回一个包含各个时间信息的 Array
+	 * @example
+	 * const datetime = dayjs('2023-12-13 10:16:18');
+	 * console.log(datetime.toArray()); // 输出 [2023,12,13,10,16,18,0]
+	 */
+	toArray() : number[] {
+		return Array(this.dd.year, this.dd.month, this.dd.date, this.dd.hour, this.dd.minute, this.dd.second, this.dd.millisecond);
+	}
+
+	/**
+	 * 转JSON
+	 * @description 序列化为 ISO 8601 格式的字符串
+	 * @example
+	 * const datetime = dayjs('2023-12-13 10:16:18');
+	 * console.log(datetime.toJSON()); // 输出 2023-12-13T10:16:18.000Z
+	 */
+	toJSON() : string {
+		const year = `${this.dd.year}`.padStart(2, '0');
+		const month = `${this.dd.month}`.padStart(2, '0');
+		const date = `${this.dd.date}`.padStart(2, '0');
+		const hours = `${this.dd.hour}`.padStart(2, '0');
+		const minutes = `${this.dd.minute}`.padStart(2, '0');
+		const seconds = `${this.dd.second}`.padStart(2, '0');
+		const milliseconds = `${this.dd.millisecond}`.padStart(3, '0');
+
+		return `${year}-${month}-${date}T${hours}:${minutes}:${seconds}.${milliseconds}Z`;
+	}
+
+	/**
+	 * 转对象
+	 * @description 返回包含时间信息的 Object
+	 * @example
+	 * const datetime = dayjs('2023-12-13 10:16:18');
+	 * console.log(datetime.toObject()); // 输出 {"date":13,"hours":10,"milliseconds":0,"minutes":16,"months":12,"seconds":18,"years":2023}
+	 */
+	toObject() : DatetimeOptions {
+		return {
+			years: this.dd.year,
+			months: this.dd.month,
+			date: this.dd.date,
+			hours: this.dd.hour,
+			minutes: this.dd.minute,
+			seconds: this.dd.second,
+			milliseconds: this.dd.millisecond
+		} as DatetimeOptions;
+	}
+
+	/**
+	 * 转字符串
+	 * @description 返回包含时间信息的"RFC 822" 或 "RFC 5322" 格式字符串
+	 * @example
+	 * const datetime = dayjs('2023-12-13 10:16:18');
+	 * console.log(datetime.toRFCString()); // 输出 Wed, 13 Dec 2023 10:16:18 GMT
+	 */
+	toRFCString() : string {
+		const weekday = WEEKDAYS[this.toDate().getDay()];
+		const year = `${this.dd.year}`;
+		const month = MONTHS[this.toDate().getMonth()];
+		const day = `${this.dd.date}`.padStart(2, '0');
+		const hours = `${this.dd.hour}`.padStart(2, '0');
+		const minutes = `${this.dd.minute}`.padStart(2, '0');
+		const seconds = `${this.dd.second}`.padStart(2, '0');
+
+		return `${weekday}, ${day} ${month} ${year} ${hours}:${minutes}:${seconds} GMT`;
+	}
+
+	private _isGetDate(dayjs : IKuxDayjs, unit : DiffUnit = 'ms') : Date {
+		let date : Date;
+
+		const year = dayjs.dd.year;
+		const month = dayjs.dd.month;
+		const day = dayjs.dd.date;
+		const hour = dayjs.dd.hour;
+		const minute = dayjs.dd.minute;
+		const second = dayjs.dd.second;
+		const millsecond = dayjs.dd.millisecond;
+
+		if (unit == 'year' || unit == 'y') {
+			date = new Date(year, 0, 0, 0, 0, 0, 0);
+		} else if (unit == 'month' || unit == 'M') {
+			date = new Date(year, month - 1);
+		} else if (unit == 'day' || unit == 'd') {
+			date = new Date(year, month - 1, day);
+		} else if (unit == 'hour' || unit == 'h') {
+			date = new Date(year, month - 1, day, hour);
+		} else if (unit == 'minute' || unit == 'm') {
+			date = new Date(year, month - 1, day, hour, minute);
+		} else if (unit == 'second' || unit == 's') {
+			date = new Date(year, month - 1, day, hour, minute, second);
+		} else {
+			date = new Date(year, month - 1, day, hour, minute, second, millsecond);
+		}
+
+		return date;
+	}
+
+	private _isBefore(datetime : string, unit : DiffUnit) : boolean {
+		const dayjs = this.clone().dayjs(datetime);
+		const date1 = this._isGetDate(dayjs, unit);
+		// const date2 = this._isGetDate(this.clone(), unit);
+
+		return this.d.getTime() < date1.getTime();
+	}
+
+	isBefore(datetime : string) : boolean
+
+	// #ifndef APP-HARMONY
+	isBefore(datetime : string, unit : DiffUnit | null) : boolean {
+		return this._isBefore(datetime, unit ?? 'ms');
+	}
+	// #endif
+	// #ifdef APP-HARMONY
+	isBefore(datetime : string, unit ?: DiffUnit | null) : boolean {
+		return this._isBefore(datetime, unit ?? 'ms');
+	}
+	// #endif
+
+	private _isSame(datetime : string, unit : DatetimeUnit) : boolean {
+		const dayjs = this.clone().dayjs(datetime);
+		const date1 = this._isGetDate(dayjs, unit);
+		// const date2 = this._isGetDate(this.clone());
+		if (unit == 'y' || unit == 'year') {
+			return this.d.getFullYear() == date1.getFullYear();
+		}
+		
+		if (unit == 'month' || unit == 'M') {
+			return this.d.getMonth() == date1.getMonth();
+		}
+		
+		if (unit == 'day' || unit == 'd') {
+			return this.d.getDate() == date1.getDate();
+		}
+		
+		if (unit == 'hour' || unit == 'h') {
+			return this.d.getHours() == date1.getHours();
+		}
+		
+		if (unit == 'minute' || unit == 'm') {
+			return this.d.getMinutes() == date1.getMinutes();
+		}
+		
+		if (unit == 'second' || unit == 's') {
+			return this.d.getSeconds() == date1.getSeconds();
+		}
+
+		return this.d.getTime() == date1.getTime();
+	}
+
+	isSame(datetime : string) : boolean
+
+	// #ifndef APP-HARMONY
+	isSame(datetime : string, unit : DatetimeUnit | null) : boolean {
+		return this._isSame(datetime, unit ?? 'ms');
+	}
+	// #endif
+	// #ifdef APP-HARMONY
+	isSame(datetime : string, unit ?: DatetimeUnit | null) : boolean {
+		return this._isSame(datetime, unit ?? 'ms');
+	}
+	// #endif
+
+	private _isAfter(datetime : string, unit : DatetimeUnit) : boolean {
+		const dayjs = this.clone().dayjs(datetime);
+		const date1 = this._isGetDate(dayjs, unit);
+		// const date2 = this._isGetDate(this.clone(), unit);
+
+		return this.d.getTime() > date1.getTime();
+	}
+
+	isAfter(datetime : string) : boolean
+
+	// #ifndef APP-HARMONY
+	isAfter(datetime : string, unit : DatetimeUnit | null) : boolean {
+		return this._isAfter(datetime, unit ?? 'ms');
+	}
+	// #endif
+	// #ifdef APP-HARMONY
+	isAfter(datetime : string, unit ?: DatetimeUnit | null) : boolean {
+		return this._isAfter(datetime, unit ?? 'ms');
+	}
+	// #endif
+
+	private _isSameOrBefore(datetime : string, unit : DatetimeUnit) : boolean {
+		const dayjs = this.clone().dayjs(datetime);
+		const date1 = this._isGetDate(dayjs, unit);
+		// const date2 = this._isGetDate(this.clone(), unit);
+
+		const time1 = date1.getTime();
+		const time2 = this.d.getTime();
+		
+		if (unit == 'y' || unit == 'year') {
+			return this.d.getFullYear() <= dayjs.dd.year;
+		}
+		
+		if (unit == 'month' || unit == 'M') {
+			return this.d.getMonth() <= date1.getMonth();
+		}
+		
+		if (unit == 'day' || unit == 'd') {
+			return this.d.getDate() <= date1.getDate();
+		}
+		
+		if (unit == 'hour' || unit == 'h') {
+			return this.d.getHours() <= date1.getHours();
+		}
+		
+		if (unit == 'minute' || unit == 'm') {
+			return this.d.getMinutes() <= date1.getMinutes();
+		}
+		
+		if (unit == 'second' || unit == 's') {
+			return this.d.getSeconds() <= date1.getSeconds();
+		}
+
+		return time2 <= time1;
+	}
+
+	isSameOrBefore(datetime : string) : boolean
+
+	// #ifndef APP-HARMONY
+	isSameOrBefore(datetime : string, unit : DatetimeUnit | null) : boolean {
+		return this._isSameOrBefore(datetime, unit ?? 'ms');
+	}
+	// #endif
+	// #ifdef APP-HARMONY
+	isSameOrBefore(datetime : string, unit ?: DatetimeUnit | null) : boolean {
+		return this._isSameOrBefore(datetime, unit ?? 'ms');
+	}
+	// #endif
+
+	private _isSameOrAfter(datetime : string, unit : DatetimeUnit) : boolean {
+		const dayjs = this.clone().dayjs(datetime);
+		const date1 = this._isGetDate(dayjs, unit);
+		// const date2 = this._isGetDate(this.clone(), unit);
+
+		const time1 = date1.getTime();
+		const time2 = this.d.getTime();
+		
+		if (unit == 'y' || unit == 'year') {
+			return this.d.getFullYear() >= dayjs.dd.year;
+		}
+		
+		if (unit == 'month' || unit == 'M') {
+			return this.d.getMonth() >= date1.getMonth();
+		}
+		
+		if (unit == 'day' || unit == 'd') {
+			return this.d.getDate() >= date1.getDate();
+		}
+		
+		if (unit == 'hour' || unit == 'h') {
+			return this.d.getHours() >= date1.getHours();
+		}
+		
+		if (unit == 'minute' || unit == 'm') {
+			return this.d.getMinutes() >= date1.getMinutes();
+		}
+		
+		if (unit == 'second' || unit == 's') {
+			return this.d.getSeconds() >= date1.getSeconds();
+		}
+
+		return time2 >= time1;
+	}
+
+	isSameOrAfter(datetime : string) : boolean
+
+	// #ifndef APP-HARMONY
+	isSameOrAfter(datetime : string, unit : DatetimeUnit | null) : boolean {
+		return this._isSameOrAfter(datetime, unit ?? 'ms');
+	}
+	// #endif
+	// #ifdef APP-HARMONY
+	isSameOrAfter(datetime : string, unit ?: DatetimeUnit | null) : boolean {
+		return this._isSameOrAfter(datetime, unit ?? 'ms');
+	}
+	// #endif
+
+	private _isBetween(datetime1 : string, datetime2 : string, unit : DatetimeUnit, contains : IsBetweenContains) : boolean {
+		const dayjs1 = this.clone().dayjs(datetime1);
+		const date1 = this._isGetDate(dayjs1, unit);
+
+		const dayjs2 = this.dayjs(datetime2);
+		const date2 = this._isGetDate(dayjs2, unit);
+
+		// const date3 = this._isGetDate(this.clone(), unit);
+
+		const time1 = date1.getTime();
+		const time2 = date2.getTime();
+		const time3 = this.d.getTime();
+
+		// 向前包含
+		if (contains == '[') {
+			return time3 >= time1 && time3 < time2;
+		}
+
+		// 向后包含
+		if (contains == ']') {
+			return time3 > time1 && time3 <= time2;
+		}
+
+		// 前后都包含
+		if (contains == '[]') {
+			return time3 >= time1 && time3 <= time2;
+		}
+
+		// 前后都不包含
+		return time3 > time1 && time3 < time2;
+	}
+
+	isBetween(datetime1 : string, datetime2 : string) : boolean
+
+	isBetween(datetime1 : string, datetime2 : string, unit : DatetimeUnit | null) : boolean
+
+	// #ifndef APP-HARMONY
+	isBetween(datetime1 : string, datetime2 : string, unit : DatetimeUnit | null, contains : IsBetweenContains | null) : boolean {
+		return this._isBetween(datetime1, datetime2, unit ?? 'ms', contains ?? '');
+	}
+	
+	// #endif
+	// #ifdef APP-HARMONY
+	isBetween(datetime1 : string, datetime2 : string, unit ?: DatetimeUnit | null, contains ?: IsBetweenContains | null) : boolean {
+		return this._isBetween(datetime1, datetime2, unit ?? 'ms', contains ?? '');
+	}
+	
+	// #endif
+	/**
+	 * 是否是Dayjs
+	 * @description 这表示一个变量是否为 KuxDayjs 对象
+	 * @param {any} dayjs 判断的对象
+	 * @returns {boolean}
+	 * @example
+	 * const now = dayjs();
+	 * console.log(now.isDayjs(dayjs())); // 输出 true
+	 * console.log(now.isDayjs(new Date())); // 输出 false
+	 */
+	isDayjs(dayjs : any) : boolean {
+		// #ifndef APP-ANDROID
+		return dayjs instanceof KuxDayjs;
+		// #endif
+		// #ifdef APP-ANDROID
+		return dayjs instanceof IKuxDayjs;
+		// #endif
+	}
+};
+
+/**
+ * 创建的KuxDayjs实例
+ * @param {string} date 日期时间戳字符串，如果是想初始化时间戳可以直接把时间戳通过字符串形式传入。时间戳为毫秒形式
+ * @param {boolean} isTimestamp 是否是时间戳格式
+ * @param {boolean} isCST 是否是中国标准时间，既UTC时间+8小时，`isTimestamp` 为 `true` 时生效，默认为 `true`
+ * @returns KuxDayjs实例
+ */
+export function dayjs(date : string = '', isTimestamp : boolean = false, isCST : boolean = true) : IKuxDayjs {
+	return new KuxDayjs(date, isTimestamp, isCST);
+};
+
+// 导出类型
+// export * from '../utssdk/interface';

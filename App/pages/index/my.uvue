@@ -1,0 +1,141 @@
+<template>
+	<WmsPage title="我的" active="/pages/index/my" :back="false">
+		<view class="wms-content">
+			<view class="profile-card">
+				<image
+					v-if="avatarUrl != '' && !avatarFailed"
+					class="profile-avatar"
+					:src="avatarUrl"
+					mode="aspectFill"
+					@error="avatarFailed = true"
+				/>
+				<view v-else class="profile-avatar profile-placeholder"
+					><cl-icon name="user-3-line" :size="32" color="#166534"
+				/></view>
+				<view style="flex: 1"
+					><text class="wms-title">{{ user.info.value?.name ?? "企业用户" }}</text
+					><text class="wms-muted">{{
+						user.info.value?.department_name ?? "—"
+					}}</text></view
+				>
+			</view>
+			<view class="wms-card"
+				><text class="wms-label">手机号码</text
+				><text class="wms-text" selectable>{{ user.info.value?.mobile ?? "—" }}</text
+				><text class="wms-label" style="margin-top: 16px">电子邮箱</text
+				><text class="wms-text" selectable>{{
+					(user.info.value?.email ?? "") != "" ? user.info.value!.email : "—"
+				}}</text></view
+			>
+			<view class="wms-card"
+				><view class="wms-between"
+					><view style="flex: 1"
+						><text class="wms-value">大字显示</text
+						><text class="wms-muted">提高业务内容的阅读尺寸</text></view
+					><switch :checked="largeText" color="#166534" @change="changeText" /></view
+			></view>
+			<view class="settings-link" hover-class="settings-pressed" @tap="openAbout"
+				><text class="wms-text">关于正时 WMS</text
+				><text class="wms-muted">{{ config.version }} ›</text></view
+			>
+			<view class="settings-link" hover-class="settings-pressed" @tap="openPrivacy"
+				><text class="wms-text">使用与数据说明</text
+				><cl-icon name="arrow-right-s-line" :size="22"
+			/></view>
+			<text v-if="error != ''" class="wms-error" style="margin-top: 16px">{{ error }}</text>
+			<cl-button type="error" :loading="leaving" style="margin-top: 28px" @tap="confirmLogout"
+				>退出登录</cl-button
+			>
+		</view>
+	</WmsPage>
+</template>
+<script setup lang="ts">
+import { computed, ref, watch } from "vue";
+import { useStore, request, router } from "@/.cool";
+import { config } from "@/config";
+import { largeText, setLargeText } from "@/utils/wms-display";
+import WmsPage from "@/components/wms/Page.uvue";
+const { user } = useStore();
+const leaving = ref(false);
+const error = ref("");
+const avatarFailed = ref(false);
+const avatarUrl = computed((): string => user.info.value?.avatar ?? "");
+function resetAvatar() {
+	avatarFailed.value = false;
+}
+watch(avatarUrl, resetAvatar);
+uni.$on("wms.session.changed", resetAvatar);
+onUnload(() => {
+	uni.$off("wms.session.changed", resetAvatar);
+});
+function changeText(event: UniSwitchChangeEvent) {
+	setLargeText(event.detail.value);
+}
+function openAbout() {
+	router.to("/pages/set/about");
+}
+function openPrivacy() {
+	router.to("/pages/privacy/index");
+}
+async function leave() {
+	leaving.value = true;
+	let confirmed = true;
+	const token = user.token;
+	const revision = user.revision.value;
+	try {
+		await request({ url: "/auth/logout", method: "POST" });
+	} catch (_) {
+		confirmed = false;
+	}
+	if (token != user.token || revision != user.revision.value) {
+		leaving.value = false;
+		return;
+	}
+	user.clear();
+	uni.removeStorageSync("wms.returnTo");
+	router.login();
+	if (!confirmed) uni.showToast({ title: "已退出本机账号，服务端退出未确认", icon: "none" });
+	leaving.value = false;
+}
+function confirmLogout() {
+	if (leaving.value) return;
+	uni.showModal({
+		title: "退出登录",
+		content: "退出后将清除本机账号和查询状态。",
+		success: (res) => {
+			if (res.confirm) leave();
+		}
+	});
+}
+</script>
+<style scoped>
+.profile-card {
+	flex-direction: row;
+	align-items: center;
+	padding: 22px 16px;
+	margin-bottom: 16px;
+}
+.profile-avatar {
+	width: 68px;
+	height: 68px;
+	border-radius: 20px;
+	margin-right: 16px;
+}
+.profile-placeholder {
+	align-items: center;
+	justify-content: center;
+	background-color: #eaf5ee;
+}
+.settings-link {
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	padding: 18px 16px;
+	min-height: 60px;
+	border-bottom: 1px solid #d7dee3;
+	background-color: #ffffff;
+}
+.settings-pressed {
+	background-color: #eaf5ee;
+}
+</style>

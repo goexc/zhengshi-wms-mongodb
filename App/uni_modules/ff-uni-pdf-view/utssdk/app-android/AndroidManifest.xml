@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 网络 PDF 下载需要联网权限（宿主工程通常已声明，manifest 合并会自动去重） -->
+    <uses-permission android:name="android.permission.INTERNET" />
+</manifest>

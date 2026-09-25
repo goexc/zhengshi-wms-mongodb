@@ -1,0 +1,18 @@
+<script lang="ts">
+import { useStore, setTheme } from "./.cool";
+let lastBack = 0;
+export default {
+ onLaunch() { setTheme("light"); },
+ onShow() { const { user } = useStore(); if (user.hasCredential()) user.get(); },
+ // #ifdef APP-ANDROID
+ onLastPageBackPress() {
+  if (Date.now() - lastBack < 2000) { uni.exit(); return; }
+  lastBack = Date.now(); uni.showToast({ title: "再按一次退出应用", icon: "none" });
+ },
+ // #endif
+};
+</script>
+<style lang="scss">
+@import "@/.cool/index.scss";
+@import "@/styles/wms.scss";
+</style>
