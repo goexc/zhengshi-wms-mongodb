@@ -2,7 +2,7 @@
 import {nextTick, onMounted, ref} from "vue";
 import {reqUsers} from "@/api/acl/user";
 import {userRules} from "./rules";
-import {CascaderInstance, CascaderValue, ElMessage, FormInstance} from "element-plus";
+import {CascaderValue, ElMessage, FormInstance} from "element-plus";
 import {reqAddOrUpdateUser} from "@/api/acl/user";
 import {TimeFormat} from "@/utils/time";
 import {reqRoleList} from "@/api/acl/role";
@@ -153,7 +153,6 @@ const confirm = async () => {
 //部门树
 const departments = ref<Department[]>([])
 const props = ref({label: 'name', value: 'id', checkStrictly: true})
-const departmentRef = ref<CascaderInstance>()
 
 const changeDepartment = (value: CascaderValue) => {
   if (value && (value as string[]).length > 0) {
@@ -314,7 +313,7 @@ const statusType = (status: string) => {
 
   <div>
     <el-card class="form-card">
-      <el-form inline class="form">
+      <el-form inline class="form" @submit.prevent="getUsers">
         <el-form-item label="用户名称">
           <el-input v-model.trim="searchForm.name" clearable placeholder="请输入用户名称"></el-input>
         </el-form-item>
@@ -322,7 +321,7 @@ const statusType = (status: string) => {
           <el-input v-model.trim="searchForm.mobile" clearable placeholder="请输入手机号码"></el-input>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" plain @click="getUsers">查询</el-button>
+          <el-button type="primary" plain native-type="submit">查询</el-button>
           <el-button plain @click="resetUsers">重置</el-button>
         </el-form-item>
       </el-form>
@@ -486,7 +485,6 @@ const statusType = (status: string) => {
             <el-cascader
                 :options="departments"
                 :props="props"
-                ref="departmentRef"
                 clearable
                 @change="changeDepartment"
             >

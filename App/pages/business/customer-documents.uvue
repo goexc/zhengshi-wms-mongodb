@@ -1,0 +1,64 @@
+<template>
+ <WmsPage :title="title" :required-permission="'finance:' + kind + ':list'" :refresher-enabled="allowed" :refresher-triggered="refreshing" @refresherrefresh="refresh">
+  <template #header><view v-if="allowed" class="document-header">
+   <text class="wms-muted">{{ customerName }} · 共 {{ total }} 条</text>
+   <cl-input v-model="keyword" placeholder="票据号码或客户关键词" clearable confirm-type="search" @confirm="search" />
+   <view class="wms-actions"><cl-button type="primary" @tap="search">搜索</cl-button><cl-button v-for="option in statusOptions" :key="option.code" :type="status == option.code ? 'primary' : 'light'" @tap="selectStatus(option.code)">{{ option.label }}</cl-button></view>
+  </view></template>
+  <view class="wms-content">
+   <view v-if="!allowed" class="wms-empty"><text class="wms-title">暂无访问权限</text><text class="wms-muted">请联系管理员开通{{ title }}查询权限。</text></view>
+   <template v-else>
+    <view class="wms-card"><text class="wms-muted">{{ kind == 'acceptance' ? '收票不影响应收，确认实际到账后才计入回款。' : '开票与作废不改变客户应收。' }}</text><text class="wms-muted">App 支持查询及附件查看；登记、修改、到账与作废请使用 Windows 客户端或 Web。</text>
+     <template v-if="!loading && error == ''"><text v-if="kind == 'acceptance'" class="wms-text">待兑付 ￥{{ money(summary.pending_amount) }} · 逾期 ￥{{ money(summary.overdue_amount) }} · 已到账 ￥{{ money(summary.redeemed_amount) }}</text><text v-else class="wms-text">有效开票 ￥{{ money(summary.total_amount) }} · 税额 ￥{{ money(summary.tax_amount) }}</text><text class="wms-muted">当前筛选作废金额 ￥{{ money(summary.voided_amount) }}</text></template>
+    </view>
+    <view v-for="item in items" :key="item.id" class="wms-card wms-record" @tap="openDetail(item.id)">
+     <view class="wms-record-header"><text class="wms-record-title">{{ item.customer_name }}</text><text class="wms-record-badge">{{ statusLabel(item) }}</text></view>
+     <view class="wms-record-body"><text class="wms-text" selectable>{{ kind == 'acceptance' ? item.bill_number : item.invoice_number }}</text><text class="wms-value">￥{{ money(kind == 'acceptance' ? item.amount : item.total_amount) }}</text><text class="wms-muted">{{ kind == 'acceptance' ? '收票' : '开票' }}：{{ date(kind == 'acceptance' ? item.received_date : item.invoice_date) }}</text><text v-if="kind == 'acceptance'" class="wms-muted">到期：{{ date(item.due_date) }}</text><cl-button type="light" @tap.stop="openDetail(item.id)">查看详情及附件</cl-button></view>
+    </view>
+    <view v-if="error != ''" class="wms-card"><text class="wms-error">{{ error }}</text><cl-button type="light" @tap="retry">重试</cl-button></view>
+    <view v-if="loading" class="wms-empty"><text class="wms-muted">正在查询台账…</text></view>
+    <view v-else-if="items.length == 0 && error == ''" class="wms-empty"><text class="wms-title">暂无符合条件的记录</text><text class="wms-muted">可调整票号或状态筛选。</text></view>
+    <view v-if="total > 0" class="wms-pagination"><text class="wms-muted">第 {{ currentPage }} 页 · 共 {{ total }} 条</text><cl-pagination :model-value="currentPage" :total="total" :size="20" @change="changePage" /></view>
+   </template>
+  </view>
+ </WmsPage>
+</template>
+<script setup lang="ts">
+import { computed, ref, watch } from "vue";
+import WmsPage from "@/components/wms/Page.uvue";
+import { errorMessage, router, useStore } from "@/.cool";
+import { documentKind, documentTitle, documentStatus, documentDate, fetchCustomerDocuments } from "@/services/customer-documents";
+import type { CustomerDocument, DocumentSummary } from "@/types/customer-documents";
+import { emptyDocumentSummary } from "@/types/customer-documents";
+import { formatMoney } from "@/utils/wms-format";
+type StatusOption = { code: string; label: string };
+const { user } = useStore();
+const kind = ref("acceptance");
+const title = computed((): string => documentTitle(kind.value));
+const allowed = computed((): boolean => user.hasPermission(`finance:${kind.value}:list`));
+const customerId = ref(""); const customerName = ref("全部客户"); const keyword = ref(""); const status = ref(""); const appliedKeyword = ref("");
+const items = ref<CustomerDocument[]>([]); const summary = ref<DocumentSummary>(emptyDocumentSummary()); const currentPage = ref(1); const total = ref(0); const loading = ref(false); const refreshing = ref(false); const error = ref(""); let serial = 0; let disposed = false;
+const statusOptions = computed((): StatusOption[] => kind.value == "acceptance" ? [{ code: "", label: "全部" }, { code: "pending", label: "待兑付" }, { code: "redeemed", label: "已到账" }, { code: "voided", label: "已作废" }] : [{ code: "", label: "全部" }, { code: "active", label: "有效" }, { code: "voided", label: "已作废" }]);
+function money(value: number): string { return formatMoney(value); }
+function date(value: number): string { return documentDate(value); }
+function statusLabel(item: CustomerDocument): string { return documentStatus(item.status, item.due_date ?? 0); }
+async function load(page: number) {
+ if (disposed || !allowed.value) { refreshing.value = false; return; }
+ const ticket = ++serial; loading.value = true; error.value = ""; items.value = []; currentPage.value = page;
+ try { const result = await fetchCustomerDocuments(kind.value, customerId.value, appliedKeyword.value, status.value, page); if (ticket != serial) return; total.value = result.total; const last = Math.max(1, Math.ceil(result.total / 20)); if (page > last) { load(last); return; } items.value = result.list; summary.value = result.summary; }
+ catch (err) { if (ticket == serial) error.value = errorMessage(err, "台账加载失败，请重试"); }
+ finally { if (ticket == serial) { loading.value = false; refreshing.value = false; } }
+}
+function search() { appliedKeyword.value = keyword.value.trim(); load(1); }
+function selectStatus(value: string) { status.value = value; search(); }
+function refresh() { refreshing.value = true; load(currentPage.value); }
+function retry() { load(currentPage.value); }
+function changePage(value: number) { if (value != currentPage.value) load(value); }
+function openDetail(id: string) { if (disposed || !allowed.value || !items.value.some((item: CustomerDocument): boolean => item.id == id)) return; router.to(`/pages/business/customer-document-detail?kind=${kind.value}&id=${encodeURIComponent(id)}`); }
+function clearData() { serial++; items.value = []; summary.value = emptyDocumentSummary(); total.value = 0; loading.value = false; refreshing.value = false; error.value = ""; }
+function clearSession() { clearData(); customerId.value = ""; customerName.value = "全部客户"; keyword.value = ""; appliedKeyword.value = ""; status.value = ""; currentPage.value = 1; }
+watch(allowed, (value: boolean) => { if (value) load(1); else clearData(); });
+onLoad((query: UTSJSONObject) => { kind.value = documentKind(`${query["kind"] ?? ""}`); customerId.value = `${query["customer_id"] ?? ""}`; customerName.value = `${query["name"] ?? "全部客户"}`; uni.$on("wms.session.changed", clearSession); load(1); });
+onUnload(() => { disposed = true; clearSession(); uni.$off("wms.session.changed", clearSession); });
+</script>
+<style scoped>.document-header { padding: 0 16px 12px; }</style>

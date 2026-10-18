@@ -25,7 +25,7 @@ request.interceptors.response.use(
   (error) => {
     //处理网络错误
     let msg = "";
-    const status = error.response.status;
+    const status = error.response?.status;
     switch (status) {
       case 400:
         console.log("参数错误：", error.response.data);
@@ -40,8 +40,18 @@ request.interceptors.response.use(
       case 404:
         msg = "请求地址错误";
         break;
+      case 409: {
+        const responseMessage = error.response?.data?.msg;
+        msg = typeof responseMessage === "string" && responseMessage.trim()
+          ? responseMessage
+          : "数据已变化，请刷新后重试";
+        break;
+      }
       case 500:
         msg = "服务器出现问题";
+        break;
+      case 503:
+        msg = "服务暂时不可用，请核对操作结果";
         break;
       default:
         msg = "无网络";

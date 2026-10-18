@@ -93,6 +93,7 @@ let inboundType = (text: string) => {
   <div>
     <el-card>
       <el-form
+          @submit.prevent="getInventorys"
           :model="form"
           inline
           label-width="80px"
@@ -131,7 +132,7 @@ let inboundType = (text: string) => {
               plain
               icon="Search"
               size="default"
-              @click="getInventorys()"
+              native-type="submit"
           >查询
           </el-button>
           <el-button plain @click="reset" icon="RefreshRight">重置</el-button>

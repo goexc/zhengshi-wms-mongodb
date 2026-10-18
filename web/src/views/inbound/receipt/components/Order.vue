@@ -448,6 +448,7 @@ onMounted(async () => {
   >
     <el-form
         inline
+        @submit.prevent="getMaterials"
     >
       <MaterialCategoryListItem
           :form="materialsForm"
@@ -472,7 +473,7 @@ onMounted(async () => {
         <el-input v-model.trim="materialsForm.strength_grade" clearable placeholder="请选择强度等级"/>
       </el-form-item>
       <el-form-item label=" ">
-        <el-button type="primary" plain @click="getMaterials" icon="Search">查询</el-button>
+        <el-button type="primary" plain native-type="submit" icon="Search">查询</el-button>
         <el-button plain @click="reset" icon="RefreshRight">重置</el-button>
       </el-form-item>
     </el-form>

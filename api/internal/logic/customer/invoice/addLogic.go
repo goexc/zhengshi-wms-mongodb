@@ -1,0 +1,33 @@
+// Code scaffolded by goctl. Safe to edit.
+// goctl 1.10.2
+
+package invoice
+
+import (
+	"api/internal/logic/customer/documents"
+	"context"
+
+	"api/internal/svc"
+	"api/internal/types"
+
+	"github.com/zeromicro/go-zero/core/logx"
+)
+
+type AddLogic struct {
+	logx.Logger
+	ctx    context.Context
+	svcCtx *svc.ServiceContext
+}
+
+// 登记销售开票
+func NewAddLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AddLogic {
+	return &AddLogic{
+		Logger: logx.WithContext(ctx),
+		ctx:    ctx,
+		svcCtx: svcCtx,
+	}
+}
+
+func (l *AddLogic) Add(req *types.CustomerInvoiceSaveRequest) (resp *types.CustomerInvoiceResponse, err error) {
+	return documents.SaveInvoice(l.ctx, l.svcCtx, req, true), nil
+}

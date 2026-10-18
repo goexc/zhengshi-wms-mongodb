@@ -112,6 +112,8 @@
         "isAuth": true
       }
     },
+    { "path": "pages/business/customer-documents", "style": { "navigationStyle": "custom", "navigationBarTitleText": "客户票据台账" }, "meta": { "isAuth": true } },
+    { "path": "pages/business/customer-document-detail", "style": { "navigationStyle": "custom", "navigationBarTitleText": "票据详情" }, "meta": { "isAuth": true } },
     {
       "path": "pages/business/customer-transactions",
       "style": {

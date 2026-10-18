@@ -85,6 +85,18 @@ const resetFastForm = () => {
   prices.value = [];
 };
 
+const handlePickingTimeChange = () => {
+  if (!fastForm.picking_time) return;
+  const pickingTime = Number(fastForm.picking_time);
+  fastForm.departure_time = pickingTime;
+  fastForm.receipt_time = pickingTime;
+};
+
+const handleDepartureTimeChange = () => {
+  if (!fastForm.departure_time) return;
+  fastForm.receipt_time = Number(fastForm.departure_time);
+};
+
 const resetMaterials = async () => {
   materialsForm.value = initMaterialsForm();
   await getMaterials();
@@ -300,6 +312,7 @@ const submit = async () => {
                   :key="idx"
                   plain
                   :label="item"
+                  :value="item"
               />
             </el-radio-group>
           </el-form-item>
@@ -318,6 +331,7 @@ const submit = async () => {
                 value-format="X"
                 placeholder="请选择拣货日期"
                 style="width: 100%"
+                @change="handlePickingTimeChange"
             />
           </el-form-item>
         </el-col>
@@ -351,6 +365,7 @@ const submit = async () => {
                 value-format="X"
                 placeholder="请选择出库日期"
                 style="width: 100%"
+                @change="handleDepartureTimeChange"
             />
           </el-form-item>
         </el-col>
@@ -475,7 +490,7 @@ const submit = async () => {
         :close-on-click-modal="false"
         top="0vh"
     >
-      <el-form class="material-search-form" inline label-width="80px">
+      <el-form class="material-search-form" inline label-width="80px" @submit.prevent="getMaterials">
         <MaterialCategoryListItem :form="materialsForm"/>
         <el-form-item label="名称" prop="name">
           <el-input v-model.trim="materialsForm.name" clearable placeholder="请填写名称"/>
@@ -497,7 +512,7 @@ const submit = async () => {
           <el-input v-model.trim="materialsForm.strength_grade" clearable placeholder="请选择强度等级"/>
         </el-form-item>
         <el-form-item label=" ">
-          <el-button type="primary" plain @click="getMaterials" icon="Search">查询</el-button>
+          <el-button type="primary" plain native-type="submit" icon="Search">查询</el-button>
           <el-button plain @click="resetMaterials" icon="RefreshRight">重置</el-button>
         </el-form-item>
       </el-form>

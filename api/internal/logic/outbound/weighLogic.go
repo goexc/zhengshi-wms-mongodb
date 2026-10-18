@@ -8,7 +8,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"net/http"
-	"strings"
 	"time"
 
 	"api/internal/svc"
@@ -32,6 +31,12 @@ func NewWeighLogic(ctx context.Context, svcCtx *svc.ServiceContext) *WeighLogic 
 }
 
 func (l *WeighLogic) Weigh(req *types.OutboundOrderWeighRequest) (resp *types.BaseResponse, err error) {
+	return runOutboundMutation(l.ctx, l.svcCtx, func(ctx context.Context) (*types.BaseResponse, error) {
+		return NewWeighLogic(ctx, l.svcCtx).weigh(req)
+	})
+}
+
+func (l *WeighLogic) weigh(req *types.OutboundOrderWeighRequest) (resp *types.BaseResponse, err error) {
 	resp = new(types.BaseResponse)
 
 	//1.称重时间不能超过当前时间
@@ -52,7 +57,7 @@ func (l *WeighLogic) Weigh(req *types.OutboundOrderWeighRequest) (resp *types.Ba
 		resp.Msg = "出库单不存在"
 		return resp, nil
 	default: //其他错误
-		fmt.Printf("[Error]查询出库单[%s]:%s\n", req.Code, err.Error())
+		fmt.Printf("[Error]查询出库单[%s]:%s\n", req.Code, singleRes.Err().Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务内部错误"
 		return resp, nil
@@ -93,12 +98,15 @@ func (l *WeighLogic) Weigh(req *types.OutboundOrderWeighRequest) (resp *types.Ba
 			"weighing_time": req.WeighingTime,
 		},
 	}
-	_, err = l.svcCtx.OutboundOrderModel.UpdateOne(l.ctx, bson.M{"code": strings.TrimSpace(req.Code)}, set)
+	orderUpdate, err := l.svcCtx.OutboundOrderModel.UpdateOne(l.ctx, outboundStateFilter(order), set)
 	if err != nil {
 		fmt.Printf("[Error]更新出库单[%s]状态(已称重)：%s\n", req.Code, err.Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务器内部错误"
 		return resp, nil
+	}
+	if orderUpdate.MatchedCount != 1 {
+		return &types.BaseResponse{Code: http.StatusConflict, Msg: "出库单已变化或已删除，请刷新后重试"}, nil
 	}
 
 	//3.批量更新物料重量
@@ -121,12 +129,15 @@ func (l *WeighLogic) Weigh(req *types.OutboundOrderWeighRequest) (resp *types.Ba
 
 	//3.3.2 执行批量更新操作
 	bulkOptions := options.BulkWriteOptions{}
-	_, err = l.svcCtx.OutboundMaterialModel.BulkWrite(l.ctx, bulkWrites, &bulkOptions)
+	materialUpdate, err := l.svcCtx.OutboundMaterialModel.BulkWrite(l.ctx, bulkWrites, &bulkOptions)
 	if err != nil {
 		fmt.Printf("[Error]出库单[%s]称重批量更新：%s\n", req.Code, err.Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务器内部错误"
 		return resp, nil
+	}
+	if materialUpdate.MatchedCount != int64(len(bulkWrites)) {
+		return &types.BaseResponse{Code: http.StatusConflict, Msg: "出库物料已变化，请刷新后重试"}, nil
 	}
 
 	resp.Code = http.StatusOK

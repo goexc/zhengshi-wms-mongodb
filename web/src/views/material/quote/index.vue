@@ -307,6 +307,7 @@ onUnmounted(() => {
 <template>
   <div class="material-quote-page">
     <el-form
+      @submit.prevent="getDeliveries"
       :inline="true"
       :model="searchForm"
       class="filter-form"
@@ -370,7 +371,7 @@ onUnmounted(() => {
         />
       </el-form-item>
       <el-form-item>
-        <el-button type="primary" plain icon="Search" @click="getDeliveries"
+        <el-button type="primary" plain icon="Search" native-type="submit"
           >查询</el-button
         >
         <el-button

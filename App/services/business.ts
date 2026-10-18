@@ -40,6 +40,7 @@ export function transactionSource(source: string): string {
 	if (source == "outbound_order") return "出库单";
 	if (source == "inbound_return") return "退货入库";
 	if (source == "payment") return "回款";
+	if (source == "customer_acceptance") return "承兑兑付";
 	if (source == "manual_adjustment") return "手工调整";
 	if (source == "system_recount") return "系统重算";
 	return source == "" ? "未记录" : source;

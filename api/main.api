@@ -26,6 +26,7 @@ import (
 	"apis/supplier.api"
 	"apis/customer.api"
 	"apis/customer_transaction.api"
+	"apis/customer_documents.api"
 	"apis/material.api"
 	"apis/inbound.api"
 	"apis/outbound.api"
@@ -644,7 +645,11 @@ service main {
 
 	@doc "删除出库单"
 	@handler remove
-	delete / (OutboundOrderIdRequest) returns (BaseResponse)
+	delete / (OutboundOrderRemoveRequest) returns (BaseResponse)
+
+	@doc "出库单删除预览"
+	@handler removePreview
+	get /remove-preview (OutboundOrderIdRequest) returns (OutboundRemovePreviewResponse)
 
 	@doc "确认出库单"
 	@handler confirm
@@ -749,9 +754,11 @@ service main {
 
 //图片管理
 @server (
-	jwt:    Auth
-	group:  images
-	prefix: images
+	jwt:      Auth
+	group:    images
+	prefix:   images
+	maxBytes: 22020096
+	timeout:  90s
 )
 service main {
 	@doc "上传图片"
@@ -765,5 +772,71 @@ service main {
 	@doc "删除图片"
 	@handler remove
 	delete / (ImageRemoveRequest) returns (BaseResponse)
+}
+
+@server (
+	jwt:    Auth
+	group:  customer/acceptance
+	prefix: customer/acceptance
+)
+service main {
+	@doc "客户承兑分页"
+	@handler page
+	get / (CustomerDocumentPageRequest) returns (CustomerAcceptancePageResponse)
+
+	@doc "登记客户承兑"
+	@handler add
+	post / (CustomerAcceptanceSaveRequest) returns (CustomerAcceptanceResponse)
+
+	@doc "修改客户承兑"
+	@handler update
+	put / (CustomerAcceptanceSaveRequest) returns (CustomerAcceptanceResponse)
+
+	@doc "客户承兑详情"
+	@handler detail
+	get /detail (CustomerDocumentDetailRequest) returns (CustomerAcceptanceResponse)
+
+	@doc "确认承兑兑付到账"
+	@handler redeem
+	post /redeem (CustomerAcceptanceRedeemRequest) returns (CustomerAcceptanceResponse)
+
+	@doc "作废客户承兑"
+	@handler void
+	post /void (CustomerDocumentVoidRequest) returns (CustomerAcceptanceResponse)
+
+	@doc "撤销承兑兑付"
+	@handler reverse
+	post /reverse (CustomerDocumentVoidRequest) returns (CustomerAcceptanceResponse)
+
+	@doc "可关联的客户回款"
+	@handler payments
+	get /payments (CustomerAcceptancePaymentsRequest) returns (CustomerAcceptancePaymentsResponse)
+}
+
+@server (
+	jwt:    Auth
+	group:  customer/invoice
+	prefix: customer/invoice
+)
+service main {
+	@doc "销售开票分页"
+	@handler page
+	get / (CustomerDocumentPageRequest) returns (CustomerInvoicePageResponse)
+
+	@doc "登记销售开票"
+	@handler add
+	post / (CustomerInvoiceSaveRequest) returns (CustomerInvoiceResponse)
+
+	@doc "修改销售开票"
+	@handler update
+	put / (CustomerInvoiceSaveRequest) returns (CustomerInvoiceResponse)
+
+	@doc "销售开票详情"
+	@handler detail
+	get /detail (CustomerDocumentDetailRequest) returns (CustomerInvoiceResponse)
+
+	@doc "作废销售开票"
+	@handler void
+	post /void (CustomerDocumentVoidRequest) returns (CustomerInvoiceResponse)
 }
 

@@ -13,6 +13,10 @@ func (ui *mainUI) currentPageKey() string {
 
 func (ui *mainUI) refreshCurrentPage() {
 	switch ui.currentPageKey() {
+	case "customer_acceptance":
+		ui.loadCustomerDocuments(ui.acceptanceDocuments)
+	case "customer_invoice":
+		ui.loadCustomerDocuments(ui.invoiceDocuments)
 	case "dashboard":
 		ui.loadDashboard()
 	case "global_lookup":

@@ -1,9 +1,8 @@
 import { defineStore } from "pinia";
 import piniaPersistConfig from "@/config/piniaPersist";
-import { Account } from "@/api/user/types.ts";
+import type { Account } from "@/api/user/types.ts";
 
-export const useUserStore = defineStore({
-  id: "zs-user",
+export const useUserStore = defineStore("zs-user", {
   state: (): { account: Account; token: string } => ({
     token: "",
     account: <Account>{},

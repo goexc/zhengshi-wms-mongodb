@@ -81,6 +81,7 @@ onMounted(async ()=>{
 <template>
 <div>
   <el-form
+    @submit.prevent="getImages"
     inline
     size="default"
   >
@@ -93,7 +94,7 @@ onMounted(async ()=>{
       </el-button-group>
     </el-form-item>
     <el-form-item label=" ">
-      <el-button type="primary" plain @click="getImages" icon="Search">查询</el-button>
+      <el-button type="primary" plain native-type="submit" icon="Search">查询</el-button>
       <el-button plain @click="reset" icon="RefreshRight">重置</el-button>
     </el-form-item>
   </el-form>

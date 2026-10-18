@@ -1,7 +1,7 @@
 <script setup lang="ts">
 
 import {onMounted, ref} from "vue";
-import {ElMessage, FormInstance} from "element-plus";
+import {ElMessage} from "element-plus";
 import {Supplier, SuppliersRequest, SupplierStatusRequest} from "@/api/supplier/types.ts";
 import {reqChangeSupplierStatus, reqSuppliers} from "@/api/supplier";
 import {Sizes, Types} from "@/utils/enum.ts";
@@ -74,7 +74,6 @@ const oss_domain = ref<string>(import.meta.env.VITE_OSS_DOMAIN)
 
 let loading = ref<boolean>(false)
 let suppliersForm = ref<SuppliersRequest>(initSuppliersForm())
-let suppliersRef = ref<FormInstance>()
 let suppliers = ref<Supplier[]>([])
 let total = ref<number>(0)
 
@@ -183,9 +182,9 @@ onMounted(() => {
         v-auth="'business_partner:supplier:list'"
     >
       <el-form
+          @submit.prevent="getSuppliers"
           inline
           :model="suppliersForm"
-          ref="suppliersRef"
           label-width="80px"
           style="display: flex; flex-wrap: wrap;"
       >
@@ -215,7 +214,7 @@ onMounted(() => {
               :type="Types.primary"
               :size="Sizes.large"
               :plain="true"
-              @click="getSuppliers"
+              native-type="submit"
           />
           <perms-button
               perms="business_partner:supplier:list"

@@ -412,14 +412,14 @@ const apisConfirm = async () => {
 <template>
 
   <div>
-    <el-card class="form-card">
-      <el-form inline class="form">
+    <el-card class="form-card" v-auth="'privilege:role:list'">
+      <el-form inline class="form" @submit.prevent="getRoles">
         <el-form-item label="角色名称">
           <el-input v-model.trim="roleForm.name" clearable placeholder="请输入角色名称"></el-input>
         </el-form-item>
         <el-form-item>
           <perms-button
-              @click="getRoles"
+              native-type="submit"
               perms="privilege:role:list"
               :type="Types.primary"
               :size="Sizes.default"

@@ -1,6 +1,7 @@
 package outbound
 
 import (
+	materialdelivery "api/internal/logic/material/delivery"
 	"api/model"
 	financeCode "api/pkg/code"
 	"context"
@@ -44,6 +45,12 @@ var supplierTypes = map[string]string{"退货出库": ""}
 //TODO:针对生产线的出库类型
 
 func (l *AddLogic) Add(req *types.OutboundOrderAddRequest) (resp *types.BaseResponse, err error) {
+	return runOutboundMutation(l.ctx, l.svcCtx, func(ctx context.Context) (*types.BaseResponse, error) {
+		return NewAddLogic(ctx, l.svcCtx).add(req)
+	})
+}
+
+func (l *AddLogic) add(req *types.OutboundOrderAddRequest) (resp *types.BaseResponse, err error) {
 	resp = new(types.BaseResponse)
 
 	var receipt model.OutboundOrder
@@ -57,7 +64,7 @@ func (l *AddLogic) Add(req *types.OutboundOrderAddRequest) (resp *types.BaseResp
 	receipt.Annex = strings.Join(req.Annex, ",")
 
 	//1.出库单号是否冲突
-	var filter = bson.M{"code": req.Code, "status": bson.M{"$ne": "删除"}}
+	var filter = bson.M{"code": receipt.Code}
 	count, err := l.svcCtx.OutboundOrderModel.CountDocuments(l.ctx, filter)
 	if err != nil {
 		fmt.Printf("[Error]查询出库单[%s]是否冲突:%s\n", req.Code, err.Error())
@@ -68,6 +75,18 @@ func (l *AddLogic) Add(req *types.OutboundOrderAddRequest) (resp *types.BaseResp
 	if count > 0 {
 		resp.Code = http.StatusBadRequest
 		resp.Msg = "出库单号已占用"
+		return resp, nil
+	}
+	referenced, err := materialdelivery.HasOutboundQuoteReference(l.ctx, l.svcCtx, receipt.Code)
+	if err != nil {
+		l.Errorf("查询出库单历史报价引用失败: %s", err)
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "服务器内部错误"
+		return resp, nil
+	}
+	if referenced {
+		resp.Code = http.StatusBadRequest
+		resp.Msg = "出库单号仍被历史报价引用，不能重复使用"
 		return resp, nil
 	}
 
@@ -90,7 +109,7 @@ func (l *AddLogic) Add(req *types.OutboundOrderAddRequest) (resp *types.BaseResp
 			resp.Msg = "供应商不存在"
 			return resp, nil
 		default: //其他错误
-			fmt.Printf("[Error]查询供应商[%s]是否存在:%s\n", req.SupplierId, err.Error())
+			fmt.Printf("[Error]查询供应商[%s]是否存在:%s\n", req.SupplierId, singleRes.Err().Error())
 			resp.Code = http.StatusInternalServerError
 			resp.Msg = "服务内部错误"
 			return resp, nil
@@ -119,7 +138,7 @@ func (l *AddLogic) Add(req *types.OutboundOrderAddRequest) (resp *types.BaseResp
 			resp.Msg = "客户不存在"
 			return resp, nil
 		default: //其他错误
-			fmt.Printf("[Error]查询客户[%s]是否存在:%s\n", req.CustomerId, err.Error())
+			fmt.Printf("[Error]查询客户[%s]是否存在:%s\n", req.CustomerId, singleRes.Err().Error())
 			resp.Code = http.StatusInternalServerError
 			resp.Msg = "服务内部错误"
 			return resp, nil

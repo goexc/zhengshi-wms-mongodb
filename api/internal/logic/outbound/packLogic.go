@@ -9,7 +9,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -50,7 +49,7 @@ func (l *PackLogic) Pack(req *types.OutboundOrderPackRequest) (resp *types.BaseR
 		resp.Msg = "出库单不存在"
 		return resp, nil
 	default: //其他错误
-		fmt.Printf("[Error]查询出库单[%s]:%s\n", req.Code, err.Error())
+		fmt.Printf("[Error]查询出库单[%s]:%s\n", req.Code, singleRes.Err().Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务内部错误"
 		return resp, nil
@@ -93,12 +92,15 @@ func (l *PackLogic) Pack(req *types.OutboundOrderPackRequest) (resp *types.BaseR
 			"packing_time": req.PackingTime,
 		},
 	}
-	_, err = l.svcCtx.OutboundOrderModel.UpdateOne(l.ctx, bson.M{"code": strings.TrimSpace(req.Code)}, update)
+	orderUpdate, err := l.svcCtx.OutboundOrderModel.UpdateOne(l.ctx, outboundStateFilter(order), update)
 	if err != nil {
 		fmt.Printf("[Error]更新出库单[%s]状态(已打包)：%s\n", req.Code, err.Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务器内部错误"
 		return resp, nil
+	}
+	if orderUpdate.MatchedCount != 1 {
+		return &types.BaseResponse{Code: http.StatusConflict, Msg: "出库单已变化或已删除，请刷新后重试"}, nil
 	}
 
 	resp.Code = http.StatusOK

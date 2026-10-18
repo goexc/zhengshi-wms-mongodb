@@ -5,10 +5,16 @@ import (
 	"api/model"
 	financeCode "api/pkg/code"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"net/http"
 	"strings"
 	"time"
@@ -95,26 +101,19 @@ func (l *AddLogic) Add(req *types.CustomerTransactionAddRequest) (resp *types.Ba
 	}
 	defer session.EndSession(l.ctx)
 
-	dbCtx := mongo.NewSessionContext(l.ctx, session)
-	if err = session.StartTransaction(); err != nil {
-		fmt.Printf("[Error]添加客户[%s]交易记录：开启事务失败:%s\n", customer.Name, err.Error())
-		resp.Code = http.StatusInternalServerError
-		resp.Msg = "服务器内部错误"
-		return resp, nil
-	}
-
 	idempotencyKey := strings.TrimSpace(req.IdempotencyKey)
 	if idempotencyKey == "" {
 		idempotencyKey = financeCode.IdempotencyKey(financeCode.SourceTypeManualAdjustment, primitive.NewObjectID().Hex())
 	}
 
-	_, err = customerfinance.PostTransaction(dbCtx, l.svcCtx, customerfinance.PostTransactionRequest{
+	postRequest := customerfinance.PostTransactionRequest{
 		TransactionType: transactionType,
 		Status:          financeCode.TransactionStatusConfirmed,
 		Code:            fmt.Sprintf("CT-%s-%d", time.Now().Format("20060102-15-04-05"), time.Now().UnixMilli()%1000),
 		SourceType:      financeCode.SourceTypeManualAdjustment,
 		SourceId:        idempotencyKey,
 		IdempotencyKey:  idempotencyKey,
+		RequestHash:     manualRequestHash(req, transactionType, customer.Id.Hex()),
 		CustomerId:      customer.Id.Hex(),
 		CustomerName:    customer.Name,
 		Amount:          req.Amount,
@@ -123,28 +122,40 @@ func (l *AddLogic) Add(req *types.CustomerTransactionAddRequest) (resp *types.Ba
 		Time:            req.Time,
 		Creator:         l.ctx.Value("uid").(string),
 		CreatorName:     l.ctx.Value("name").(string),
-	})
+	}
+	_, err = session.WithTransaction(l.ctx, func(dbCtx mongo.SessionContext) (interface{}, error) {
+		return customerfinance.PostTransaction(dbCtx, l.svcCtx, postRequest)
+	}, options.Transaction().SetReadConcern(readconcern.Snapshot()).SetWriteConcern(writeconcern.Majority()))
+	if err != nil {
+		// Concurrent duplicate writes and uncertain commits must be recovered
+		// outside the ended transaction, using the exact original request.
+		if _, recoveryErr := customerfinance.FindPostedTransaction(l.ctx, l.svcCtx, postRequest); recoveryErr == nil {
+			err = nil
+		} else if _, business := customerfinance.IsBusinessError(recoveryErr); business {
+			err = recoveryErr
+		}
+	}
 	if err != nil {
 		fmt.Printf("[Error]添加客户[%s]交易记录:%s\n", customer.Name, err.Error())
-		_ = session.AbortTransaction(dbCtx)
 		if msg, isBusiness := customerfinance.IsBusinessError(err); isBusiness {
 			resp.Code = http.StatusBadRequest
 			resp.Msg = msg
 			return resp, nil
 		}
 		resp.Code = http.StatusInternalServerError
-		resp.Msg = "服务器内部错误"
-		return resp, nil
-	}
-
-	if err = session.CommitTransaction(dbCtx); err != nil {
-		fmt.Printf("[Error]添加客户[%s]交易记录：提交事务失败:%s\n", customer.Name, err.Error())
-		resp.Code = http.StatusInternalServerError
-		resp.Msg = "服务器内部错误"
+		resp.Msg = "操作失败或结果尚未确认，请保留当前请求并重试或刷新核对"
 		return resp, nil
 	}
 
 	resp.Code = http.StatusOK
 	resp.Msg = "成功"
 	return resp, nil
+}
+
+func manualRequestHash(req *types.CustomerTransactionAddRequest, transactionType, customerID string) string {
+	// Hash the requested time, including zero, rather than its later server
+	// default. Retrying an omitted date must keep the first committed receipt.
+	value, _ := json.Marshal([]any{transactionType, customerID, req.Amount, req.Time, strings.TrimSpace(strings.Join(req.Annex, ",")), strings.TrimSpace(req.Remark)})
+	sum := sha256.Sum256(value)
+	return hex.EncodeToString(sum[:])
 }

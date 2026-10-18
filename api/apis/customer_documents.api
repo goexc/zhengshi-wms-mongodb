@@ -1,0 +1,198 @@
+syntax = "v1"
+
+type CustomerDocumentHistory {
+    Action string `json:"action"`
+    Remark string `json:"remark"`
+    Time int64 `json:"time"`
+    Operator string `json:"operator"`
+    OperatorName string `json:"operator_name"`
+}
+
+type CustomerDocumentPageRequest {
+    Page int64 `form:"page,default=1"`
+    Size int64 `form:"size,default=20"`
+    CustomerId string `form:"customer_id,optional"`
+    Keyword string `form:"keyword,optional"`
+    Status string `form:"status,optional"`
+    DateStart int64 `form:"date_start,optional"`
+    DateEnd int64 `form:"date_end,optional"`
+    DueStart int64 `form:"due_start,optional"`
+    DueEnd int64 `form:"due_end,optional"`
+    RedemptionStart int64 `form:"redemption_start,optional"`
+    RedemptionEnd int64 `form:"redemption_end,optional"`
+    TaxRate string `form:"tax_rate,optional"`
+    DueState string `form:"due_state,optional"`
+}
+
+type CustomerDocumentDetailRequest {
+    Id string `form:"id"`
+}
+
+type CustomerDocumentVoidRequest {
+    Id string `json:"id"`
+    Version int64 `json:"version"`
+    Reason string `json:"reason"`
+    IdempotencyKey string `json:"idempotency_key"`
+}
+
+type CustomerAcceptance {
+    Id string `json:"id"`
+    CustomerId string `json:"customer_id"`
+    CustomerName string `json:"customer_name"`
+    BillNumber string `json:"bill_number"`
+    Amount float64 `json:"amount"`
+    ReceivedDate int64 `json:"received_date"`
+    IssueDate int64 `json:"issue_date"`
+    DueDate int64 `json:"due_date"`
+    RedemptionDate int64 `json:"redemption_date"`
+    Status string `json:"status"`
+    Annex []string `json:"annex"`
+    RedemptionAnnex []string `json:"redemption_annex"`
+    Remark string `json:"remark"`
+    Version int64 `json:"version"`
+    TransactionId string `json:"transaction_id"`
+    CreatedAt int64 `json:"created_at"`
+    UpdatedAt int64 `json:"updated_at"`
+    CreatorName string `json:"creator_name"`
+    History []CustomerDocumentHistory `json:"history"`
+}
+
+type CustomerAcceptanceSaveRequest {
+    Id string `json:"id,optional"`
+    Version int64 `json:"version,optional"`
+    IdempotencyKey string `json:"idempotency_key,optional"`
+    CustomerId string `json:"customer_id"`
+    BillNumber string `json:"bill_number"`
+    Amount float64 `json:"amount"`
+    ReceivedDate int64 `json:"received_date"`
+    IssueDate int64 `json:"issue_date"`
+    DueDate int64 `json:"due_date"`
+    Annex []string `json:"annex,optional"`
+    Remark string `json:"remark,optional"`
+}
+
+type CustomerAcceptanceRedeemRequest {
+    Id string `json:"id"`
+    Version int64 `json:"version"`
+    RedemptionDate int64 `json:"redemption_date"`
+    RedemptionAnnex []string `json:"redemption_annex,optional"`
+    Remark string `json:"remark,optional"`
+    IdempotencyKey string `json:"idempotency_key"`
+    TransactionId string `json:"transaction_id,optional"`
+}
+
+type CustomerAcceptanceResponse {
+    Code int `json:"code"`
+    Msg string `json:"msg"`
+    Data CustomerAcceptance `json:"data"`
+}
+
+type CustomerAcceptanceSummary {
+    Count int64 `json:"count"`
+    Amount float64 `json:"amount"`
+    PendingAmount float64 `json:"pending_amount"`
+    RedeemedAmount float64 `json:"redeemed_amount"`
+    VoidedAmount float64 `json:"voided_amount"`
+    OverdueAmount float64 `json:"overdue_amount"`
+}
+
+type CustomerAcceptancePage {
+    Total int64 `json:"total"`
+    List []CustomerAcceptance `json:"list"`
+    Summary CustomerAcceptanceSummary `json:"summary"`
+}
+
+type CustomerAcceptancePageResponse {
+    Code int `json:"code"`
+    Msg string `json:"msg"`
+    Data CustomerAcceptancePage `json:"data"`
+}
+
+type CustomerAcceptancePaymentsRequest {
+    CustomerId string `form:"customer_id"`
+    Amount float64 `form:"amount"`
+    Page int64 `form:"page,default=1"`
+    Size int64 `form:"size,default=20"`
+}
+
+type CustomerAcceptancePayment {
+    Id string `json:"id"`
+    Code string `json:"code"`
+    CustomerId string `json:"customer_id"`
+    Amount float64 `json:"amount"`
+    Time int64 `json:"time"`
+    Remark string `json:"remark"`
+    Annex []string `json:"annex"`
+}
+
+type CustomerAcceptancePaymentsPage {
+    Total int64 `json:"total"`
+    List []CustomerAcceptancePayment `json:"list"`
+}
+
+type CustomerAcceptancePaymentsResponse {
+    Code int `json:"code"`
+    Msg string `json:"msg"`
+    Data CustomerAcceptancePaymentsPage `json:"data"`
+}
+
+type CustomerInvoice {
+    Id string `json:"id"`
+    CustomerId string `json:"customer_id"`
+    CustomerName string `json:"customer_name"`
+    InvoiceNumber string `json:"invoice_number"`
+    InvoiceDate int64 `json:"invoice_date"`
+    TaxRate float64 `json:"tax_rate"`
+    AmountExcludingTax float64 `json:"amount_excluding_tax"`
+    TaxAmount float64 `json:"tax_amount"`
+    TotalAmount float64 `json:"total_amount"`
+    Annex []string `json:"annex"`
+    Remark string `json:"remark"`
+    Status string `json:"status"`
+    Version int64 `json:"version"`
+    CreatedAt int64 `json:"created_at"`
+    UpdatedAt int64 `json:"updated_at"`
+    CreatorName string `json:"creator_name"`
+    History []CustomerDocumentHistory `json:"history"`
+}
+
+type CustomerInvoiceSaveRequest {
+    Id string `json:"id,optional"`
+    Version int64 `json:"version,optional"`
+    IdempotencyKey string `json:"idempotency_key,optional"`
+    CustomerId string `json:"customer_id"`
+    InvoiceNumber string `json:"invoice_number"`
+    InvoiceDate int64 `json:"invoice_date"`
+    TaxRate float64 `json:"tax_rate"`
+    AmountExcludingTax float64 `json:"amount_excluding_tax"`
+    TaxAmount float64 `json:"tax_amount"`
+    TotalAmount float64 `json:"total_amount"`
+    Annex []string `json:"annex,optional"`
+    Remark string `json:"remark,optional"`
+}
+
+type CustomerInvoiceResponse {
+    Code int `json:"code"`
+    Msg string `json:"msg"`
+    Data CustomerInvoice `json:"data"`
+}
+
+type CustomerInvoiceSummary {
+    Count int64 `json:"count"`
+    AmountExcludingTax float64 `json:"amount_excluding_tax"`
+    TaxAmount float64 `json:"tax_amount"`
+    TotalAmount float64 `json:"total_amount"`
+    VoidedAmount float64 `json:"voided_amount"`
+}
+
+type CustomerInvoicePage {
+    Total int64 `json:"total"`
+    List []CustomerInvoice `json:"list"`
+    Summary CustomerInvoiceSummary `json:"summary"`
+}
+
+type CustomerInvoicePageResponse {
+    Code int `json:"code"`
+    Msg string `json:"msg"`
+    Data CustomerInvoicePage `json:"data"`
+}

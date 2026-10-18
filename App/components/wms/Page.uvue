@@ -78,7 +78,8 @@ const props = defineProps({
 	publicPage: { type: Boolean, default: false },
 	refresherEnabled: { type: Boolean, default: false },
 	refresherTriggered: { type: Boolean, default: false },
-	lowerThreshold: { type: Number, default: 180 }
+	lowerThreshold: { type: Number, default: 180 },
+ requiredPermission: { type: String, default: "" }
 });
 const emit = defineEmits(["refresherrefresh", "scrolltolower"]);
 const { user } = useStore();
@@ -105,7 +106,7 @@ const feature = computed((): string => {
 const accessible = computed(
 	(): boolean =>
 		props.publicPage ||
-		(authenticated.value && (feature.value == "" || user.canAccess(feature.value)))
+		(authenticated.value && (props.requiredPermission != null && props.requiredPermission != "" ? user.hasPermission(props.requiredPermission) : (feature.value == "" || user.canAccess(feature.value))))
 );
 const accessTitle = computed((): string =>
 	!authenticated.value

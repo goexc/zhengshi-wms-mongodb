@@ -148,6 +148,7 @@ onMounted(async () => {
     >
       <!--  三级组件  -->
       <el-form
+          @submit.prevent="getRacks"
           :inline="true"
           style="display: flex; flex-wrap: wrap;"
           :model="form"
@@ -177,7 +178,7 @@ onMounted(async () => {
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" plain @click="getRacks" icon="Search">查询</el-button>
+          <el-button type="primary" plain native-type="submit" icon="Search">查询</el-button>
           <el-button plain @click="reset" icon="RefreshRight">重置</el-button>
         </el-form-item>
       </el-form>

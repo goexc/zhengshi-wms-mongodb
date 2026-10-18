@@ -1,5 +1,5 @@
 //引入清楚默认样式
-@import "./reset.scss";
+@use "./reset.scss";
 
 //滚动条外观设置
 ::-webkit-scrollbar{

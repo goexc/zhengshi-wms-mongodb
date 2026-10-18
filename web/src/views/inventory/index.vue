@@ -94,6 +94,7 @@ let inboundType = (text: string) => {
   <div>
     <el-card>
       <el-form
+          @submit.prevent="getInventorys"
           :model="form"
           inline
           label-width="80px"
@@ -104,8 +105,8 @@ let inboundType = (text: string) => {
             label="入库类型"
         >
           <el-radio-group v-model.trim="form.type">
-            <el-radio-button plain label="">全部</el-radio-button>
-            <el-radio-button v-for="(item, idx) in InboundReceiptTypes" :key="idx" plain :label="item"/>
+            <el-radio-button plain label="" value="">全部</el-radio-button>
+            <el-radio-button v-for="(item, idx) in InboundReceiptTypes" :key="idx" plain :label="item" :value="item"/>
           </el-radio-group>
         </el-form-item>
         <el-form-item label="物料名称">
@@ -132,7 +133,7 @@ let inboundType = (text: string) => {
               plain
               icon="Search"
               size="default"
-              @click="getInventorys()"
+              native-type="submit"
           >查询
           </el-button>
           <el-button plain @click="reset" icon="RefreshRight">重置</el-button>

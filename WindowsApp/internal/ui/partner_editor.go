@@ -209,6 +209,13 @@ func (ui *mainUI) updatePartnerActions() {
 		state.finance.SetVisible(isCustomer)
 		state.finance.SetEnabled(isCustomer && selected && !state.busy)
 	}
+	for kindName, button := range map[string]*walk.PushButton{"acceptance": state.acceptance, "invoice": state.invoice} {
+		if button != nil {
+			visible := kindOK && kind.Key == "customer" && hasButton(ui.session.Perms.Buttons, "finance:"+kindName+":list")
+			button.SetVisible(visible)
+			button.SetEnabled(visible && selected && !state.busy)
+		}
+	}
 	if state.action == nil {
 		return
 	}

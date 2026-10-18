@@ -9,8 +9,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"math"
 	"net/http"
-	"strings"
 	"time"
 
 	"api/internal/svc"
@@ -34,6 +34,12 @@ func NewConfirmLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ConfirmLo
 }
 
 func (l *ConfirmLogic) Confirm(req *types.OutboundOrderConfirmRequest) (resp *types.BaseResponse, err error) {
+	return runOutboundMutation(l.ctx, l.svcCtx, func(ctx context.Context) (*types.BaseResponse, error) {
+		return NewConfirmLogic(ctx, l.svcCtx).confirm(req)
+	})
+}
+
+func (l *ConfirmLogic) confirm(req *types.OutboundOrderConfirmRequest) (resp *types.BaseResponse, err error) {
 	resp = new(types.BaseResponse)
 
 	//1.确认时间不能超过当前时间
@@ -54,7 +60,7 @@ func (l *ConfirmLogic) Confirm(req *types.OutboundOrderConfirmRequest) (resp *ty
 		resp.Msg = "出库单不存在"
 		return resp, nil
 	default: //其他错误
-		fmt.Printf("[Error]查询出库单[%s]:%s\n", req.Code, err.Error())
+		fmt.Printf("[Error]查询出库单[%s]:%s\n", req.Code, singleRes.Err().Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务内部错误"
 		return resp, nil
@@ -100,18 +106,42 @@ func (l *ConfirmLogic) Confirm(req *types.OutboundOrderConfirmRequest) (resp *ty
 	var confirmQuantity = make(map[string]float64)                        //确认的物料的出货数量
 	var restMaterials = make([]interface{}, 0)                            //其余的物料列表
 	var inventorys = make(map[primitive.ObjectID]float64)                 //库存锁定数量
+	inventoryMaterials := make(map[primitive.ObjectID]string)
+	originByMaterial := make(map[string]model.OutboundOrderMaterial, len(originMaterials))
+	for _, material := range originMaterials {
+		if _, exists := originByMaterial[material.MaterialId]; exists {
+			return &types.BaseResponse{Code: http.StatusBadRequest, Msg: "出库单存在重复物料，请先核对"}, nil
+		}
+		originByMaterial[material.MaterialId] = material
+	}
 	//新增入库单的单号
 	var restCode = fmt.Sprintf("O-%s-%d", time.Now().Format("20060102-15-04-05"), time.Now().UnixMilli()%1000) //YYYY-MM-DD-HH-mm-ss-SSS
 	order.TotalAmount = 0                                                                                      //重置出库单总金额
 
 	for _, one := range req.Materials {
+		original, exists := originByMaterial[one.MaterialId]
+		if !exists || len(one.Inventorys) == 0 {
+			return &types.BaseResponse{Code: http.StatusBadRequest, Msg: "确认物料或库存分配不完整"}, nil
+		}
+		if _, duplicate := confirmMaterials[one.MaterialId]; duplicate {
+			return &types.BaseResponse{Code: http.StatusBadRequest, Msg: "请勿重复提交确认物料"}, nil
+		}
 		confirmMaterials[one.MaterialId] = one
 
 		for _, item := range one.Inventorys {
-			confirmQuantity[one.MaterialId] += item.ShipmentQuantity
-
-			inventoryId, _ := primitive.ObjectIDFromHex(item.InventoryId)
-			inventorys[inventoryId] = item.ShipmentQuantity
+			inventoryId, idErr := primitive.ObjectIDFromHex(item.InventoryId)
+			if idErr != nil || item.ShipmentQuantity <= 0 || math.IsNaN(item.ShipmentQuantity) || math.IsInf(item.ShipmentQuantity, 0) {
+				return &types.BaseResponse{Code: http.StatusBadRequest, Msg: "库存分配参数错误"}, nil
+			}
+			if materialId, used := inventoryMaterials[inventoryId]; used && materialId != one.MaterialId {
+				return &types.BaseResponse{Code: http.StatusBadRequest, Msg: "同一库存批次不能分配给不同物料"}, nil
+			}
+			inventoryMaterials[inventoryId] = one.MaterialId
+			confirmQuantity[one.MaterialId] = decimal.NewFromFloat(confirmQuantity[one.MaterialId]).Add(decimal.NewFromFloat(item.ShipmentQuantity)).InexactFloat64()
+			inventorys[inventoryId] += item.ShipmentQuantity
+		}
+		if confirmQuantity[one.MaterialId] > original.Quantity {
+			return &types.BaseResponse{Code: http.StatusBadRequest, Msg: "确认数量不能超过出库单数量"}, nil
 		}
 	}
 
@@ -137,6 +167,8 @@ func (l *ConfirmLogic) Confirm(req *types.OutboundOrderConfirmRequest) (resp *ty
 			one.Quantity = confirmQuantity[one.MaterialId]
 			totalAmount += decimal.NewFromFloat(one.Quantity).Mul(decimal.NewFromFloat(one.Price)).InexactFloat64()
 
+			//确认后的分配替换预发货数据，避免重复保留旧批次。
+			one.Inventorys = nil
 			//记录物料库存拣货数量
 			for _, inventory := range confirmMaterials[one.MaterialId].Inventorys {
 				one.Inventorys = append(one.Inventorys, model.OutboundMaterialInventory{
@@ -194,7 +226,11 @@ func (l *ConfirmLogic) Confirm(req *types.OutboundOrderConfirmRequest) (resp *ty
 	// 3.3.1 构建批量更新的过滤条件
 	var bulkWrites = make([]mongo.WriteModel, 0)
 	for inventoryId, shipmentQuantity := range inventorys {
-		filter := bson.D{{"_id", inventoryId}}
+		filter := bson.M{"_id": inventoryId, "material_id": inventoryMaterials[inventoryId], "$expr": bson.M{"$gte": bson.A{
+			bson.M{"$subtract": bson.A{"$available_quantity", bson.M{"$add": bson.A{
+				bson.M{"$ifNull": bson.A{"$locked_quantity", 0}}, bson.M{"$ifNull": bson.A{"$frozen_quantity", 0}},
+			}}}}, shipmentQuantity,
+		}}}
 		update := bson.D{
 			{"$inc", bson.D{{"locked_quantity", shipmentQuantity}}},
 		}
@@ -216,6 +252,9 @@ func (l *ConfirmLogic) Confirm(req *types.OutboundOrderConfirmRequest) (resp *ty
 		return resp, nil
 	}
 	fmt.Printf("入库单[%s]更新了%d条库存\n", req.Code, bulkRes.ModifiedCount)
+	if bulkRes.MatchedCount != int64(len(bulkWrites)) {
+		return &types.BaseResponse{Code: http.StatusConflict, Msg: "可用库存已变化，请刷新后重新确认"}, nil
+	}
 
 	//3.4 出库单状态：预发货->待拣货
 	var update = bson.M{
@@ -225,12 +264,15 @@ func (l *ConfirmLogic) Confirm(req *types.OutboundOrderConfirmRequest) (resp *ty
 			"total_amount": totalAmount,
 		},
 	}
-	_, err = l.svcCtx.OutboundOrderModel.UpdateOne(l.ctx, bson.M{"code": strings.TrimSpace(req.Code)}, update)
+	orderUpdate, err := l.svcCtx.OutboundOrderModel.UpdateOne(l.ctx, outboundStateFilter(order), update)
 	if err != nil {
 		fmt.Printf("[Error]更新出库单[%s]状态(待拣货)：%s\n", req.Code, err.Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务器内部错误"
 		return resp, nil
+	}
+	if orderUpdate.MatchedCount != 1 {
+		return &types.BaseResponse{Code: http.StatusConflict, Msg: "出库单已变化或已删除，请刷新后重试"}, nil
 	}
 
 	//3.4 存在发货数量差值列表时，用新的出库单保存，状态设置为【预发货】

@@ -15,6 +15,7 @@ type MaterialQuote struct {
 	MaterialUnit          string                  `json:"material_unit" bson:"material_unit"`                   // 物料单位
 	DeliveryId            string                  `json:"delivery_id" bson:"delivery_id"`                       // 客户物料首次交付记录id
 	SourceOrderCode       string                  `json:"source_order_code" bson:"source_order_code"`           // 来源首次交付出库单号
+	SourceOrderId         string                  `json:"-" bson:"source_order_id,omitempty"`                   // 冻结来源出库单ID，兼容旧报价缺省
 	QuoteMode             string                  `json:"quote_mode" bson:"quote_mode"`                         // 报价方式：detailed详细报价、simple简单报价
 	Status                string                  `json:"status" bson:"status"`                                 // 报价状态：draft草稿、submitted已提交、quoted已报价、priced已定价、void作废
 	Currency              string                  `json:"currency" bson:"currency"`                             // 币种，默认 CNY

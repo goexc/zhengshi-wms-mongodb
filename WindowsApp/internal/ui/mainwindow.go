@@ -60,15 +60,17 @@ type selectOption struct {
 }
 
 type mainUI struct {
-	session           *Session
-	cfg               config.Config
-	window            *walk.MainWindow
-	status            *walk.Label
-	workspaceSplitter *walk.Splitter
-	layoutTables      map[string]*walk.TableView
-	layoutSplitters   map[string]*walk.Splitter
-	backgroundTasks   *backgroundTaskRegistry
-	taskButton        *walk.PushButton
+	acceptanceDocuments *customerDocumentsUI
+	invoiceDocuments    *customerDocumentsUI
+	session             *Session
+	cfg                 config.Config
+	window              *walk.MainWindow
+	status              *walk.Label
+	workspaceSplitter   *walk.Splitter
+	layoutTables        map[string]*walk.TableView
+	layoutSplitters     map[string]*walk.Splitter
+	backgroundTasks     *backgroundTaskRegistry
+	taskButton          *walk.PushButton
 
 	sideMenu                *walk.ListBox
 	sideMenuPanel           *walk.Composite
@@ -281,6 +283,12 @@ func availableTopLevelMenuSpecs(perms api.Perms, dashboard, partners, warehouses
 	}
 	if hasMenuPath(perms.Menus, "/outbound/report") {
 		specs = append(specs, topLevelMenuSpec{Key: "outbound_report", Label: "出库报表"})
+	}
+	if hasButton(perms.Buttons, "finance:acceptance:list") {
+		specs = append(specs, topLevelMenuSpec{Key: "customer_acceptance", Label: "客户承兑"})
+	}
+	if hasButton(perms.Buttons, "finance:invoice:list") {
+		specs = append(specs, topLevelMenuSpec{Key: "customer_invoice", Label: "销售开票"})
 	}
 	if partners {
 		specs = append(specs, topLevelMenuSpec{Key: "partner", Label: "合作伙伴"})
@@ -737,6 +745,17 @@ func (ui *mainUI) closeTabAt(index int) {
 }
 
 func (ui *mainUI) disposeDetachedTabs() {
+	for _, s := range []*customerDocumentsUI{ui.acceptanceDocuments, ui.invoiceDocuments} {
+		if s != nil {
+			s.closed.Store(true)
+			if s.cancel != nil {
+				s.cancel()
+			}
+			if s.tab != nil && ui.tabs.Pages().Index(s.tab) < 0 {
+				s.tab.Dispose()
+			}
+		}
+	}
 	if ui.tabs == nil {
 		return
 	}
@@ -823,6 +842,10 @@ func (ui *mainUI) createTab(key string) (*walk.TabPage, error) {
 
 func (ui *mainUI) pageDeclaration(key string) (TabPage, error) {
 	switch key {
+	case "customer_acceptance":
+		return ui.customerDocumentsPage("acceptance"), nil
+	case "customer_invoice":
+		return ui.customerDocumentsPage("invoice"), nil
 	case "dashboard":
 		return ui.dashboardPageWidget(), nil
 	case "global_lookup":
@@ -912,6 +935,16 @@ func (ui *mainUI) syncNavigationFromTab() {
 
 func (ui *mainUI) tabForKey(key string) *walk.TabPage {
 	switch key {
+	case "customer_acceptance":
+		if ui.acceptanceDocuments != nil {
+			return ui.acceptanceDocuments.tab
+		}
+		return nil
+	case "customer_invoice":
+		if ui.invoiceDocuments != nil {
+			return ui.invoiceDocuments.tab
+		}
+		return nil
 	case "dashboard":
 		return ui.dashboardTab
 	case "global_lookup":
@@ -970,6 +1003,12 @@ func (ui *mainUI) tabForKey(key string) *walk.TabPage {
 }
 
 func (ui *mainUI) keyForTab(page *walk.TabPage) string {
+	if ui.acceptanceDocuments != nil && page == ui.acceptanceDocuments.tab {
+		return "customer_acceptance"
+	}
+	if ui.invoiceDocuments != nil && page == ui.invoiceDocuments.tab {
+		return "customer_invoice"
+	}
 	switch page {
 	case ui.dashboardTab:
 		return "dashboard"
@@ -1048,6 +1087,10 @@ func (ui *mainUI) initializePage(key string) {
 	ui.initializedPages[key] = true
 	ui.registerPageLayouts(key)
 	switch key {
+	case "customer_acceptance":
+		ui.initializeCustomerDocuments(ui.acceptanceDocuments)
+	case "customer_invoice":
+		ui.initializeCustomerDocuments(ui.invoiceDocuments)
 	case "dashboard":
 		ui.initializeDashboardPage()
 	case "global_lookup":
@@ -1117,6 +1160,21 @@ func (ui *mainUI) initializePage(key string) {
 }
 
 func (ui *mainUI) releasePage(key string) {
+	if key == "customer_acceptance" || key == "customer_invoice" {
+		kind := strings.TrimPrefix(key, "customer_")
+		s := ui.documentState(kind)
+		if s != nil {
+			s.closed.Store(true)
+			if s.cancel != nil {
+				s.cancel()
+			}
+		}
+		if kind == "acceptance" {
+			ui.acceptanceDocuments = nil
+		} else {
+			ui.invoiceDocuments = nil
+		}
+	}
 	delete(ui.initializedPages, key)
 	switch key {
 	case "dashboard":

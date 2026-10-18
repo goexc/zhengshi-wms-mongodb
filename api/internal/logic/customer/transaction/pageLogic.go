@@ -89,6 +89,8 @@ func (l *PageLogic) Page(req *types.CustomerTransactionPageRequest) (resp *types
 
 	for _, one := range transactions {
 		resp.Data.List = append(resp.Data.List, types.CustomerTransaction{
+			Id:              one.Id.Hex(),
+			SourceId:        one.SourceId,
 			Type:            financeCode.TransactionTypeLabel(one.TransactionType, one.Type),
 			TransactionType: one.TransactionType,
 			Direction:       one.Direction,

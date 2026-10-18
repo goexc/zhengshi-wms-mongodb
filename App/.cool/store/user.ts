@@ -137,6 +137,7 @@ export class User {
  hasPermission(code: string): boolean { return this.permissionsReady.value && this.permissions.value.includes(code); }
  canAccess(feature: string): boolean {
   if (!this.permissionsReady.value) return false;
+  if (feature == "acceptance" || feature == "invoice") return this.hasPermission(`finance:${feature}:list`);
   const prefix = feature == "material" ? "material:material:" : feature == "outbound" ? "outbound:order:" : feature == "customer" ? "business_partner:customer:" : feature == "supplier" ? "business_partner:supplier:" : "plan:";
   if (this.permissions.value.some((value) => value.startsWith(prefix))) return true;
   const needle = feature == "customer" ? "customer" : feature == "supplier" ? "supplier" : feature;

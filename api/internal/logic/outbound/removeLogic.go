@@ -1,21 +1,17 @@
 package outbound
 
 import (
-	"api/model"
+	customerfinance "api/internal/logic/customer/finance"
+	"api/internal/svc"
+	"api/internal/types"
 	"context"
 	"errors"
-	"fmt"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 	"net/http"
 	"strings"
 
-	"api/internal/svc"
-	"api/internal/types"
-
 	"github.com/zeromicro/go-zero/core/logx"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type RemoveLogic struct {
@@ -25,234 +21,67 @@ type RemoveLogic struct {
 }
 
 func NewRemoveLogic(ctx context.Context, svcCtx *svc.ServiceContext) *RemoveLogic {
-	return &RemoveLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
-		svcCtx: svcCtx,
-	}
+	return &RemoveLogic{Logger: logx.WithContext(ctx), ctx: ctx, svcCtx: svcCtx}
 }
 
-// 可删除的出库单状态
-//var canDeleteStatus = map[string]string{"预发货": ""}
-
-func (l *RemoveLogic) Remove(req *types.OutboundOrderIdRequest) (resp *types.BaseResponse, err error) {
-	resp = new(types.BaseResponse)
-
-	//预发货的出库单可以删除
-
-	//1.出库单是否存在
-	//1.1 出库单信息
-	id, _ := primitive.ObjectIDFromHex(req.Id)
-	filter := bson.M{"_id": id}
-	var receipt model.OutboundOrder
-	singleRes := l.svcCtx.OutboundOrderModel.FindOne(l.ctx, filter)
-	switch singleRes.Err() {
-	case nil:
-		if err = singleRes.Decode(&receipt); err != nil {
-			fmt.Printf("[Error]解析重复个人:%s\n", err.Error())
-			resp.Code = http.StatusInternalServerError
-			resp.Msg = "服务器内部错误"
-			return resp, nil
+func (l *RemoveLogic) Remove(req *types.OutboundOrderRemoveRequest) (*types.BaseResponse, error) {
+	id, err := primitive.ObjectIDFromHex(strings.TrimSpace(req.Id))
+	if err != nil || id.IsZero() {
+		return &types.BaseResponse{Code: http.StatusBadRequest, Msg: "出库单ID格式错误"}, nil
+	}
+	session, err := l.svcCtx.DBClient.StartSession()
+	if err != nil {
+		l.Errorf("start outbound removal session: %v", err)
+		return &types.BaseResponse{Code: http.StatusInternalServerError, Msg: "服务器内部错误"}, nil
+	}
+	defer session.EndSession(l.ctx)
+	alreadyAbsent := false
+	var committedPlan *removalPlan
+	// WithTransaction retries the full callback on write conflicts and retries
+	// an uncertain commit without repeating stock or finance side effects.
+	_, err = session.WithTransaction(l.ctx, func(dbCtx mongo.SessionContext) (interface{}, error) {
+		alreadyAbsent = false
+		committedPlan = nil
+		plan, e := readRemovalPlan(dbCtx, l.svcCtx, id)
+		if e == mongo.ErrNoDocuments {
+			alreadyAbsent = true
+			return nil, nil
 		}
-
-		if receipt.Status == "已签收" {
-			resp.Code = http.StatusBadRequest
-			resp.Msg = "已签收出库单已入账，不能删除，请通过退货或调账处理"
-			return resp, nil
-		}
-
-	case mongo.ErrNoDocuments: //出库单不存在
-		resp.Code = http.StatusBadRequest
-		resp.Msg = "出库单不存在"
-		return resp, nil
-	default:
-		fmt.Printf("[Error]查询出库单[%s]是否存在:%s\n", req.Id, singleRes.Err().Error())
-		resp.Code = http.StatusInternalServerError
-		resp.Msg = "服务器内部错误"
-		return resp, nil
-	}
-
-	//1.2 出库单物料信息
-	var materials []model.OutboundOrderMaterial
-	cur, err := l.svcCtx.OutboundMaterialModel.Find(l.ctx, bson.M{"order_code": receipt.Code})
-	if err != nil {
-		fmt.Printf("[Error]查询出库单[%s]物料列表:%s\n", receipt.Code, err.Error())
-		resp.Code = http.StatusInternalServerError
-		resp.Msg = "服务内部错误"
-		return resp, nil
-	}
-	defer cur.Close(l.ctx)
-
-	if err = cur.All(l.ctx, &materials); err != nil {
-		fmt.Printf("[Error]解析出库单[%s]物料列表:%s\n", receipt.Code, err.Error())
-		resp.Code = http.StatusInternalServerError
-		resp.Msg = "服务内部错误"
-		return resp, nil
-	}
-
-	//TODO:2.创建事务
-	//2.1 创建会话
-	sess, err := l.svcCtx.DBClient.StartSession()
-	if err != nil {
-		fmt.Printf("[Error]删除出库单：创建会话：%s\n", err.Error())
-		resp.Code = http.StatusInternalServerError
-		resp.Msg = "服务器内部错误"
-		return resp, nil
-	}
-	defer sess.EndSession(l.ctx)
-
-	//2.2 根据会话获取数据库操作的上下文
-	dbCtx := mongo.NewSessionContext(l.ctx, sess)
-
-	//2.3 开始事务
-	err = sess.StartTransaction()
-	if err != nil {
-		fmt.Printf("[Error]签收出库单：开始事务：%s\n", err.Error())
-		resp.Code = http.StatusInternalServerError
-		resp.Msg = "服务器内部错误"
-		return resp, nil
-	}
-
-	//2.删除出库单
-	_, err = l.svcCtx.OutboundOrderModel.DeleteOne(dbCtx, filter)
-	if err != nil {
-		fmt.Printf("[Error]删除出库单[%s]:%s\n", receipt.Code, err.Error())
-		// 回滚事务
-		sess.AbortTransaction(dbCtx)
-
-		resp.Msg = "服务器内部错误"
-		resp.Code = http.StatusInternalServerError
-		return resp, nil
-	}
-
-	//3.删除出库单物料
-	filter = bson.M{"order_code": strings.TrimSpace(receipt.Code)}
-	_, err = l.svcCtx.OutboundMaterialModel.DeleteMany(dbCtx, filter)
-	if err != nil {
-		fmt.Printf("[Error]删除出库单[%s]物料:%s\n", receipt.Code, err.Error())
-		// 回滚事务
-		sess.AbortTransaction(dbCtx)
-
-		resp.Code = http.StatusInternalServerError
-		resp.Msg = "服务器内部错误"
-		return resp, nil
-	}
-
-	//4.库存恢复
-	// 4.1 构建批量更新的过滤条件
-	var bulkWrites = make([]mongo.WriteModel, 0)
-
-	//遍历物料
-	for _, material := range materials {
-		//遍历物料取用库存
-		for _, inventory := range material.Inventorys {
-			inventoryId, _ := primitive.ObjectIDFromHex(inventory.InventoryId)
-			ft := bson.D{{"_id", inventoryId}}
-
-			switch receipt.Status {
-			case "预发货":
-			case "待拣货": //扣减locked_quantity
-				update := bson.M{
-					"$inc": bson.M{"locked_quantity": -inventory.ShipmentQuantity},
-				}
-
-				bulkWrite := mongo.NewUpdateOneModel()
-				bulkWrite.SetFilter(ft)
-				bulkWrite.SetUpdate(update)
-				bulkWrites = append(bulkWrites, bulkWrite)
-
-			case "已拣货", "已打包", "已称重", "已出库", "已签收": //恢复available_quantity
-				update := bson.M{
-					"$inc": bson.M{"available_quantity": inventory.ShipmentQuantity},
-				}
-
-				bulkWrite := mongo.NewUpdateOneModel()
-				bulkWrite.SetFilter(ft)
-				bulkWrite.SetUpdate(update)
-				bulkWrites = append(bulkWrites, bulkWrite)
-
-			default:
-
-			}
-		}
-	}
-
-	//4.2 执行批量更新操作
-	if len(bulkWrites) > 0 {
-		bulkOptions := options.BulkWriteOptions{}
-		bulkRes, e := l.svcCtx.InventoryModel.BulkWrite(dbCtx, bulkWrites, &bulkOptions)
 		if e != nil {
-			fmt.Printf("[Error]删除出库单[%s]恢复库存：%s\n", receipt.Code, e.Error())
-			sess.AbortTransaction(dbCtx)
-			resp.Code = http.StatusInternalServerError
-			resp.Msg = "服务器内部错误"
-			return resp, nil
+			return nil, e
 		}
-		if bulkRes.ModifiedCount != int64(len(bulkWrites)) {
-			fmt.Printf("[Error]删除出库单[%s]库存恢复数量不匹配\n", receipt.Code)
-			sess.AbortTransaction(dbCtx)
-			resp.Code = http.StatusBadRequest
-			resp.Msg = "库存已发生变化，请重试"
-			return resp, nil
+		token := strings.TrimSpace(req.PreviewToken)
+		if token == "" && plan.Snapshot.Order.Status == "已签收" {
+			return nil, removalError("已签收出库单请先查看删除预览再确认删除")
 		}
-	}
-
-	//5.删除客户交易流水(订单为签收状态时)
-	if receipt.Status == "已签收" {
-		singleRes = l.svcCtx.CustomerTransactionModel.FindOneAndDelete(dbCtx, bson.M{"order_code": receipt.Code})
-		switch err = singleRes.Err(); {
-		case err == nil:
-		case errors.Is(err, mongo.ErrNoDocuments):
-			fmt.Printf("[Error]客户出库单[%s]交易流水不存在:%s\n", receipt.Code, err.Error())
-			// 回滚事务
-			sess.AbortTransaction(dbCtx)
-
-			resp.Msg = "服务器内部错误"
-			resp.Code = http.StatusInternalServerError
-			return resp, nil
-		default:
-			fmt.Printf("[Error]删除客户出库单[%s]交易流水:%s\n", receipt.Code, err.Error())
-			// 回滚事务
-			sess.AbortTransaction(dbCtx)
-
-			resp.Msg = "服务器内部错误"
-			resp.Code = http.StatusInternalServerError
-			return resp, nil
+		if token != "" && token != plan.Preview.PreviewToken {
+			return nil, errRemovalPreviewChanged
 		}
-	}
-
-	//6.扣减应收账款(订单为签收状态时)
-	if receipt.Status == "已签收" {
-		customerId, _ := primitive.ObjectIDFromHex(receipt.CustomerId)
-		update := bson.M{
-			"$inc": bson.M{
-				"receivable_balance": -receipt.TotalAmount,
-			},
+		if e = applyRemovalPlan(dbCtx, l.svcCtx, plan); e != nil {
+			return nil, e
 		}
-
-		_, err = l.svcCtx.CustomerModel.UpdateByID(dbCtx, customerId, &update)
-		if err != nil {
-			fmt.Printf("[Error]删除出库单[%s],扣减客户[%s]应收账款：%s\n", receipt.Code, receipt.CustomerName, err.Error())
-			// 回滚事务
-			sess.AbortTransaction(dbCtx)
-
-			resp.Msg = "服务器内部错误"
-			resp.Code = http.StatusInternalServerError
-			return resp, nil
-		}
-	}
-
-	//6.提交事务
-	err = sess.CommitTransaction(dbCtx)
+		committedPlan = plan
+		return nil, nil
+	}, removalTransactionOptions())
 	if err != nil {
-		fmt.Printf("[Error]删除出库单[%s]，事务提交失败: %s\n", receipt.Code, err.Error())
-
-		resp.Code = http.StatusInternalServerError
-		resp.Msg = "服务器内部错误"
-		return resp, nil
+		if errors.Is(err, errRemovalPreviewChanged) {
+			return &types.BaseResponse{Code: http.StatusConflict, Msg: errRemovalPreviewChanged.Error()}, nil
+		}
+		if message, ok := customerfinance.IsBusinessError(err); ok {
+			return &types.BaseResponse{Code: http.StatusBadRequest, Msg: message}, nil
+		}
+		l.Errorf("remove outbound %s: %v", id.Hex(), err)
+		return &types.BaseResponse{Code: http.StatusInternalServerError, Msg: "删除失败或结果暂未确认，请刷新列表后重试"}, nil
 	}
-
-	resp.Code = http.StatusOK
-	resp.Msg = "成功"
-	return resp, nil
+	message := "成功"
+	if alreadyAbsent {
+		message = "出库单已删除或不存在"
+	} else if committedPlan != nil {
+		batches := make([]map[string]interface{}, 0, len(committedPlan.Changes))
+		for _, change := range committedPlan.Changes {
+			batches = append(batches, map[string]interface{}{"inventory_id": change.Inventory.Id.Hex(), "unit": change.Inventory.Unit, "release": change.Release, "restore": change.Restore})
+		}
+		l.Infow("outbound_removed", logx.Field("uid", l.ctx.Value("uid")), logx.Field("order_id", id.Hex()), logx.Field("code", committedPlan.Snapshot.Order.Code), logx.Field("deleted_transactions", len(committedPlan.TransactionIDs)), logx.Field("inventory_batch_count", len(batches)), logx.Field("inventory_batches", batches))
+	}
+	return &types.BaseResponse{Code: http.StatusOK, Msg: message}, nil
 }

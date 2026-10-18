@@ -133,6 +133,21 @@ func (l *StatusLogic) Status(req *types.CustomerStatusRequest) (resp *types.Base
 			resp.Msg = "客户存在交易流水，不能删除"
 			return resp, nil
 		}
+		// Document writers touch the same customer in their transaction, so a
+		// concurrent zero-balance registration cannot pass this delete gate.
+		for _, name := range []string{"customer_acceptance", "customer_invoice"} {
+			count, e = l.svcCtx.CustomerModel.Database().Collection(name).CountDocuments(dbCtx, bson.M{"customer_id": customer.Id.Hex()})
+			if e != nil {
+				_ = session.AbortTransaction(dbCtx)
+				resp.Code, resp.Msg = http.StatusInternalServerError, "查询客户票据记录失败"
+				return resp, nil
+			}
+			if count > 0 {
+				_ = session.AbortTransaction(dbCtx)
+				resp.Code, resp.Msg = http.StatusBadRequest, "客户存在承兑或开票记录，不能删除"
+				return resp, nil
+			}
+		}
 	}
 
 	update := bson.M{

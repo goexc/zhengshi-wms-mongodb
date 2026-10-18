@@ -19,6 +19,40 @@ export interface OutboundOrdersResponse {
   data: OutboundOrderPaginate;
 }
 
+export interface OutboundRemoveInventory {
+  inventory_id: string;
+  material_id: string;
+  name: string;
+  model: string;
+  unit: string;
+  warehouse_name: string;
+  release_locked_quantity: number;
+  restore_available_quantity: number;
+}
+
+export interface OutboundRemovePreview {
+  id: string;
+  code: string;
+  customer_name: string;
+  status: string;
+  allowed: boolean;
+  block_reason: string;
+  preview_token: string;
+  transaction_count: number;
+  receivable_reduction: number;
+  receivable_before: number;
+  credit_before: number;
+  receivable_after: number;
+  credit_after: number;
+  inventorys: OutboundRemoveInventory[];
+}
+
+export interface OutboundRemovePreviewResponse {
+  code: number;
+  msg: string;
+  data: OutboundRemovePreview;
+}
+
 export interface OutboundOrderPaginate {
   total: number;
   list: OutboundOrder[];

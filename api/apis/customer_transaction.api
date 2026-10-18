@@ -27,6 +27,8 @@ type CustomerTransactionPaginate {
 }
 
 type CustomerTransaction {
+    Id string `json:"id"`
+    SourceId string `json:"source_id"`
     Type string `json:"type"` //交易类型展示文案
     TransactionType string `json:"transaction_type"` //交易类型 code，业务判断使用英文值
     Direction string `json:"direction"` //余额方向 code

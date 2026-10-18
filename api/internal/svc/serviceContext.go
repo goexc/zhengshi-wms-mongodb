@@ -9,7 +9,6 @@ import (
 	"github.com/casbin/casbin/v2"
 	redisadapter "github.com/casbin/redis-adapter/v3"
 	"github.com/tencentyun/cos-go-sdk-v5"
-	"github.com/tencentyun/cos-go-sdk-v5/debug"
 	"github.com/zeromicro/go-zero/core/stores/cache"
 	"github.com/zeromicro/go-zero/core/syncx"
 	"go.mongodb.org/mongo-driver/bson"
@@ -55,6 +54,8 @@ type ServiceContext struct {
 	OutboundOrderModel               *mongo.Collection //出库单
 	InboundReceiptReceiveModel       *mongo.Collection //入库单批次入库记录
 	CustomerTransactionModel         *mongo.Collection //客户流水
+	CustomerAcceptanceModel          *mongo.Collection //客户承兑
+	CustomerInvoiceModel             *mongo.Collection //销售开票
 	SupplierTransactionModel         *mongo.Collection //供应商流水
 	CarrierTransactionModel          *mongo.Collection //承运商流水
 	InventoryModel                   *mongo.Collection //库存
@@ -101,11 +102,13 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		OutboundOrderModel:               db.Collection("outbound_order"),                 //出库单
 		InboundReceiptReceiveModel:       db.Collection("inbound_receipt_receive"),        //入库单批次入库记录
 		CustomerTransactionModel:         db.Collection("customer_transaction"),           //客户流水
-		SupplierTransactionModel:         db.Collection("supplier_transaction"),           //供应商流水
-		CarrierTransactionModel:          db.Collection("carrier_transaction"),            //承运商流水
-		InventoryModel:                   db.Collection("inventory"),                      //库存
-		OutboundMaterialModel:            db.Collection("outbound_material"),              //出库单物料
-		PlanModel:                        db.Collection("plan"),                           //计划
+		CustomerAcceptanceModel:          db.Collection("customer_acceptance"),
+		CustomerInvoiceModel:             db.Collection("customer_invoice"),
+		SupplierTransactionModel:         db.Collection("supplier_transaction"), //供应商流水
+		CarrierTransactionModel:          db.Collection("carrier_transaction"),  //承运商流水
+		InventoryModel:                   db.Collection("inventory"),            //库存
+		OutboundMaterialModel:            db.Collection("outbound_material"),    //出库单物料
+		PlanModel:                        db.Collection("plan"),                 //计划
 	}
 
 	//2.角色表添加索引
@@ -152,6 +155,12 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		panic(fmt.Sprintf("[Error]创建出库单交付查询索引:%s", err.Error()))
 	}
 	outboundMaterialIndexes := []mongo.IndexModel{
+		{
+			Keys: bson.D{{"material_id", 1}, {"order_code", 1}},
+			Options: options.Index().
+				SetName("idx_outbound_material_material_order").
+				SetBackground(true),
+		},
 		{
 			Keys: bson.D{{"order_code", 1}, {"material_id", 1}},
 			Options: options.Index().
@@ -208,6 +217,18 @@ func NewServiceContext(c config.Config) *ServiceContext {
 
 	transactionIndexes := []mongo.IndexModel{
 		{
+			Keys:    bson.M{"source_id": 1},
+			Options: options.Index().SetName("idx_customer_transaction_source_id"),
+		},
+		{
+			Keys:    bson.M{"order_code": 1},
+			Options: options.Index().SetName("idx_customer_transaction_order_code"),
+		},
+		{
+			Keys:    bson.M{"source_code": 1},
+			Options: options.Index().SetName("idx_customer_transaction_source_code"),
+		},
+		{
 			Keys: bson.M{"idempotency_key": 1},
 			Options: options.Index().
 				SetUnique(true).
@@ -235,7 +256,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 				SetName("idx_customer_transaction_customer_type_status"),
 		},
 	}
-	if _, err = ctx.CustomerTransactionModel.Indexes().CreateMany(context.Background(), transactionIndexes, indexOpt); err != nil {
+	if _, err = ctx.CustomerTransactionModel.Indexes().CreateMany(context.Background(), transactionIndexes, largeIndexOpt); err != nil {
 		panic(fmt.Sprintf("[Error]创建客户流水索引:%s", err.Error()))
 	}
 
@@ -251,6 +272,10 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	}
 
 	customerMaterialDeliveryIndexes := []mongo.IndexModel{
+		{
+			Keys:    bson.D{{"first_delivery_order_code", 1}},
+			Options: options.Index().SetName("idx_customer_material_delivery_first_order"),
+		},
 		{
 			Keys: bson.D{{"customer_id", 1}, {"material_id", 1}},
 			Options: options.Index().
@@ -268,7 +293,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 				SetName("idx_customer_material_delivery_quote_status"),
 		},
 	}
-	if _, err = ctx.CustomerMaterialDeliveryModel.Indexes().CreateMany(context.Background(), customerMaterialDeliveryIndexes, indexOpt); err != nil {
+	if _, err = ctx.CustomerMaterialDeliveryModel.Indexes().CreateMany(context.Background(), customerMaterialDeliveryIndexes, largeIndexOpt); err != nil {
 		panic(fmt.Sprintf("[Error]创建客户物料首次交付索引:%s", err.Error()))
 	}
 
@@ -289,6 +314,14 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	}
 
 	materialQuoteIndexes := []mongo.IndexModel{
+		{
+			Keys:    bson.D{{"source_order_id", 1}},
+			Options: options.Index().SetName("idx_material_quote_source_order_id"),
+		},
+		{
+			Keys:    bson.M{"source_order_code": 1},
+			Options: options.Index().SetName("idx_material_quote_source_order"),
+		},
 		{
 			Keys: bson.M{"quote_no": 1},
 			Options: options.Index().
@@ -316,7 +349,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 				SetName("idx_material_quote_source_valid"),
 		},
 	}
-	if _, err = ctx.MaterialQuoteModel.Indexes().CreateMany(context.Background(), materialQuoteIndexes, indexOpt); err != nil {
+	if _, err = ctx.MaterialQuoteModel.Indexes().CreateMany(context.Background(), materialQuoteIndexes, largeIndexOpt); err != nil {
 		panic(fmt.Sprintf("[Error]创建物料报价单索引:%s", err.Error()))
 	}
 
@@ -343,6 +376,12 @@ func NewServiceContext(c config.Config) *ServiceContext {
 
 	//3.系统初始化步骤
 	SystemInit(ctx)
+	if err = EnsureCustomerDocumentIndexes(context.Background(), ctx); err != nil {
+		panic(fmt.Sprintf("[Error]创建客户承兑和开票索引:%s", err.Error()))
+	}
+	if err = EnsureFinanceCatalog(ctx); err != nil {
+		panic(fmt.Sprintf("[Error]初始化客户财务目录:%s", err.Error()))
+	}
 
 	return ctx
 }
@@ -428,12 +467,6 @@ func InitCos(c config.Config) *cos.Client {
 		Transport: &cos.AuthorizationTransport{
 			SecretID:  c.COS.SecretID,
 			SecretKey: c.COS.SecretKey,
-			Transport: &debug.DebugRequestTransport{
-				RequestHeader:  true,
-				RequestBody:    true,
-				ResponseHeader: true,
-				ResponseBody:   true,
-			},
 		},
 	})
 }

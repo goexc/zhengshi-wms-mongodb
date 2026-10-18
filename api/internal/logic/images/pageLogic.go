@@ -8,6 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"api/internal/svc"
@@ -32,12 +33,21 @@ func NewPageLogic(ctx context.Context, svcCtx *svc.ServiceContext) *PageLogic {
 
 func (l *PageLogic) Page(req *types.ImagesRequest) (resp *types.ImagesResponse, err error) {
 	resp = new(types.ImagesResponse)
+	if !scopeAllowed(l.ctx, l.svcCtx, req.Scope, false) {
+		resp.Code = http.StatusForbidden
+		resp.Msg = "没有该业务附件查看权限"
+		return resp, nil
+	}
 
-	var filter = bson.M{}
+	var filter = bson.M{"scope": bson.M{"$in": bson.A{"", nil}}}
+	if req.Scope != "" {
+		filter = bson.M{"scope": req.Scope}
+	}
+	filter["deleting"] = bson.M{"$ne": true}
 	var option = options.Find().SetSort(bson.M{"created_at": -1}).SetSkip((req.Page - 1) * req.Size).SetLimit(req.Size)
 	if strings.TrimSpace(req.Name) != "" {
 		//i 表示不区分大小写
-		regex := bson.M{"$regex": primitive.Regex{Pattern: ".*" + strings.TrimSpace(req.Name) + ".*", Options: "i"}}
+		regex := bson.M{"$regex": primitive.Regex{Pattern: regexp.QuoteMeta(strings.TrimSpace(req.Name)), Options: "i"}}
 		filter["alt"] = regex
 	}
 

@@ -46,6 +46,7 @@ type PostTransactionRequest struct {
 	SourceId              string
 	SourceCode            string
 	IdempotencyKey        string
+	RequestHash           string
 	OriginalTransactionId string
 	CustomerId            string
 	CustomerName          string
@@ -101,8 +102,14 @@ func ResolveDirection(transactionType, requestedDirection string) (string, error
 // stored as credit_balance so valid price decreases or overpayments are not
 // rejected simply because the current receivable is already zero.
 func ApplyBalanceDelta(ctx context.Context, svcCtx *svc.ServiceContext, customerId primitive.ObjectID, delta float64) error {
+	if math.IsNaN(delta) || math.IsInf(delta, 0) {
+		return &BusinessError{Message: "交易金额异常"}
+	}
 	if math.Abs(delta) <= amountTolerance {
-		return nil
+		// Small valid payments still participate in the customer write conflict
+		// gate. Rebuild instead of discarding each delta independently: several
+		// sub-tolerance entries can have a material aggregate balance.
+		return RebuildCustomerBalance(ctx, svcCtx, customerId)
 	}
 
 	filter := bson.M{
@@ -128,6 +135,7 @@ func ApplyBalanceDelta(ctx context.Context, svcCtx *svc.ServiceContext, customer
 				0,
 			}}}},
 			{"updated_at", time.Now().Unix()},
+			{"balance_revision", bson.D{{"$add", bson.A{bson.D{{"$ifNull", bson.A{"$balance_revision", 0}}}, int64(1)}}}},
 		}}},
 	}
 
@@ -145,16 +153,46 @@ func ApplyBalanceDelta(ctx context.Context, svcCtx *svc.ServiceContext, customer
 // PostTransaction inserts one customer finance transaction and applies the
 // balance cache change in the same caller-provided transaction context.
 func PostTransaction(ctx context.Context, svcCtx *svc.ServiceContext, req PostTransactionRequest) (*PostTransactionResult, error) {
-	if req.Amount <= 0 {
-		return nil, &BusinessError{Message: "交易金额必须大于0"}
+	record, customerObjectId, err := prepareTransaction(req)
+	if err != nil {
+		return nil, err
+	}
+	// A duplicate-key write aborts a MongoDB transaction. Read a prior receipt
+	// before writing; a concurrent duplicate must be resolved by the caller after
+	// the transaction has ended, never by querying its aborted session.
+	if existing, findErr := findMatchingTransaction(ctx, svcCtx, req, record); findErr == nil {
+		return existing, nil
+	} else if !errors.Is(findErr, mongo.ErrNoDocuments) {
+		return nil, findErr
+	}
+	if _, err = svcCtx.CustomerTransactionModel.InsertOne(ctx, &record); err != nil {
+		return nil, err
+	}
+	delta, ok := financeCode.TransactionBalanceDelta(record.TransactionType, record.Direction, record.Amount)
+	if !ok {
+		return nil, &BusinessError{Message: "交易方向错误"}
+	}
+	if !financeCode.TransactionStatusCountsInBalance(record.Status) {
+		delta = 0
+	}
+	if err = ApplyBalanceDelta(ctx, svcCtx, customerObjectId, delta); err != nil {
+		return nil, err
+	}
+	return &PostTransactionResult{Transaction: record, Inserted: true, BalanceDelta: delta}, nil
+}
+
+func prepareTransaction(req PostTransactionRequest) (model.CustomerTransaction, primitive.ObjectID, error) {
+	var empty model.CustomerTransaction
+	if req.Amount <= 0 || math.IsNaN(req.Amount) || math.IsInf(req.Amount, 0) {
+		return empty, primitive.NilObjectID, &BusinessError{Message: "交易金额必须大于0"}
 	}
 	if strings.TrimSpace(req.IdempotencyKey) == "" {
-		return nil, &BusinessError{Message: "缺少幂等键"}
+		return empty, primitive.NilObjectID, &BusinessError{Message: "缺少幂等键"}
 	}
 
 	direction, err := ResolveDirection(req.TransactionType, req.Direction)
 	if err != nil {
-		return nil, err
+		return empty, primitive.NilObjectID, err
 	}
 
 	status := strings.TrimSpace(req.Status)
@@ -164,7 +202,7 @@ func PostTransaction(ctx context.Context, svcCtx *svc.ServiceContext, req PostTr
 
 	customerObjectId, err := primitive.ObjectIDFromHex(strings.TrimSpace(req.CustomerId))
 	if err != nil {
-		return nil, &BusinessError{Message: "客户参数错误"}
+		return empty, primitive.NilObjectID, &BusinessError{Message: "客户参数错误"}
 	}
 
 	now := req.CreatedAt
@@ -193,6 +231,7 @@ func PostTransaction(ctx context.Context, svcCtx *svc.ServiceContext, req PostTr
 		SourceId:              strings.TrimSpace(req.SourceId),
 		SourceCode:            strings.TrimSpace(req.SourceCode),
 		IdempotencyKey:        strings.TrimSpace(req.IdempotencyKey),
+		RequestHash:           req.RequestHash,
 		OriginalTransactionId: strings.TrimSpace(req.OriginalTransactionId),
 		CustomerId:            strings.TrimSpace(req.CustomerId),
 		CustomerName:          strings.TrimSpace(req.CustomerName),
@@ -206,33 +245,43 @@ func PostTransaction(ctx context.Context, svcCtx *svc.ServiceContext, req PostTr
 		UpdatedAt:             0,
 	}
 
-	if _, err = svcCtx.CustomerTransactionModel.InsertOne(ctx, &record); err != nil {
-		if mongo.IsDuplicateKeyError(err) {
-			existing, findErr := findByIdempotencyKey(ctx, svcCtx, record.IdempotencyKey)
-			if findErr != nil {
-				return nil, findErr
-			}
-			if !sameTransactionPayload(existing, record) {
-				return nil, &BusinessError{Message: "幂等键已被其他交易使用"}
-			}
-			return &PostTransactionResult{Transaction: existing, Inserted: false, BalanceDelta: 0}, nil
-		}
+	return record, customerObjectId, nil
+}
+
+// FindPostedTransaction resolves a known operation after an aborted or uncertain
+// transaction. Call it with a non-session context; a matching receipt and balance
+// were committed together. ErrNoDocuments means the outcome is still unproven.
+func FindPostedTransaction(ctx context.Context, svcCtx *svc.ServiceContext, req PostTransactionRequest) (*PostTransactionResult, error) {
+	record, _, err := prepareTransaction(req)
+	if err != nil {
 		return nil, err
 	}
+	return findMatchingTransaction(ctx, svcCtx, req, record)
+}
 
-	delta, ok := financeCode.TransactionBalanceDelta(record.TransactionType, record.Direction, record.Amount)
-	if !ok {
-		return nil, &BusinessError{Message: "交易方向错误"}
-	}
-	if !financeCode.TransactionStatusCountsInBalance(record.Status) {
-		delta = 0
-	}
-
-	if err = ApplyBalanceDelta(ctx, svcCtx, customerObjectId, delta); err != nil {
+func findMatchingTransaction(ctx context.Context, svcCtx *svc.ServiceContext, req PostTransactionRequest, record model.CustomerTransaction) (*PostTransactionResult, error) {
+	existing, err := findByIdempotencyKey(ctx, svcCtx, record.IdempotencyKey)
+	if err != nil {
 		return nil, err
 	}
+	if !sameTransactionPayload(existing, record) || !sameRequestReceipt(existing, record, req.Time) {
+		return nil, &BusinessError{Message: "幂等键已被不同交易内容使用，请核对原记录"}
+	}
+	return &PostTransactionResult{Transaction: existing, Inserted: false}, nil
+}
 
-	return &PostTransactionResult{Transaction: record, Inserted: true, BalanceDelta: delta}, nil
+func sameRequestReceipt(existing, requested model.CustomerTransaction, requestedTime int64) bool {
+	if requested.RequestHash == "" {
+		return true // Keep the established cross-path outbound posting contract.
+	}
+	if existing.RequestHash != "" {
+		return existing.RequestHash == requested.RequestHash
+	}
+	// Existing manual entries predate request hashes. Compare all stored user
+	// fields; an omitted time kept its historical server-default meaning.
+	return existing.Amount == requested.Amount && existing.Annex == requested.Annex &&
+		existing.Remark == requested.Remark && (requestedTime == 0 || existing.Time == requested.Time) &&
+		existing.OrderCode == requested.OrderCode && existing.OriginalTransactionId == requested.OriginalTransactionId
 }
 
 func findByIdempotencyKey(ctx context.Context, svcCtx *svc.ServiceContext, key string) (model.CustomerTransaction, error) {

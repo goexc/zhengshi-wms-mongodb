@@ -49,6 +49,8 @@ import WmsPage from "@/components/wms/Page.uvue";
 const { user } = useStore();
 type Entry = { feature: string; path: string; title: string; icon: string };
 const all: Entry[] = [
+ { feature: "acceptance", path: "/pages/business/customer-documents?kind=acceptance", title: "客户承兑", icon: "bank-card-line" },
+ { feature: "invoice", path: "/pages/business/customer-documents?kind=invoice", title: "销售开票", icon: "file-list-3-line" },
 	{
 		feature: "material",
 		path: "/pages/material/index",

@@ -350,11 +350,18 @@ func (l *ReviseLogic) upsertCustomerMaterialPrices(ctx context.Context, customer
 }
 
 func (l *ReviseLogic) orderPostedAmount(ctx context.Context, order model.OutboundOrder) (decimal.Decimal, string, bool, error) {
+	orderCount, err := l.svcCtx.OutboundOrderModel.CountDocuments(ctx, bson.M{"code": order.Code})
+	if err != nil {
+		return decimal.Zero, "", false, err
+	}
+	if orderCount != 1 {
+		return decimal.Zero, "", false, removalError("出库单号无法唯一定位明细及历史流水，请先核对")
+	}
 	transactionFilter := bson.M{
 		"$or": []bson.M{
-			{"source_type": financeCode.SourceTypeOutboundOrder, "source_id": order.Id.Hex()},
-			{"source_type": financeCode.SourceTypeSystemRecount, "source_id": order.Id.Hex()},
+			{"source_id": order.Id.Hex()},
 			{"order_code": order.Code},
+			{"source_code": order.Code},
 		},
 	}
 	txCur, err := l.svcCtx.CustomerTransactionModel.Find(ctx, transactionFilter)
@@ -367,17 +374,18 @@ func (l *ReviseLogic) orderPostedAmount(ctx context.Context, order model.Outboun
 	if err = txCur.All(ctx, &transactions); err != nil {
 		return decimal.Zero, "", false, err
 	}
+	// Repricing and deletion must agree on ownership before calculating an AR
+	// delta; a matching display code never overrides an explicit source ID.
+	transactions, err = selectRemovalTransactions(order, transactions, true)
+	if err != nil {
+		return decimal.Zero, "", false, err
+	}
 
 	postedAmount := decimal.Zero
 	originalTransactionId := ""
 	hasAdjustment := false
 	for _, record := range transactions {
-		typeCode := record.TransactionType
-		if typeCode == "" {
-			if normalized, ok := financeCode.TransactionTypeCode(record.Type); ok {
-				typeCode = normalized
-			}
-		}
+		typeCode := customerfinance.TransactionType(record)
 		if typeCode != financeCode.TransactionTypeOutboundAR && typeCode != financeCode.TransactionTypeARAdjustment {
 			continue
 		}
@@ -390,11 +398,11 @@ func (l *ReviseLogic) orderPostedAmount(ctx context.Context, order model.Outboun
 		if typeCode == financeCode.TransactionTypeARAdjustment {
 			hasAdjustment = true
 		}
-		delta, ok := financeCode.TransactionBalanceDelta(typeCode, record.Direction, record.Amount)
-		if !ok {
-			return decimal.Zero, "", false, &customerfinance.BusinessError{Message: "出库单存在方向异常的应收流水"}
+		delta, err := customerfinance.TransactionNet(record)
+		if err != nil {
+			return decimal.Zero, "", false, err
 		}
-		postedAmount = postedAmount.Add(decimal.NewFromFloat(delta))
+		postedAmount = postedAmount.Add(delta)
 	}
 	return postedAmount, originalTransactionId, hasAdjustment, nil
 }

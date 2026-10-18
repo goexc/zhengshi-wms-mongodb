@@ -11,6 +11,7 @@ import {
   OutboundOrdersRequest,
   OutboundOrdersResponse, OutboundOrderSummaryRequest, OutboundOrderSummaryResponse,
   OutboundOrderWeighRequest,
+  OutboundRemovePreviewResponse,
   FastOutboundRequest
 } from "@/api/outbound/types.ts";
 import {baseResponse} from "@/api/types.ts";
@@ -22,6 +23,7 @@ enum API {
   OUTBOUND_PAGE2_URL = '/outbound/page2',
   //添加出库单、修改出库单、删除出库单
   OUTBOUND_URL = '/outbound',
+  OUTBOUND_REMOVE_PREVIEW_URL = '/outbound/remove-preview',
   //物料列表
   OUTBOUND_MATERIALS_URL = '/outbound/materials',
   //确认出库单
@@ -83,9 +85,12 @@ export const reqAddOutboundOrder = (data: OutboundOrderRequest) => {
   }
 };
 
-//删除出库单
-export const reqRemoveOutboundOrder = (id: string) =>
-  request.delete<any, baseResponse>(API.OUTBOUND_URL, {params: {id: id}});
+//预览出库单删除影响；提交必须携带本次预览凭证。
+export const reqOutboundRemovePreview = (id: string) =>
+  request.get<any, OutboundRemovePreviewResponse>(API.OUTBOUND_REMOVE_PREVIEW_URL, {params: {id}});
+
+export const reqRemoveOutboundOrder = (id: string, previewToken: string) =>
+  request.delete<any, baseResponse>(API.OUTBOUND_URL, {params: {id, preview_token: previewToken}});
 
 //确认出库单
 export const reqConfirmOutboundOrder = (req: OutboundOrderConfirmRequest) =>

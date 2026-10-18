@@ -479,7 +479,7 @@ onMounted(async () => {
     <el-form
         inline
         label-width="80px"
-        @keyup.enter="getMaterials"
+        @submit.prevent="getMaterials"
     >
       <MaterialCategoryListItem
           :form="materialsForm"
@@ -510,7 +510,7 @@ onMounted(async () => {
                 </el-select>
               </el-form-item>-->
       <el-form-item label=" ">
-        <el-button type="primary" plain @click="getMaterials" icon="Search">查询</el-button>
+        <el-button type="primary" plain native-type="submit" icon="Search">查询</el-button>
         <el-button plain @click="reset" icon="RefreshRight">重置</el-button>
       </el-form-item>
     </el-form>

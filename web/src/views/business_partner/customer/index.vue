@@ -1,7 +1,9 @@
 <script setup lang="ts">
 
 import {onMounted, ref} from "vue";
-import {ElMessage, FormInstance} from "element-plus";
+import {useRouter} from 'vue-router';
+import {useAuthStore} from '@/store/modules/auth';
+import {ElMessage} from "element-plus";
 import {Customer, CustomersRequest, CustomerStatusRequest} from "@/api/customer/types.ts";
 import {reqChangeCustomerStatus, reqCustomers, reqRecountReceivableBalance} from "@/api/customer";
 import {Sizes, Types} from "@/utils/enum.ts";
@@ -9,6 +11,11 @@ import {TimeFormat} from "@/utils/time.ts";
 import Item from "./components/Item.vue";
 import Status from "./components/Status.vue";
 import Transaction from "@/views/business_partner/customer/components/Transaction.vue";
+
+const router = useRouter();
+const authStore = useAuthStore();
+const canViewDocuments = (kind: 'acceptance' | 'invoice') => authStore.authButtonListGet.some(item => item.perms === `finance:${kind}:list`);
+const openDocuments = (kind: 'acceptance' | 'invoice', item: Customer) => router.push({ path: `/finance/${kind}`, query: { customer_id: item.id, customer_name: item.name } });
 
 
 let initCustomersForm = () => {
@@ -49,7 +56,6 @@ const oss_domain = ref<string>(import.meta.env.VITE_OSS_DOMAIN)
 let loading = ref<boolean>(false)
 let recounting = ref<boolean>(false)
 let customersForm = ref<CustomersRequest>(initCustomersForm())
-let customersRef = ref<FormInstance>()
 let customers = ref<Customer[]>([])
 let total = ref<number>(0)
 
@@ -181,9 +187,9 @@ onMounted(() => {
     v-auth="'business_partner:customer:list'"
     >
       <el-form
+          @submit.prevent="getCustomers"
           inline
           :model="customersForm"
-          ref="customersRef"
           label-width="80px"
           style="display: flex; flex-wrap: wrap;"
       >
@@ -208,7 +214,7 @@ onMounted(() => {
               :type="Types.primary"
               :size="Sizes.large"
               :plain="true"
-              @click="getCustomers"
+              native-type="submit"
           />
           <perms-button
               perms="business_partner:customer:list"
@@ -288,6 +294,10 @@ onMounted(() => {
               <el-text class="money" type="primary" size="small">-结款</el-text>
               <el-text v-if="row.credit_balance > 0" class="money" type="success" size="small">贷项</el-text>
               <el-text class="money" type="primary" size="small" @click="handleTransaction(row)">查看流水</el-text>
+            </el-row>
+            <el-row>
+              <el-button v-if="canViewDocuments('acceptance')" link type="primary" size="small" @click="openDocuments('acceptance', row)">承兑记录</el-button>
+              <el-button v-if="canViewDocuments('invoice')" link type="primary" size="small" @click="openDocuments('invoice', row)">开票记录</el-button>
             </el-row>
           </template>
         </el-table-column>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {onMounted, reactive, ref} from "vue";
+import {onBeforeUnmount, onMounted, reactive, ref, watch} from "vue";
 import {
   CustomerTransaction,
   CustomerTransactionAddRequest,
@@ -8,7 +8,8 @@ import {
 import {reqAddCustomerTransaction, reqCustomerTransactions} from "@/api/customer";
 import {ElMessage, FormRules} from "element-plus";
 import {DateFormat} from "@/utils/time.ts";
-import {CustomerTransactionTypeLabels, CustomerTransactionTypes} from "@/enums/customer.ts";
+import {CustomerTransactionTypeLabels, CustomerTransactionTypes, CustomerTransactionSourceLabels, CustomerTransactionStatusLabels} from "@/enums/customer.ts";
+import DocumentAttachments from '@/views/finance/components/DocumentAttachments.vue';
 import dayjs from "dayjs";
 
 defineOptions({
@@ -25,6 +26,13 @@ const form = ref<CustomerTransactionPageRequest>({
 })
 const loading = ref<boolean>(false)
 const visible = ref<boolean>(false)
+const submitting = ref(false)
+const uploading = ref(false)
+const recordError = ref('')
+const pendingRecord = ref<CustomerTransactionAddRequest>()
+let recordWasUncertain = false
+let loadGeneration = 0
+let disposed = false
 
 //交易流水
 const list = ref<CustomerTransaction[]>([])
@@ -33,19 +41,21 @@ const total = ref<number>(0)
 
 //获取交易流水
 const getTransactions = async () => {
+  const generation = ++loadGeneration
   loading.value = true
   list.value = []
-
-  let res = await reqCustomerTransactions(form.value)
-  if (res.code === 200) {
+  try {
+  const res = await reqCustomerTransactions({...form.value})
+  if (generation !== loadGeneration) return
+  if (res.code !== 200) throw new Error(res.msg)
     list.value = res.data.list
     total.value = res.data.total
-  } else {
+  } catch (error) {
+    if (generation !== loadGeneration) return
     list.value = []
     total.value = 0
-    ElMessage.error(res.msg)
-  }
-  loading.value = false
+    ElMessage.error(error instanceof Error ? error.message : '交易流水加载失败，请重试')
+  } finally { if (generation === loadGeneration) loading.value = false }
 }
 
 
@@ -76,6 +86,7 @@ const transactionType = (type: string) => {
 const transactionLabel = (row: CustomerTransaction) => {
   return row.type || CustomerTransactionTypeLabels[row.transaction_type] || row.transaction_type
 }
+const transactionAnnex = (value: string) => (value || '').split(',').map(item => item.trim()).filter(Boolean);
 
 const createIdempotencyKey = () => {
   const uuid = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`
@@ -84,7 +95,11 @@ const createIdempotencyKey = () => {
 
 //添加回款记录
 const handleRecord = () => {
-  recordForm.value.idempotency_key = createIdempotencyKey()
+  if (submitting.value || uploading.value) return
+  if (!pendingRecord.value) {
+    recordError.value = ''
+    recordForm.value = { customer_id: props.customer.id, time: 0, transaction_type: 'payment', direction: 'receivable_decrease', idempotency_key: createIdempotencyKey(), amount: 0, remark: '', annex: [] }
+  }
   visible.value = true
 }
 
@@ -126,51 +141,56 @@ const rules = reactive<FormRules>({
 
 //更换附件
 const handleSelect = (image: string) => {
+  if (submitting.value || pendingRecord.value) return
   if(!recordForm.value.annex.includes(image)) {
     recordForm.value.annex.push(image)
   }
 }
 //删除附件
 const handleRemove = (image: string) => {
-  console.log('handleRemove:', image)
+  if (submitting.value || pendingRecord.value) return
   recordForm.value.annex = recordForm.value.annex.filter(item => item !== image)
 }
 
 //添加交易记录
 const handleAdd = async () => {
-
-  //表单校验
-  let valid = await recordFormRef.value?.validate((isValid:boolean) => {
-    if (!isValid) {
-    }
-    return
-  })
-
-  if (!valid) {
-    return
-  }
-
-  loading.value = true
+  if (disposed || submitting.value || uploading.value) return
+  submitting.value = true
+  recordError.value = ''
+  try {
+  if (!pendingRecord.value) {
+  if (!(await recordFormRef.value?.validate().catch(() => false)) || disposed) return
   if (!recordForm.value.idempotency_key) {
     recordForm.value.idempotency_key = createIdempotencyKey()
   }
   const option = CustomerTransactionTypes.find(one => one.value === recordForm.value.transaction_type)
   recordForm.value.direction = option?.direction || 'receivable_decrease'
-  let res = await reqAddCustomerTransaction(recordForm.value)
-  if (res.code === 200) {
+  pendingRecord.value = {...recordForm.value, annex: [...recordForm.value.annex]}
+  }
+  const res = await reqAddCustomerTransaction(pendingRecord.value)
+  if (disposed) return
+  if (res.code !== 200) throw Object.assign(new Error(res.msg), {status: res.code})
+    pendingRecord.value = undefined
+    recordWasUncertain = false
     ElMessage.success(res.msg)
     visible.value = false
     await getTransactions()
     emit('success')
-  } else {
-    ElMessage.error(res.msg)
-  }
-  loading.value = false
+  } catch (error) {
+    if (disposed) return
+    const candidate = error as {status?: number; response?: {status?: number; data?: {msg?: string}}; message?: string}
+    const status = candidate.response?.status ?? candidate.status
+    recordWasUncertain ||= !status || status >= 500
+    if (!recordWasUncertain) pendingRecord.value = undefined
+    recordError.value = `${candidate.response?.data?.msg || candidate.message || '请求失败'}。${pendingRecord.value ? '尚未确认结果，已保留本次提交，请点击“重试确认”。' : '请按提示修正后提交。'}`
+  } finally { if (!disposed) submitting.value = false }
 }
 
 onMounted(() => {
   getTransactions()
 })
+watch(() => props.customer.id, customerID => { form.value.customer_id = customerID; form.value.page = 1; void getTransactions() })
+onBeforeUnmount(() => { disposed = true; ++loadGeneration })
 
 </script>
 
@@ -215,6 +235,15 @@ onMounted(() => {
       </template>
 
     </el-table-column>
+    <el-table-column label="来源" min-width="120">
+      <template #default="{row}">
+        <div>{{ CustomerTransactionSourceLabels[row.source_type] || '其他来源' }}</div>
+        <el-text v-if="row.source_code" type="info" size="small">{{ row.source_code }}</el-text>
+      </template>
+    </el-table-column>
+    <el-table-column label="状态" width="90" align="center">
+      <template #default="{row}">{{ CustomerTransactionStatusLabels[row.status] || '—' }}</template>
+    </el-table-column>
     <el-table-column label="交易时间" prop="time" align="center">
       <template #default="{row}">
         {{ DateFormat(row.time) }}
@@ -228,6 +257,8 @@ onMounted(() => {
     <el-table-column label="备注" prop="remark"/>
     <el-table-column label="附件">
       <template #default="{row}">
+        <DocumentAttachments v-if="row.source_type === 'customer_acceptance'" :model-value="transactionAnnex(row.annex)" />
+        <template v-else>
         <el-image
             class="m-t-1 m-x-1"
             v-if="!!row.annex&&row.annex.length>0"
@@ -240,6 +271,7 @@ onMounted(() => {
             :preview-src-list="row.annex.split(',').map((one:string)=>oss_domain+one+'_1024x1024')"
             style="width: 296px;height: 148px;"
         ></el-image>
+        </template>
       </template>
     </el-table-column>
   </el-table>
@@ -264,6 +296,8 @@ onMounted(() => {
       draggable
       width="800"
       :close-on-click-modal="false"
+      :close-on-press-escape="!submitting && !uploading && !pendingRecord"
+      :show-close="!submitting && !uploading && !pendingRecord"
   >
     <el-form
         label-width="80"
@@ -271,6 +305,7 @@ onMounted(() => {
         :model="recordForm"
         ref="recordFormRef"
         :rules="rules"
+        :disabled="submitting || !!pendingRecord"
     >
       <el-form-item
           label="客户"
@@ -322,6 +357,8 @@ onMounted(() => {
           :multiple="true"
           :limit="10"
           :urls.sync="recordForm.annex"
+          :disabled="submitting || !!pendingRecord"
+          @uploading="uploading = $event"
       />
       </el-form-item>
       <el-form-item>
@@ -348,13 +385,12 @@ onMounted(() => {
           </div>
         </div>
       </el-form-item>
-      <el-form-item
-          label=""
-      >
-        <el-button plain @click="visible=false">取消</el-button>
-        <el-button plain type="primary" @click="handleAdd" :loading="loading">确定</el-button>
-      </el-form-item>
     </el-form>
+    <el-alert v-if="recordError" :title="recordError" type="error" :closable="false" show-icon />
+    <template #footer>
+        <el-button plain @click="visible=false" :disabled="submitting || uploading || !!pendingRecord">取消</el-button>
+        <el-button plain type="primary" @click="handleAdd" :loading="submitting" :disabled="uploading">{{ pendingRecord ? '重试确认' : '确定' }}</el-button>
+    </template>
   </el-dialog>
 </template>
 

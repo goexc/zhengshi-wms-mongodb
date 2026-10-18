@@ -1,5 +1,71 @@
 # ReadMe
 
+## 客户承兑与销售开票记录
+
+客户承兑登记不影响应收，确认兑付到账才生成回款；到账凭证选填。销售开票记录独立归档，不影响应收。附件沿用 `/images`，按承兑、到账凭证、发票分类存入 COS 子目录，旧文件引用保持兼容。接口、状态动作、权限与部署验证见 [CUSTOMER_DOCUMENTS.md](CUSTOMER_DOCUMENTS.md)。
+
+## 出库单删除预览与提交
+
+Web 的“出库单”和“出库单2”共用删除预览弹窗。`GET /outbound/remove-preview?id=<出库单ID>`
+返回可删除状态、库存批次处理、关联应收流水数量和删除前后余额；预览复用 `DELETE /outbound`
+的后端权限，不需要额外授权一个查询权限。`DELETE /outbound?id=<ID>&preview_token=<摘要>`
+在事务内重新核对预览，数据变化返回业务码 `409`，需要重新预览。
+
+删除直接移除出库单、明细及明确归属于它的 `outbound_ar` / `ar_adjustment` 流水，
+不保留这些流水、不追加冲销。独立回款和期初等记录保留。库存从原批次分配恢复；
+客户余额依据剩余有效流水计算，应收和贷方余额分别保存正负净额。首次交付及报价来源
+在同一删除事务内定向修复；历史报价仍引用的单号不能复用。暂不处理退货业务。
+
+原来可删除的未签收单据兼容不带摘要的旧请求；已签收删除必须带预览摘要。
+重复删除同一 ID 返回已删除或不存在，不重复修改库存。没有原库存分配、批次缺失、
+流水归属矛盾等情况会在预览中说明，不能猜测恢复数量。数据库必须支持多文档事务。
+
+建单、确认、拣货、称重的单据/明细/库存更新使用同一事务，防止与删除交错后留下孤立数据。
+删除后的余额计算只使用公共汇总函数，不调用会补建应收的完整重算业务。
+独立回款、期初和手工调整即使引用该单号也保留；明确的独立手工来源不参与该单核价差额。
+应收调整若关联他单、缺失原流水或循环链会阻止删除。删除、核价、余额重算采用一致的
+有效流水状态口径；微额回款也更新客户版本并按完整流水计算，防止并发删除漏算回款。
+旧 `backend_app` 的 `CustomerTransactionSync` 已停止写入；部署时也应停止仍运行的旧版本同步程序。
+
+### 验证
+
+常规验证：`go test ./...`、`go build ./...`；Web 目录执行 `pnpm test` 和 `pnpm run build`。
+MongoDB 集成测试只接受显式配置的本机实例，并为每个测试建立及清理独立的
+`wms_delete_test_` 前缀数据库，不读取 `etc/main.yaml`，不使用业务库。
+
+```powershell
+# 先在隔离数据目录启动并初始化本地 MongoDB 副本集，以下地址仅为示例。
+$env:WMS_TEST_MONGO_URI = 'mongodb://127.0.0.1:37171/?replicaSet=wms_delete_test'
+go test ./internal/logic/outbound ./internal/logic/material/delivery ./internal/logic/material/quote -count=1
+Remove-Item Env:WMS_TEST_MONGO_URI
+```
+
+未设置该环境变量时集成用例会显式跳过，不能将普通单元测试通过视为数据库事务验收。
+提交断连的故障注入用例还要求该隔离 MongoDB 启用 `--setParameter enableTestCommands=1`；
+未启用时仅该用例跳过。故障注入按测试连接的独有 `appName` 限定，并在测试结束时关闭。
+
+并发回归通过命令屏障固定请求交错，覆盖已签收已回款的双提交、共享库存/客户的两单删除、
+签收与删除互相竞争、旧 ID 重试及提交断连；断言库存只恢复一次、独立流水原文不变、
+余额与剩余有效流水一致。Web 测试覆盖旧列表响应、弹窗卸载、网络结果不明及 409 重预览。
+
+删除预览在单据不存在时返回业务码 `404`（非法 ID 仍为 `400`）。Web 收到该明确结果后关闭
+弹窗并刷新列表，不再次提交删除，也不将响应丢失误报为本次删除成功。列表刷新失败保留最近
+有效列表；`503` 提示核对操作结果。
+
+浏览器验收后端可显式启用 `TestOutboundBrowserAcceptance`。它只监听 `127.0.0.1:37272`，
+调用真实 HTTP Handler，为两页建立共八组已签收、已回款数据，使用随机 `wms_delete_browser_`
+数据库；不加载正式配置或登录中间件。常规测试默认跳过这个持续运行的测试服务。
+
+```powershell
+$env:WMS_TEST_MONGO_URI='mongodb://127.0.0.1:37171/?replicaSet=wms_delete_test'
+$env:WMS_BROWSER_ACCEPTANCE='1'
+go test ./internal/logic/outbound -run '^TestOutboundBrowserAcceptance$' -v -count=1 -timeout=30m
+```
+
+隔离前端仅连接此服务。`/__test/state` 提供只读核验数据；测试控制支持新增回款、提交延迟、
+提交成功后响应丢失及下一次列表业务错误。验收完成调用 `POST /__test/shutdown`，服务会清理
+自己的测试数据库。库存应为 `8 → 10`，原回款不变，贷项为 `100`（追加回款 `20` 后为 `120`）。
+
 ## 1.生成template模板
 ```bash
 goctl template init

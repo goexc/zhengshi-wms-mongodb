@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import CustomerPageItem from "@/components/Customer/CustomerPageItem.vue";
-import {ref} from "vue";
+import {computed, ref} from "vue";
 import dayjs from "dayjs";
 import { OutboundOrderRecord, OutboundOrderSummaryRequest} from "@/api/outbound/types.ts";
 import {reqOutboundOrderSummary} from "@/api/outbound";
@@ -53,6 +53,7 @@ const shortcuts = [
 
 //出库列表
 let list = ref<OutboundOrderRecord[]>([])
+const reportTotalAmount = computed(() => NP.strip(list.value.reduce((total, item) => NP.plus(total + NP.times(item.quantity, item.price)), 0)))
 //出库物料map数组
 let materialMap = ref<Map<string, OutboundOrderRecord[]>>(new Map<string, OutboundOrderRecord[]>())
 //出库物料二维数组
@@ -342,6 +343,7 @@ let handleSearch = async () => {
   <div>
     <el-card>
       <el-form
+          @submit.prevent="handleSearch"
           :model="form"
           inline
           label-width="60px"
@@ -386,7 +388,7 @@ let handleSearch = async () => {
           />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" plain size="default" icon="search" @click="handleSearch">查询</el-button>
+          <el-button type="primary" plain size="default" icon="search" native-type="submit">查询</el-button>
           <el-button type="success" plain size="default" icon="download" @click="exportByOrder">按单据导出</el-button>
           <el-button type="success" plain size="default" icon="download" @click="exportByMaterial">按物料导出</el-button>
         </el-form-item>
@@ -400,7 +402,7 @@ let handleSearch = async () => {
             list.map(one => one.quantity).reduce((total, value) => total + value, 0)
           }}</span> 件
         </div>
-        <div><span class="content-between-data">{{NP.strip(list.reduce((total, item) => NP.plus(total + NP.times(item.quantity, item.price)), 0))}}</span> 元
+        <div><span class="content-between-data">{{ reportTotalAmount }}</span> 元
         </div>
       </div>
 

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 
 import {onMounted, ref} from "vue";
-import {ElMessage, FormInstance} from "element-plus";
+import {ElMessage} from "element-plus";
 import {Carrier, CarriersRequest, CarrierStatusRequest} from "@/api/carrier/types.ts";
 import {reqChangeCarrierStatus, reqCarriers} from "@/api/carrier";
 import {Sizes, Types} from "@/utils/enum.ts";
@@ -53,7 +53,6 @@ const oss_domain = ref<string>(import.meta.env.VITE_OSS_DOMAIN)
 
 let loading = ref<boolean>(false)
 let carriersForm = ref<CarriersRequest>(initCarriersForm())
-let carriersRef = ref<FormInstance>()
 let carriers = ref<Carrier[]>([])
 let total = ref<number>(0)
 
@@ -161,9 +160,9 @@ onMounted(() => {
         v-auth="'business_partner:carrier:list'"
     >
       <el-form
+          @submit.prevent="getCarriers"
           inline
           :model="carriersForm"
-          ref="carriersRef"
           label-width="80px"
           style="display: flex; flex-wrap: wrap;"
       >
@@ -188,7 +187,7 @@ onMounted(() => {
               :type="Types.primary"
               :size="Sizes.large"
               :plain="true"
-              @click="getCarriers"
+              native-type="submit"
           />
           <perms-button
               perms="business_partner:carrier:list"

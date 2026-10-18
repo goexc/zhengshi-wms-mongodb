@@ -271,6 +271,46 @@ type OutboundOrderIdRequest {
     Id string `form:"id,optional" validate:"required,mongodb" comment:"出库单"`//出库单id
 }
 
+// 删除预览不保存业务数据，提交时重新计算并校验摘要。
+type OutboundOrderRemoveRequest {
+    Id string `form:"id" validate:"required,mongodb" comment:"出库单"`
+    PreviewToken string `form:"preview_token,optional" validate:"omitempty,len=64" comment:"删除预览"`
+}
+
+type OutboundRemovePreviewResponse {
+    Code int `json:"code"` // 响应体业务码：200 预览完成，400 出库单ID非法，404 出库单已删除或不存在，500 服务器内部错误
+    Msg string `json:"msg"`
+    Data OutboundRemovePreview `json:"data"`
+}
+
+type OutboundRemovePreview {
+    Id string `json:"id"`
+    Code string `json:"code"`
+    CustomerName string `json:"customer_name"`
+    Status string `json:"status"`
+    Allowed bool `json:"allowed"`
+    BlockReason string `json:"block_reason"`
+    PreviewToken string `json:"preview_token"`
+    TransactionCount int64 `json:"transaction_count"`
+    ReceivableReduction float64 `json:"receivable_reduction"`
+    ReceivableBefore float64 `json:"receivable_before"`
+    CreditBefore float64 `json:"credit_before"`
+    ReceivableAfter float64 `json:"receivable_after"`
+    CreditAfter float64 `json:"credit_after"`
+    Inventorys []OutboundRemoveInventory `json:"inventorys"`
+}
+
+type OutboundRemoveInventory {
+    InventoryId string `json:"inventory_id"`
+    MaterialId string `json:"material_id"`
+    Name string `json:"name"`
+    Model string `json:"model"`
+    Unit string `json:"unit"`
+    WarehouseName string `json:"warehouse_name"`
+    ReleaseLockedQuantity float64 `json:"release_locked_quantity"`
+    RestoreAvailableQuantity float64 `json:"restore_available_quantity"`
+}
+
 
 //出库单物料信息
 type OutboundMaterialStatus {

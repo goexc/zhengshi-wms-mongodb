@@ -22,6 +22,13 @@ func SyncCustomerMaterialDeliveries(ctx context.Context, svcCtx *svc.ServiceCont
 	if order.CustomerId == "" || order.DepartureTime <= 0 || len(materials) == 0 {
 		return nil
 	}
+	ids, err := deliveryMaterialIDs(materials)
+	if err != nil {
+		return err
+	}
+	if err = lockDeliveryMaterials(ctx, svcCtx, ids); err != nil {
+		return err
+	}
 
 	now := time.Now().Unix()
 	for _, material := range materials {

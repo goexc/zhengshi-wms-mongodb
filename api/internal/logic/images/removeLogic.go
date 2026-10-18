@@ -4,6 +4,7 @@ import (
 	"api/internal/svc"
 	"api/internal/types"
 	"api/model"
+	"api/pkg/attachmentx"
 	"context"
 	"errors"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -34,6 +36,16 @@ func (l *RemoveLogic) Remove(req *types.ImageRemoveRequest) (resp *types.BaseRes
 	resp = new(types.BaseResponse)
 
 	key := strings.TrimSpace(req.Key)
+	if e := attachmentx.ValidateReference(key); e != nil {
+		resp.Code = http.StatusBadRequest
+		resp.Msg = e.Error()
+		return resp, nil
+	}
+	if !scopeAllowed(l.ctx, l.svcCtx, attachmentx.Scope(key), true) {
+		resp.Code = http.StatusForbidden
+		resp.Msg = "没有该业务附件操作权限"
+		return resp, nil
+	}
 
 	var filter = bson.M{"object_key": key}
 
@@ -61,9 +73,19 @@ func (l *RemoveLogic) Remove(req *types.ImageRemoveRequest) (resp *types.BaseRes
 		return resp, nil
 	}
 
+	// Include financial documents and their retained attachment history before COS deletion.
+	if message, e := referencedAttachment(l.ctx, l.svcCtx, key); e != nil {
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "附件引用检查失败"
+		return resp, nil
+	} else if message != "" {
+		resp.Code = http.StatusBadRequest
+		resp.Msg = message
+		return resp, nil
+	}
 	//2.出库单单据是否占用
 	//i 表示不区分大小写
-	regex := bson.M{"$regex": primitive.Regex{Pattern: ".*" + key + ".*", Options: "i"}}
+	regex := bson.M{"$regex": primitive.Regex{Pattern: "(^|,)" + regexp.QuoteMeta(key) + "(,|$)"}}
 	filter = bson.M{"annex": regex}
 	cur, err := l.svcCtx.OutboundOrderModel.Find(l.ctx, filter)
 	if err != nil {
@@ -216,6 +238,12 @@ func (l *RemoveLogic) Remove(req *types.ImageRemoveRequest) (resp *types.BaseRes
 	}
 
 	//8.从OSS中删除
+	if err = reserveAttachmentRemoval(l.ctx, l.svcCtx, key); err != nil {
+		l.Errorf("reserve attachment removal: %v", err)
+		resp.Code = http.StatusBadRequest
+		resp.Msg = "附件正在使用或引用检查未完成，请刷新后重试"
+		return resp, nil
+	}
 	objectPath := "images/" + key
 	_, err = l.svcCtx.Cos.Object.Delete(l.ctx, objectPath)
 	if err != nil {

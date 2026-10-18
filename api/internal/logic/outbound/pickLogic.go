@@ -33,6 +33,12 @@ func NewPickLogic(ctx context.Context, svcCtx *svc.ServiceContext) *PickLogic {
 }
 
 func (l *PickLogic) Pick(req *types.OutboundOrderPickRequest) (resp *types.BaseResponse, err error) {
+	return runOutboundMutation(l.ctx, l.svcCtx, func(ctx context.Context) (*types.BaseResponse, error) {
+		return NewPickLogic(ctx, l.svcCtx).pick(req)
+	})
+}
+
+func (l *PickLogic) pick(req *types.OutboundOrderPickRequest) (resp *types.BaseResponse, err error) {
 	resp = new(types.BaseResponse)
 
 	//1.拣货时间不能超过当前时间
@@ -53,7 +59,7 @@ func (l *PickLogic) Pick(req *types.OutboundOrderPickRequest) (resp *types.BaseR
 		resp.Msg = "出库单不存在"
 		return resp, nil
 	default: //其他错误
-		fmt.Printf("[Error]查询出库单[%s]:%s\n", req.Code, err.Error())
+		fmt.Printf("[Error]查询出库单[%s]:%s\n", req.Code, singleRes.Err().Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务内部错误"
 		return resp, nil
@@ -105,7 +111,9 @@ func (l *PickLogic) Pick(req *types.OutboundOrderPickRequest) (resp *types.BaseR
 	for _, material := range materials {
 		for _, inventory := range material.Inventorys {
 			inventoryId, _ := primitive.ObjectIDFromHex(inventory.InventoryId)
-			filter := bson.D{{"_id", inventoryId}}
+			filter := bson.M{"_id": inventoryId, "material_id": material.MaterialId,
+				"locked_quantity":    bson.M{"$gte": inventory.ShipmentQuantity},
+				"available_quantity": bson.M{"$gte": inventory.ShipmentQuantity}}
 			update := bson.D{
 				{"$inc", bson.D{
 					{"locked_quantity", -inventory.ShipmentQuantity},
@@ -123,12 +131,15 @@ func (l *PickLogic) Pick(req *types.OutboundOrderPickRequest) (resp *types.BaseR
 
 	//3.3.2 执行批量更新操作
 	bulkOptions := options.BulkWriteOptions{}
-	_, err = l.svcCtx.InventoryModel.BulkWrite(l.ctx, bulkWrites, &bulkOptions)
+	stockUpdate, err := l.svcCtx.InventoryModel.BulkWrite(l.ctx, bulkWrites, &bulkOptions)
 	if err != nil {
 		fmt.Printf("[Error]出库单[%s]拣货批量更新库存：%s\n", req.Code, err.Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务器内部错误"
 		return resp, nil
+	}
+	if stockUpdate.MatchedCount != int64(len(bulkWrites)) {
+		return &types.BaseResponse{Code: http.StatusConflict, Msg: "库存或锁定数量已变化，请刷新后重试"}, nil
 	}
 
 	//4.修改发货单状态：待拣货->已拣货
@@ -138,12 +149,15 @@ func (l *PickLogic) Pick(req *types.OutboundOrderPickRequest) (resp *types.BaseR
 			"picking_time": req.PickingTime,
 		},
 	}
-	_, err = l.svcCtx.OutboundOrderModel.UpdateOne(l.ctx, bson.M{"code": strings.TrimSpace(req.Code)}, update)
+	orderUpdate, err := l.svcCtx.OutboundOrderModel.UpdateOne(l.ctx, outboundStateFilter(order), update)
 	if err != nil {
 		fmt.Printf("[Error]更新出库单[%s]状态(已拣货)：%s\n", req.Code, err.Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务器内部错误"
 		return resp, nil
+	}
+	if orderUpdate.MatchedCount != 1 {
+		return &types.BaseResponse{Code: http.StatusConflict, Msg: "出库单已变化或已删除，请刷新后重试"}, nil
 	}
 
 	resp.Code = http.StatusOK

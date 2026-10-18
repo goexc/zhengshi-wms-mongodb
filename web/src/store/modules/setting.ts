@@ -1,5 +1,6 @@
 //系统设置
 import { defineStore } from "pinia";
+import piniaPersistConfig from "@/config/piniaPersist";
 
 const useSettingStore = defineStore("Setting", {
   state: () => {
@@ -14,8 +15,8 @@ const useSettingStore = defineStore("Setting", {
       //获取html根节点
       const html = document.documentElement;
 
-      night ? (this.theme = "dark") : (this.theme = "");
-      night ? (html.className = "dark") : (html.className = "");
+      this.theme = night ? "dark" : "";
+      html.className = this.theme;
     },
     //更改主题颜色
     changeColor(color: string) {
@@ -36,18 +37,7 @@ const useSettingStore = defineStore("Setting", {
     },
   },
   getters: {},
-  persist: {
-    enabled: true,
-    strategies: [
-      {
-        key: "p_setting",
-        storage: localStorage,
-        // 可以选择哪些进入local存储，这样就不用全部都进去存储了
-        // 默认是全部进去存储
-        // paths: ['token']
-      },
-    ],
-  },
+  persist: piniaPersistConfig("p_setting"),
 });
 
 export default useSettingStore;

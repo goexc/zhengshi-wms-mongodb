@@ -1,0 +1,44 @@
+<template>
+ <WmsPage :title="title" :required-permission="'finance:' + kind + ':list'" :refresher-enabled="allowed" :refresher-triggered="loading" @refresherrefresh="load">
+  <view class="wms-content">
+   <view v-if="!allowed" class="wms-empty"><text class="wms-title">暂无访问权限</text></view>
+   <template v-else>
+    <view v-if="id == ''" class="wms-empty"><text class="wms-muted">请返回台账重新选择记录。</text></view>
+    <view v-if="loading" class="wms-empty"><text class="wms-muted">正在读取详情…</text></view>
+    <view v-if="error != ''" class="wms-card"><text class="wms-error">{{ error }}</text><cl-button type="light" @tap="load">重试</cl-button></view>
+    <template v-if="ready">
+     <view class="wms-card"><text class="wms-title">{{ record.customer_name }}</text><text class="wms-text" selectable>{{ kind == 'acceptance' ? record.bill_number : record.invoice_number }}</text><text class="wms-record-badge">{{ statusLabel }}</text><text class="wms-value">￥{{ money(kind == 'acceptance' ? record.amount : record.total_amount) }}</text>
+      <template v-if="kind == 'acceptance'"><text class="wms-text">出票日期：{{ date(record.issue_date) }}</text><text class="wms-text">收票日期：{{ date(record.received_date) }}</text><text class="wms-text">到期日期：{{ date(record.due_date) }}</text><text class="wms-text">到账日期：{{ date(record.redemption_date) }}</text><text class="wms-muted" selectable>关联回款：{{ record.transaction_id != '' ? record.transaction_id : '未到账 / 未关联' }}</text></template>
+      <template v-else><text class="wms-text">开票日期：{{ date(record.invoice_date) }}</text><text class="wms-text">未税金额：￥{{ money(record.amount_excluding_tax) }}</text><text class="wms-text">税率：{{ record.tax_rate }}%</text><text class="wms-text">税额：￥{{ money(record.tax_amount) }}</text></template>
+      <text class="wms-label">备注</text><text class="wms-text" selectable>{{ record.remark != '' ? record.remark : '—' }}</text><text class="wms-muted">登记人：{{ record.creator_name }} · {{ date(record.created_at) }}</text>
+     </view>
+     <view class="wms-card"><text class="wms-title">票据附件（{{ attachments.length }}）</text><text v-if="attachments.length == 0" class="wms-muted">未上传附件</text><cl-button v-for="(attachment, index) in attachments" :key="attachment" type="light" @tap="openAttachment(attachment)">{{ attachmentLabel(attachment) }} {{ index + 1 }}</cl-button><text class="wms-muted">PDF 和其他文件由系统浏览器打开或下载。</text></view>
+     <view v-if="kind == 'acceptance'" class="wms-card"><text class="wms-title">到账凭证（{{ redemptionAttachments.length }}）</text><text v-if="redemptionAttachments.length == 0" class="wms-muted">未上传到账凭证</text><cl-button v-for="(attachment, index) in redemptionAttachments" :key="attachment" type="light" @tap="openAttachment(attachment)">{{ attachmentLabel(attachment) }} {{ index + 1 }}</cl-button></view>
+     <view class="wms-card"><text class="wms-title">操作记录</text><text v-if="history.length == 0" class="wms-muted">暂无操作记录</text><view v-for="(item, index) in history" :key="index" class="history-item"><text class="wms-text">{{ actionLabel(item.action) }} · {{ item.operator_name }}</text><text class="wms-muted">{{ date(item.time) }}</text><text class="wms-text" selectable>{{ item.remark }}</text></view></view>
+    </template>
+   </template>
+  </view>
+ </WmsPage>
+</template>
+<script setup lang="ts">
+import { computed, ref, watch } from "vue";
+import WmsPage from "@/components/wms/Page.uvue";
+import { errorMessage, useStore } from "@/.cool";
+import { documentKind, documentTitle, documentStatus, documentDate, documentHistoryAction, documentAttachmentLabel, openDocumentAttachment, fetchCustomerDocument } from "@/services/customer-documents";
+import type { CustomerDocument, DocumentHistory } from "@/types/customer-documents";
+import { emptyCustomerDocument } from "@/types/customer-documents";
+import { formatMoney } from "@/utils/wms-format";
+const { user } = useStore(); const kind = ref("acceptance"); const id = ref(""); const ready = ref(false); const loading = ref(false); const error = ref(""); const record = ref<CustomerDocument>(emptyCustomerDocument()); let serial = 0; let disposed = false;
+const title = computed((): string => documentTitle(kind.value) + "详情"); const allowed = computed((): boolean => user.hasPermission(`finance:${kind.value}:list`));
+const statusLabel = computed((): string => documentStatus(record.value.status, record.value.due_date ?? 0));
+const attachments = computed((): string[] => record.value.annex ?? []); const redemptionAttachments = computed((): string[] => record.value.redemption_annex ?? []); const history = computed((): DocumentHistory[] => record.value.history ?? []);
+function money(value: number): string { return formatMoney(value); } function date(value: number): string { return documentDate(value); }
+function attachmentLabel(value: string): string { return documentAttachmentLabel(value); } function openAttachment(value: string) { if (disposed || !allowed.value || !ready.value || (!attachments.value.includes(value) && !redemptionAttachments.value.includes(value))) return; openDocumentAttachment(value); } function actionLabel(value: string): string { return documentHistoryAction(value); }
+async function load() { if (disposed || !allowed.value || id.value == "") return; const ticket = ++serial; loading.value = true; ready.value = false; error.value = ""; try { const result = await fetchCustomerDocument(kind.value, id.value); if (ticket != serial) return; record.value = result; ready.value = true; } catch (err) { if (ticket == serial) error.value = errorMessage(err, "详情加载失败，请重试"); } finally { if (ticket == serial) loading.value = false; } }
+function clearData() { serial++; ready.value = false; record.value = emptyCustomerDocument(); loading.value = false; error.value = ""; }
+function clearSession() { clearData(); id.value = ""; }
+watch(allowed, (value: boolean) => { if (value) load(); else clearData(); });
+onLoad((query: UTSJSONObject) => { kind.value = documentKind(`${query["kind"] ?? ""}`); id.value = `${query["id"] ?? ""}`; uni.$on("wms.session.changed", clearSession); load(); });
+onUnload(() => { disposed = true; clearSession(); uni.$off("wms.session.changed", clearSession); });
+</script>
+<style scoped>.history-item { padding-top: 12px; padding-bottom: 12px; }</style>

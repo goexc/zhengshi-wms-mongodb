@@ -3,17 +3,17 @@
 import {OutboundOrderTypes} from "@/enums/outbound.ts";
 import {Sizes, Types} from "@/utils/enum.ts";
 import {OutboundOrder, OutboundOrderMaterial, OutboundOrdersRequest} from "@/api/outbound/types.ts";
-import {onMounted, ref} from "vue";
+import {onBeforeUnmount, onMounted, ref} from "vue";
 import {
   reqOutboundOrderMaterials,
   reqOutboundOrders,
-  reqRemoveOutboundOrder,
 } from "@/api/outbound";
 import {ElMessage} from "element-plus";
 import Status from "./components/Status.vue";
 import Order from "./components/Order.vue";
 import Weigh from "./components/Weigh.vue";
 import Receipt from "./components/Receipt.vue";
+import Remove from "./components/Remove.vue";
 import SupplierPageItem from "@/components/Supplier/SupplierPageItem.vue";
 import CustomerPageItem from "@/components/Customer/CustomerPageItem.vue";
 import Confirm from "@/views/outbound/receipt/components/Confirm.vue";
@@ -75,18 +75,25 @@ const loading = ref<boolean>(false)
 let receipts = ref<OutboundOrder[]>([])
 let receipt = ref<OutboundOrder>(initReceipt())
 let expand = ref<boolean>(false) //展开表格
+let listRequest = 0
+onBeforeUnmount(() => { listRequest++ })
 let getReceipts = async () => {
+  const request = ++listRequest
   loading.value = true
   expand.value = false
-  let res = await reqOutboundOrders(form.value)
-  loading.value = false
-  if (res.code === 200) {
-    receipts.value = res.data.list
-    total.value = res.data.total
-  } else {
-    receipts.value = []
-    total.value = 0
-    ElMessage.error(res.msg)
+  try {
+    const res = await reqOutboundOrders({...form.value})
+    if (request !== listRequest) return
+    if (res.code === 200) {
+      receipts.value = res.data.list
+      total.value = res.data.total
+    } else {
+      ElMessage.error(res.msg)
+    }
+  } catch {
+    if (request === listRequest) ElMessage.error('出库单列表刷新失败，请重新查询')
+  } finally {
+    if (request === listRequest) loading.value = false
   }
 }
 
@@ -100,6 +107,7 @@ let visible = ref<boolean>(false)
 let title = ref<string>('')
 const action = ref<string>('')
 let dialogWidth = ref<string | number>('')
+const removeSubmitting = ref(false)
 
 //创建发货单
 let add = () => {
@@ -237,14 +245,21 @@ const handleSuccess = async () => {
 }
 
 //删除发货单
-let remove = async (item: OutboundOrder) => {
-  let res = await reqRemoveOutboundOrder(item.id)
-  if (res.code === 200) {
-    ElMessage.success(res.msg)
-    await getReceipts()
-  } else {
-    ElMessage.error(res.msg)
-  }
+const remove = (item: OutboundOrder) => {
+  receipt.value = item
+  action.value = 'remove'
+  title.value = '删除出库单'
+  dialogWidth.value = 'min(960px, calc(100vw - 32px))'
+  removeSubmitting.value = false
+  visible.value = true
+}
+
+const handleRemoveSuccess = () => {
+  const remaining = receipts.value.filter(item => item.id !== receipt.value.id)
+  total.value = Math.max(0, total.value - (receipts.value.length - remaining.length))
+  receipts.value = remaining
+  visible.value = false
+  void getReceipts()
 }
 
 onMounted(async () => {
@@ -343,6 +358,8 @@ let orderStatus = (status:string) => {
 
     <el-card>
       <el-form
+          v-auth="'outbound:order:list'"
+          @submit.prevent="getReceipts"
           inline
           size="default"
           style="display: flex; flex-wrap: wrap;"
@@ -377,7 +394,7 @@ let orderStatus = (status:string) => {
               :type="Types.primary"
               :size="Sizes.default"
               :plain="true"
-              @click="getReceipts"
+              native-type="submit"
           />
           <perms-button
               perms="outbound:order:list"
@@ -490,27 +507,13 @@ let orderStatus = (status:string) => {
                 :plain="true"
                 @click="confirm(row)"
             />
-            <el-popconfirm
-                v-if="globalStatus===''"
-                :title="`确定删除发货单[${row.code}]吗?`"
-                icon="InfoFilled"
-                icon-color="#F56C6C"
-                cancel-button-text="取消"
-                confirm-button-text="确认删除"
-                cancel-button-type="info"
-                confirm-button-type="danger"
-                @confirm="remove(row)"
-                width="300"
-            >
-              <template #reference>
-                <perms-button
-                    :disabled="!['预发货'].includes(row.status)"
-                    perms="outbound:order:delete"
-                    :type="Types.danger"
-                    :size="Sizes.small"
-                    :plain="true"/>
-              </template>
-            </el-popconfirm>
+            <perms-button
+                perms="outbound:order:delete"
+                :type="Types.danger"
+                :size="Sizes.small"
+                :plain="true"
+                @action="remove(row)"
+            />
             <perms-button
                 v-if="globalStatus==='待拣货'"
                 perms="outbound:order:pick"
@@ -583,9 +586,20 @@ let orderStatus = (status:string) => {
         draggable
         :fullscreen="['add', 'edit'].includes(action)"
         :close-on-click-modal="false"
+        :show-close="action !== 'remove' || !removeSubmitting"
+        :close-on-press-escape="action !== 'remove' || !removeSubmitting"
         align-center
         :width="dialogWidth"
     >
+      <Remove
+          v-if="visible && action === 'remove'"
+          :id="receipt.id"
+          :code="receipt.code"
+          @busy="removeSubmitting = $event"
+          @cancel="visible = false"
+          @success="handleRemoveSuccess"
+          @missing="handleRemoveSuccess"
+      />
       <Order
           v-if="visible&&['add'].includes(action)"
           :form="receipt"

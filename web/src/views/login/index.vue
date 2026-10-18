@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {onMounted, reactive, ref} from "vue";
+import {reactive, ref} from "vue";
 import {useRoute, useRouter} from "vue-router";
 import {ElMessage, ElNotification, FormInstance, FormRules} from "element-plus";
 import {useUserStore} from "@/store/modules/user.ts";
@@ -95,16 +95,6 @@ const login = async () => {
 
 }
 
-onMounted(()=>{
-  // 监听 enter 事件（调用登录）
-  document.onkeydown = (e: KeyboardEvent) => {
-    e = (window.event as KeyboardEvent) || e;
-    if (e.code === "Enter" || e.code === "enter" || e.code === "NumpadEnter") {
-      if (loading.value) return;
-      login()
-    }
-  };
-})
 </script>
 
 <template>
@@ -115,6 +105,7 @@ onMounted(()=>{
       </el-col>
       <el-col :span="12" :xs="24">
         <el-form
+            @submit.prevent="login"
             class="login_form"
             ref="formRef"
             :model="loginForm"
@@ -129,7 +120,7 @@ onMounted(()=>{
             <el-input prefix-icon="Lock" :show-password="true" v-model.trim="loginForm.password" placeholder="请填写密码"></el-input>
           </el-form-item>
           <el-form-item>
-            <el-button :loading="loading" class="login_btn" type="primary" size="default" @click="login">登录
+            <el-button :loading="loading" class="login_btn" type="primary" size="default" native-type="submit">登录
             </el-button>
           </el-form-item>
         </el-form>

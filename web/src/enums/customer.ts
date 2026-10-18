@@ -25,3 +25,17 @@ export const CustomerTransactionTypeLabels: Record<string, string> = CustomerTra
   map[one.value] = one.label
   return map
 }, {} as Record<string, string>)
+
+export const CustomerTransactionSourceLabels: Record<string, string> = {
+  customer_acceptance: '承兑兑付',
+  opening: '期初余额',
+  outbound_order: '出库单',
+  inbound_return: '入库退货',
+  payment: '人工回款',
+  manual_adjustment: '人工调整',
+  system_recount: '系统重算',
+}
+
+export const CustomerTransactionStatusLabels: Record<string, string> = {
+  draft: '草稿', confirmed: '已确认', reversed: '已撤销', voided: '已作废',
+}

@@ -358,11 +358,6 @@ func (l *RecountLogic) customerTransactions(ctx context.Context, activeCustomerI
 	}
 	cur, err := l.svcCtx.CustomerTransactionModel.Find(ctx, bson.M{
 		"customer_id": bson.M{"$in": activeCustomerIds},
-		"$or": []bson.M{
-			{"status": financeCode.TransactionStatusConfirmed},
-			{"status": ""},
-			{"status": bson.M{"$exists": false}},
-		},
 	})
 	if err != nil {
 		fmt.Printf("[Error]查询客户交易流水:%s\n", err.Error())
@@ -404,34 +399,60 @@ func computeOutboundAmount(order model.OutboundOrder, materials []model.Outbound
 
 func buildOrderPostingSnapshots(records []model.CustomerTransaction, orderIdByCode map[string]string) (map[string]orderPostingSnapshot, error) {
 	result := make(map[string]orderPostingSnapshot)
+	orderIDs := make(map[string]bool, len(orderIdByCode))
+	orderCodeByID := make(map[string]string, len(orderIdByCode))
+	for orderCode, id := range orderIdByCode {
+		orderIDs[id] = true
+		orderCodeByID[id] = orderCode
+	}
 	for _, record := range records {
-		typeCode := record.TransactionType
-		if typeCode == "" {
-			if normalized, ok := financeCode.TransactionTypeCode(record.Type); ok {
-				typeCode = normalized
-			}
+		if !financeCode.TransactionStatusCountsInBalance(record.Status) {
+			continue
 		}
+		typeCode := customerfinance.TransactionType(record)
 		if typeCode != financeCode.TransactionTypeOutboundAR && typeCode != financeCode.TransactionTypeARAdjustment {
+			continue
+		}
+		sourceID := strings.TrimSpace(record.SourceId)
+		sourceType := strings.TrimSpace(record.SourceType)
+		codeOrderID := orderIdByCode[strings.TrimSpace(record.OrderCode)]
+		if orderIDs[sourceID] {
+			codeOrderID = sourceID
+		}
+		independent, err := customerfinance.IndependentManualARAdjustment(record, codeOrderID)
+		if err != nil {
+			return nil, err
+		}
+		if independent {
 			continue
 		}
 
 		orderId := ""
-		if (record.SourceType == financeCode.SourceTypeOutboundOrder || record.SourceType == financeCode.SourceTypeSystemRecount) && record.SourceId != "" {
-			orderId = record.SourceId
+		if (sourceType == financeCode.SourceTypeOutboundOrder || sourceType == financeCode.SourceTypeSystemRecount) && sourceID != "" {
+			for _, reference := range []string{strings.TrimSpace(record.OrderCode), strings.TrimSpace(record.SourceCode)} {
+				if reference == "" {
+					continue
+				}
+				expectedCode := orderCodeByID[sourceID]
+				if expectedCode != "" && reference != expectedCode {
+					return nil, &customerfinance.BusinessError{Message: "应收流水来源ID与来源单号不一致，请先核对"}
+				}
+			}
+			orderId = sourceID
 		} else {
-			orderId = orderIdByCode[record.OrderCode]
+			orderId = orderIdByCode[strings.TrimSpace(record.OrderCode)]
 		}
 		if orderId == "" {
 			continue
 		}
 
-		delta, ok := financeCode.TransactionBalanceDelta(typeCode, record.Direction, record.Amount)
-		if !ok {
-			return nil, &customerfinance.BusinessError{Message: "存在方向异常的出库应收流水"}
+		delta, err := customerfinance.TransactionNet(record)
+		if err != nil {
+			return nil, err
 		}
 
 		snapshot := result[orderId]
-		snapshot.PostedAmount = snapshot.PostedAmount.Add(decimal.NewFromFloat(delta))
+		snapshot.PostedAmount = snapshot.PostedAmount.Add(delta)
 		if typeCode == financeCode.TransactionTypeOutboundAR && snapshot.OriginalTransactionId == "" {
 			snapshot.OriginalTransactionId = record.Id.Hex()
 		}
@@ -444,25 +465,7 @@ func buildOrderPostingSnapshots(records []model.CustomerTransaction, orderIdByCo
 }
 
 func customerBalanceSnapshots(records []model.CustomerTransaction) (map[string]decimal.Decimal, error) {
-	balances := make(map[string]decimal.Decimal)
-	for _, record := range records {
-		if !financeCode.TransactionStatusCountsInBalance(record.Status) {
-			continue
-		}
-
-		typeCode := record.TransactionType
-		if typeCode == "" {
-			if normalized, ok := financeCode.TransactionTypeCode(record.Type); ok {
-				typeCode = normalized
-			}
-		}
-		delta, ok := financeCode.TransactionBalanceDelta(typeCode, record.Direction, record.Amount)
-		if !ok {
-			return nil, &customerfinance.BusinessError{Message: "存在未知类型或方向异常的交易流水"}
-		}
-		balances[record.CustomerId] = balances[record.CustomerId].Add(decimal.NewFromFloat(delta))
-	}
-	return balances, nil
+	return customerfinance.CustomerBalanceSnapshots(records)
 }
 
 func balanceCacheGapSummary(customers []model.Customer, records []model.CustomerTransaction) ([]string, error) {
@@ -528,15 +531,7 @@ func (l *RecountLogic) rewriteCustomerBalances(ctx context.Context, customers []
 }
 
 func splitCustomerNetBalance(net decimal.Decimal) (decimal.Decimal, decimal.Decimal) {
-	tolerance := decimal.NewFromFloat(recountAmountTolerance)
-	switch {
-	case net.GreaterThan(tolerance):
-		return net, decimal.Zero
-	case net.LessThan(tolerance.Neg()):
-		return decimal.Zero, net.Abs()
-	default:
-		return decimal.Zero, decimal.Zero
-	}
+	return customerfinance.SplitCustomerNetBalance(net)
 }
 
 func orderFinanceStateChanged(order model.OutboundOrder, typeCode string, total decimal.Decimal, priceStatus, arStatus string) bool {

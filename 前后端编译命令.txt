@@ -1,5 +1,10 @@
-npm run build:prod
+# 前端：在项目根目录执行
+cd web
+pnpm install --frozen-lockfile
+pnpm run build:prod
 
+# 后端：另开终端，在项目根目录执行
+cd api
 goctl api go -api main.api -style goZero -home ./template -dir .
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o wmsx main.go
 

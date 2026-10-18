@@ -181,7 +181,9 @@
 								v-if="kind == 'customer'"
 								type="primary"
 								@tap="openTransactions(item)"
-								>查看流水</cl-button
+								>查看流水</cl-button>
+ <cl-button v-if="kind == 'customer' && user.hasPermission('finance:acceptance:list')" type="light" @tap="openDocuments(item, 'acceptance')">客户承兑</cl-button>
+ <cl-button v-if="kind == 'customer' && user.hasPermission('finance:invoice:list')" type="light" @tap="openDocuments(item, 'invoice')">销售开票</cl-button
 							></view
 						></view
 					></view
@@ -377,6 +379,9 @@ function toggleDetails(id: string) {
 	const index = expanded.value.indexOf(id);
 	if (index >= 0) expanded.value.splice(index, 1);
 	else expanded.value.push(id);
+}
+function openDocuments(item: Partner, documentKind: string) {
+ router.to(`/pages/business/customer-documents?kind=${documentKind}&customer_id=${encodeURIComponent(item.id)}&name=${encodeURIComponent(item.name)}`);
 }
 function openTransactions(item: Partner) {
 	router.push({

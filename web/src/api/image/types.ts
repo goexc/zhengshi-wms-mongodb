@@ -2,6 +2,7 @@ export interface ImagesRequest {
   page: number;
   size: number;
   name?: string;
+  scope?: string;
 }
 
 export interface ImagesResponse {

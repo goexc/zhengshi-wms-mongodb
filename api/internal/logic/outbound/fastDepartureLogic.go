@@ -136,7 +136,7 @@ func (l *FastDepartureLogic) FastDeparture(req *types.FastOutboundRequest) (resp
 	}
 
 	// 1. 出库单号是否冲突
-	count, err := l.svcCtx.OutboundOrderModel.CountDocuments(l.ctx, bson.M{"code": code, "status": bson.M{"$ne": "删除"}})
+	count, err := l.svcCtx.OutboundOrderModel.CountDocuments(l.ctx, bson.M{"code": code})
 	if err != nil {
 		fmt.Printf("[Error]查询出库单是否冲突:%s\n", err.Error())
 		resp.Code = http.StatusInternalServerError
@@ -146,6 +146,18 @@ func (l *FastDepartureLogic) FastDeparture(req *types.FastOutboundRequest) (resp
 	if count > 0 {
 		resp.Code = http.StatusBadRequest
 		resp.Msg = "出库单号已占用"
+		return resp, nil
+	}
+	referenced, err := materialdelivery.HasOutboundQuoteReference(l.ctx, l.svcCtx, code)
+	if err != nil {
+		l.Errorf("查询出库单历史报价引用失败: %s", err)
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "服务器内部错误"
+		return resp, nil
+	}
+	if referenced {
+		resp.Code = http.StatusBadRequest
+		resp.Msg = "出库单号仍被历史报价引用，不能重复使用"
 		return resp, nil
 	}
 

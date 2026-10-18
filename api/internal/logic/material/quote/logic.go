@@ -109,14 +109,43 @@ func (l *quoteService) create(req *types.MaterialQuoteSaveRequest) (*types.Mater
 		UpdatedAt:             now,
 	}
 	if err := withTransaction(l.ctx, l.svcCtx, func(dbCtx mongo.SessionContext) error {
+		var current model.CustomerMaterialDelivery
+		if err := l.svcCtx.CustomerMaterialDeliveryModel.FindOne(dbCtx, bson.M{
+			"_id": delivery.Id, "$or": activeQuoteSourceClauses(),
+			"first_delivery_order_code": quote.SourceOrderCode,
+		}).Decode(&current); err != nil {
+			if err == mongo.ErrNoDocuments {
+				return businessError{message: "首次交付来源已变化，请刷新后重新生成报价"}
+			}
+			return err
+		}
+		var sourceOrder model.OutboundOrder
+		if err := l.svcCtx.OutboundOrderModel.FindOne(dbCtx, bson.M{
+			"code": quote.SourceOrderCode, "is_deleted": bson.M{"$ne": true},
+			"customer_id": quote.CustomerId,
+			"status":      bson.M{"$in": []string{"已出库", "已签收"}},
+		}).Decode(&sourceOrder); err != nil {
+			if err == mongo.ErrNoDocuments {
+				return businessError{message: "来源出库单已删除、失效或客户不一致，不能生成报价"}
+			}
+			return err
+		}
+		if err := l.svcCtx.OutboundMaterialModel.FindOne(dbCtx, bson.M{
+			"order_code": sourceOrder.Code, "material_id": quote.MaterialId,
+		}).Err(); err != nil {
+			if err == mongo.ErrNoDocuments {
+				return businessError{message: "来源出库单不包含当前报价物料，请刷新后重新生成报价"}
+			}
+			return err
+		}
+		quote.SourceOrderId = sourceOrder.Id.Hex()
 		if _, err := l.svcCtx.MaterialQuoteModel.InsertOne(dbCtx, &quote); err != nil {
 			return err
 		}
 		return refreshDeliveryQuoteState(dbCtx, l.svcCtx, quote.DeliveryId)
 	}); err != nil {
 		fmt.Printf("[Error]创建物料报价单失败:%s\n", err.Error())
-		resp.Code = http.StatusInternalServerError
-		resp.Msg = "服务器内部错误"
+		fillMutationError(resp, err)
 		return resp, nil
 	}
 
@@ -180,6 +209,7 @@ func (l *quoteService) update(req *types.MaterialQuoteSaveRequest) (*types.Mater
 		result, err := l.svcCtx.MaterialQuoteModel.UpdateOne(dbCtx, bson.M{
 			"_id":    quote.Id,
 			"status": bson.M{"$nin": []string{quoteCode.MaterialQuoteStatusPriced, quoteCode.MaterialQuoteStatusVoid}},
+			"$or":    activeQuoteSourceClauses(),
 		}, update)
 		if err != nil {
 			return err
@@ -385,6 +415,7 @@ func (l *quoteService) submit(req *types.MaterialQuoteIdRequest) (resp *types.Ma
 		result, err := l.svcCtx.MaterialQuoteModel.UpdateOne(dbCtx, bson.M{
 			"_id":    quote.Id,
 			"status": bson.M{"$nin": []string{quoteCode.MaterialQuoteStatusPriced, quoteCode.MaterialQuoteStatusVoid}},
+			"$or":    activeQuoteSourceClauses(),
 		}, bson.M{
 			"$set": bson.M{
 				"status":     quoteCode.MaterialQuoteStatusQuoted,
@@ -574,6 +605,7 @@ func (l *quoteService) price(req *types.MaterialQuotePriceRequest) (resp *types.
 		result, err := l.svcCtx.MaterialQuoteModel.UpdateOne(dbCtx, bson.M{
 			"_id":    quote.Id,
 			"status": quoteCode.MaterialQuoteStatusQuoted,
+			"$or":    activeQuoteSourceClauses(),
 		}, bson.M{"$set": updateSet})
 		if err != nil {
 			return err
@@ -807,6 +839,7 @@ func refreshDeliveryQuoteState(ctx context.Context, svcCtx *svc.ServiceContext, 
 	err := svcCtx.MaterialQuoteModel.FindOne(ctx, bson.M{
 		"delivery_id": deliveryId,
 		"status":      bson.M{"$ne": quoteCode.MaterialQuoteStatusVoid},
+		"$or":         activeQuoteSourceClauses(),
 	}, opts).Decode(&latest)
 	switch err {
 	case nil:
@@ -850,6 +883,15 @@ func updateDeliveryFromQuote(ctx context.Context, svcCtx *svc.ServiceContext, qu
 		},
 	})
 	return err
+}
+
+// Legacy documents may have no validity fields (or false with no reason). Only
+// an explicit invalid source with a reason is rejected, matching read validation.
+func activeQuoteSourceClauses() []bson.M {
+	return []bson.M{
+		{"source_valid": bson.M{"$ne": false}},
+		{"source_invalid_reason": bson.M{"$in": []interface{}{"", nil}}},
+	}
 }
 
 func deliveryQuoteStatus(quoteStatus string) string {

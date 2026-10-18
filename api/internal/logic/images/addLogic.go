@@ -4,18 +4,17 @@ import (
 	"api/internal/svc"
 	"api/internal/types"
 	"api/model"
+	"api/pkg/attachmentx"
 	"context"
-	"fmt"
-	"math/rand"
 	"net/http"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
-
-const maxFileSize = 10 * 2 << 20 // 20 MB
 
 type AddLogic struct {
 	logx.Logger
@@ -24,69 +23,74 @@ type AddLogic struct {
 }
 
 func NewAddLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AddLogic {
-	return &AddLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
-		svcCtx: svcCtx,
-	}
+	return &AddLogic{Logger: logx.WithContext(ctx), ctx: ctx, svcCtx: svcCtx}
 }
 
-func (l *AddLogic) Add(r *http.Request) (resp *types.ImageResponse, err error) {
-	resp = new(types.ImageResponse)
-	fmt.Println("图片上传 starting")
-
-	if err = r.ParseMultipartForm(maxFileSize); err != nil {
-		fmt.Printf("[Error]图片不能超过5MB：%s\n", err.Error())
-		resp.Code = http.StatusBadRequest
-		resp.Msg = "图片过大"
+func (l *AddLogic) Add(r *http.Request) (*types.ImageResponse, error) {
+	resp := &types.ImageResponse{Code: http.StatusBadRequest}
+	r.Body = http.MaxBytesReader(nil, r.Body, attachmentx.MaxRequestBytes)
+	if err := r.ParseMultipartForm(2 << 20); err != nil {
+		if r.MultipartForm != nil {
+			_ = r.MultipartForm.RemoveAll()
+		}
+		resp.Msg = "上传失败，单个文件不能超过20MB"
 		return resp, nil
 	}
-
-	f, h, err := r.FormFile("files")
-	if err != nil {
-		fmt.Printf("[Error]图片读取失败：%s\n", err.Error())
-		resp.Code = http.StatusBadRequest
+	defer r.MultipartForm.RemoveAll()
+	scope := strings.TrimSpace(r.FormValue("scope"))
+	if _, err := attachmentx.Prefix(scope); err != nil {
 		resp.Msg = err.Error()
 		return resp, nil
 	}
+	if !scopeAllowed(l.ctx, l.svcCtx, scope, true) {
+		resp.Code = http.StatusForbidden
+		resp.Msg = "没有该业务附件上传权限"
+		return resp, nil
+	}
+	if len(r.MultipartForm.File["files"]) != 1 {
+		resp.Msg = "每个上传请求应包含一个文件"
+		return resp, nil
+	}
+	f, h, err := r.FormFile("files")
+	if err != nil {
+		resp.Msg = "文件读取失败"
+		return resp, nil
+	}
 	defer f.Close()
-
-	fmt.Printf("Uploaded File: %+v\n", h.Filename)
-	fmt.Printf("File Size: %+v\n", h.Size)
-	fmt.Printf("MIME Header: %+v\n", h.Header)
-
-	objectKey := fmt.Sprintf("%s-%d%s", time.Now().Format("20060102150405"), rand.Intn(10000), strings.ToLower(filepath.Ext(h.Filename)))
-	//objectPath := filepath.Join("images", objectKey)
-	objectPath := "images/" + objectKey
-	_, err = l.svcCtx.Cos.Object.Put(l.ctx, objectPath, f, nil)
-	if err != nil {
-		fmt.Printf("[Error]图片上传：%s,%s\n", objectPath, err.Error())
-		resp.Code = http.StatusBadRequest
-		resp.Msg = "图片上传失败"
+	if h.Size <= 0 || h.Size > attachmentx.MaxFileBytes {
+		resp.Msg = "文件不能为空且不能超过20MB"
 		return resp, nil
 	}
-
-	// 去掉文件名中的后缀部分
-	alt := h.Filename[:len(h.Filename)-len(filepath.Ext(h.Filename))]
-
-	//入库
-	image := model.Image{
-		ObjectKey: objectKey,
-		Alt:       alt,
-		Size:      h.Size / 1024,
-		CreatedAt: time.Now().Unix(),
-	}
-	_, err = l.svcCtx.ImageModel.InsertOne(l.ctx, &image)
+	key, err := attachmentx.NewReference(scope, h.Filename, time.Now())
 	if err != nil {
-		fmt.Printf("[Error]图片[%s]入库:%s\n", objectKey, err.Error())
-		resp.Code = http.StatusInternalServerError
-		resp.Msg = "服务内部错误"
+		resp.Msg = err.Error()
 		return resp, nil
 	}
-
+	objectPath := "images/" + key
+	if _, err = l.svcCtx.Cos.Object.Put(l.ctx, objectPath, f, nil); err != nil {
+		l.Errorf("upload attachment: %v", err)
+		resp.Msg = "文件上传失败"
+		return resp, nil
+	}
+	name := filepath.Base(strings.ReplaceAll(h.Filename, "\\", "/"))
+	record := model.Image{Id: primitive.NewObjectID(), ObjectKey: key, Scope: scope, Alt: strings.TrimSuffix(name, filepath.Ext(name)), Size: h.Size / 1024, CreatedAt: time.Now().Unix()}
+	if _, err = l.svcCtx.ImageModel.InsertOne(l.ctx, &record); err != nil {
+		l.Errorf("save uploaded attachment metadata %s (%s): %v", key, record.Id.Hex(), err)
+		// A network/timeout error does not prove that InsertOne failed. Reconcile
+		// using the preallocated ID even when the original request was cancelled.
+		// Never delete the COS object on an unknown metadata outcome: a committed
+		// row could already have been selected from the library and bound elsewhere.
+		verifyCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		verifyErr := l.svcCtx.ImageModel.FindOne(verifyCtx, bson.M{"_id": record.Id, "object_key": key, "deleting": bson.M{"$ne": true}}).Err()
+		cancel()
+		if verifyErr != nil {
+			resp.Code = http.StatusInternalServerError
+			resp.Msg = "附件信息保存结果未确认，请到素材库核对后重试"
+			return resp, nil
+		}
+	}
 	resp.Code = http.StatusOK
 	resp.Msg = "成功"
-	//resp.Data.Url = fmt.Sprintf("%s/%s", l.svcCtx.Config.OSS.Domain, objectKey)
-	resp.Data.Url = objectKey
+	resp.Data.Url = key
 	return resp, nil
 }

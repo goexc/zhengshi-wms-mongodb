@@ -173,6 +173,8 @@ onMounted(async () => {
   <div>
     <el-card>
       <el-form
+          v-auth="'inbound:receipt:list'"
+          @submit.prevent="getReceipts"
           inline
           size="default"
           style="display: flex; flex-wrap: wrap;"
@@ -210,7 +212,7 @@ onMounted(async () => {
               :type="Types.primary"
               :size="Sizes.default"
               :plain="true"
-              @click="getReceipts"
+              native-type="submit"
           />
           <perms-button
               perms="inbound:receipt:list"

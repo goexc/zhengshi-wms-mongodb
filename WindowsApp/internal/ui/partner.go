@@ -61,27 +61,29 @@ type partnerRow struct {
 }
 
 type partnerUI struct {
-	kinds   []partnerKind
-	kind    *walk.ComboBox
-	name    *walk.LineEdit
-	code    *walk.LineEdit
-	manager *walk.LineEdit
-	contact *walk.LineEdit
-	email   *walk.LineEdit
-	level   *walk.ComboBox
-	table   *walk.TableView
-	info    *walk.Label
-	query   *walk.PushButton
-	reset   *walk.PushButton
-	add     *walk.PushButton
-	edit    *walk.PushButton
-	status  *walk.PushButton
-	detail  *walk.PushButton
-	finance *walk.PushButton
-	action  *walk.Label
-	prev    *walk.PushButton
-	next    *walk.PushButton
-	size    *walk.ComboBox
+	acceptance *walk.PushButton
+	invoice    *walk.PushButton
+	kinds      []partnerKind
+	kind       *walk.ComboBox
+	name       *walk.LineEdit
+	code       *walk.LineEdit
+	manager    *walk.LineEdit
+	contact    *walk.LineEdit
+	email      *walk.LineEdit
+	level      *walk.ComboBox
+	table      *walk.TableView
+	info       *walk.Label
+	query      *walk.PushButton
+	reset      *walk.PushButton
+	add        *walk.PushButton
+	edit       *walk.PushButton
+	status     *walk.PushButton
+	detail     *walk.PushButton
+	finance    *walk.PushButton
+	action     *walk.Label
+	prev       *walk.PushButton
+	next       *walk.PushButton
+	size       *walk.ComboBox
 
 	page       int
 	total      int64
@@ -197,6 +199,8 @@ func (ui *mainUI) partnerPageWidget() TabPage {
 					PushButton{AssignTo: &state.status, Text: "变更状态", Enabled: false, MinSize: Size{Width: 96, Height: 30}, OnClicked: ui.changeSelectedPartnerStatus},
 					PushButton{AssignTo: &state.detail, Text: "查看详情", Enabled: false, MinSize: Size{Width: 92, Height: 30}, OnClicked: ui.showSelectedPartner},
 					PushButton{AssignTo: &state.finance, Text: "客户应收", Visible: false, Enabled: false, MinSize: Size{Width: 92, Height: 30}, OnClicked: ui.openSelectedCustomerFinance},
+					PushButton{AssignTo: &state.acceptance, Text: "客户承兑", Visible: false, Enabled: false, OnClicked: func() { ui.openSelectedCustomerDocuments("acceptance") }},
+					PushButton{AssignTo: &state.invoice, Text: "销售开票", Visible: false, Enabled: false, OnClicked: func() { ui.openSelectedCustomerDocuments("invoice") }},
 					HSpacer{},
 					Label{AssignTo: &state.action, Text: "选择一条资料后可按权限执行操作。", TextColor: secondaryTextColor()},
 				},

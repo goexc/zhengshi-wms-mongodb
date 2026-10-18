@@ -36,10 +36,34 @@ func NewReceiptLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ReceiptLo
 func (l *ReceiptLogic) Receipt(req *types.OutboundOrderReceiptRequest) (resp *types.BaseResponse, err error) {
 	resp = new(types.BaseResponse)
 
+	//2.创建事务
+	session, err := l.svcCtx.DBClient.StartSession()
+	if err != nil {
+		fmt.Printf("[Error]签收出库单：创建事务：%s\n", err.Error())
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "服务器内部错误"
+		return resp, nil
+	}
+	defer session.EndSession(l.ctx)
+
+	// 根据会话获取数据库操作的上下文
+	dbCtx := mongo.NewSessionContext(l.ctx, session)
+
+	//2.1 开始事务
+	err = session.StartTransaction()
+	if err != nil {
+		fmt.Printf("[Error]签收出库单：开始事务：%s\n", err.Error())
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "服务器内部错误"
+		return resp, nil
+	}
+
+	defer session.AbortTransaction(dbCtx)
+
 	//1.查询出库单
 	//1.1 查询出库单
 	var code = strings.TrimSpace(req.Code)
-	singleRes := l.svcCtx.OutboundOrderModel.FindOne(l.ctx, bson.M{"code": code})
+	singleRes := l.svcCtx.OutboundOrderModel.FindOne(dbCtx, bson.M{"code": code})
 	switch singleRes.Err() {
 	case nil: //出库单存在
 	case mongo.ErrNoDocuments: //出库单不存在
@@ -48,7 +72,7 @@ func (l *ReceiptLogic) Receipt(req *types.OutboundOrderReceiptRequest) (resp *ty
 		resp.Msg = "出库单不存在"
 		return resp, nil
 	default: //其他错误
-		fmt.Printf("[Error]查询出库单[%s]:%s\n", code, err.Error())
+		fmt.Printf("[Error]查询出库单[%s]:%s\n", code, singleRes.Err().Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务内部错误"
 		return resp, nil
@@ -86,18 +110,18 @@ func (l *ReceiptLogic) Receipt(req *types.OutboundOrderReceiptRequest) (resp *ty
 	var amount decimal.Decimal
 
 	//1.4.1 检索出库单物料列表
-	cur, err := l.svcCtx.OutboundMaterialModel.Find(l.ctx, bson.M{"order_code": code})
+	cur, err := l.svcCtx.OutboundMaterialModel.Find(dbCtx, bson.M{"order_code": code})
 	if err != nil {
 		fmt.Printf("[Error]检索出库单[%s]物料列表：%s\n", code, err.Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务器内部错误"
 		return resp, nil
 	}
-	defer cur.Close(l.ctx)
+	defer cur.Close(dbCtx)
 
 	//1.4.2 解析出库单物料列表
 	var materials []model.OutboundOrderMaterial
-	if err = cur.All(l.ctx, &materials); err != nil {
+	if err = cur.All(dbCtx, &materials); err != nil {
 		fmt.Printf("[Error]解析出库单[%s]物料列表：%s\n", code, err.Error())
 		resp.Code = http.StatusInternalServerError
 		resp.Msg = "服务器内部错误"
@@ -115,28 +139,6 @@ func (l *ReceiptLogic) Receipt(req *types.OutboundOrderReceiptRequest) (resp *ty
 
 	//1.4.4 累计运费、其他费用
 	amount = amount.Add(decimal.NewFromFloat(order.CarrierCost)).Add(decimal.NewFromFloat(order.OtherCost))
-
-	//2.创建事务
-	session, err := l.svcCtx.DBClient.StartSession()
-	if err != nil {
-		fmt.Printf("[Error]签收出库单：创建事务：%s\n", err.Error())
-		resp.Code = http.StatusInternalServerError
-		resp.Msg = "服务器内部错误"
-		return resp, nil
-	}
-	defer session.EndSession(l.ctx)
-
-	// 根据会话获取数据库操作的上下文
-	dbCtx := mongo.NewSessionContext(l.ctx, session)
-
-	//2.1 开始事务
-	err = session.StartTransaction()
-	if err != nil {
-		fmt.Printf("[Error]签收出库单：开始事务：%s\n", err.Error())
-		resp.Code = http.StatusInternalServerError
-		resp.Msg = "服务器内部错误"
-		return resp, nil
-	}
 
 	priceStatus := financeCode.OutboundPriceStatusFullyPriced
 	switch {
@@ -171,7 +173,7 @@ func (l *ReceiptLogic) Receipt(req *types.OutboundOrderReceiptRequest) (resp *ty
 		},
 	}
 
-	updateRes, err := l.svcCtx.OutboundOrderModel.UpdateOne(dbCtx, bson.M{"_id": order.Id, "status": "已出库"}, &set)
+	updateRes, err := l.svcCtx.OutboundOrderModel.UpdateOne(dbCtx, outboundStateFilter(order), &set)
 	if err != nil {
 		fmt.Printf("[Error]更新出库单[%s]状态(已签收)：%s\n", code, err.Error())
 		// 回滚事务
@@ -267,7 +269,7 @@ func (l *ReceiptLogic) Receipt(req *types.OutboundOrderReceiptRequest) (resp *ty
 		//6.更新客户余额
 		//6.1 客户余额记录是否存在
 		var balance model.CustomerBalance
-		singleRes = l.svcCtx.CustomerBalanceModel.FindOne(l.ctx, bson.M{"customer_id": order.CustomerId})
+		singleRes = l.svcCtx.CustomerBalanceModel.FindOne(dbCtx, bson.M{"customer_id": order.CustomerId})
 		switch singleRes.Err() {
 		case nil:
 			if err = singleRes.Decode(&balance); err != nil {

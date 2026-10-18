@@ -4,6 +4,7 @@ import (
 	"api/internal/config"
 	"api/internal/handler"
 	"api/internal/svc"
+	"api/pkg/permissionx"
 	"flag"
 	"fmt"
 	"github.com/zeromicro/go-zero/core/conf"
@@ -89,7 +90,8 @@ func main() {
 			}
 
 			//2.3.2 普通角色执行权限校验
-			has, err := ctx.Enforcer.Enforce(fmt.Sprintf("user_%s", uid), r.URL.Path, r.Method)
+			permissionPath, permissionMethod := permissionx.Target(r.URL.Path, r.Method)
+			has, err := ctx.Enforcer.Enforce(fmt.Sprintf("user_%s", uid), permissionPath, permissionMethod)
 			if err != nil {
 				fmt.Printf("[Error]权限校验[user_%s][%s][%s]:%s\n", uid, r.Method, r.URL.Path, err.Error())
 				w.Write([]byte(`{"code": 500, "msg":"服务内部错误"}`))

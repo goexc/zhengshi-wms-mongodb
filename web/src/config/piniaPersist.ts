@@ -1,5 +1,4 @@
-// import { PersistedStateOptions } from "pinia-plugin-persistedstate";
-import { PersistOptions } from "pinia-plugin-persist";
+import type { PersistenceOptions } from "pinia-plugin-persistedstate";
 
 /**
  * @description pinia 持久化参数配置
@@ -7,20 +6,21 @@ import { PersistOptions } from "pinia-plugin-persist";
  * @param {Array} paths 需要持久化的 state name
  * @return persist
  * */
-const piniaPersistConfig = (key: string, paths?: string[]) => {
-  const persist: PersistOptions = {
-    enabled: true,
-    strategies: [
-      {
-        key: key,
-        storage: localStorage,
-        // 可以选择哪些进入local存储，这样就不用全部都进去存储了
-        // 默认是全部进去存储
-        paths: paths,
-      },
-    ],
+const piniaPersistConfig = (
+  key: string,
+  paths?: string[],
+): PersistenceOptions => {
+  return {
+    // 保留原 localStorage key 和 JSON 格式，升级后可直接恢复已有会话和设置。
+    key,
+    storage: localStorage,
+    serializer: {
+      serialize: JSON.stringify,
+      deserialize: JSON.parse,
+    },
+    // 未指定时保存全部状态；空数组只保存空对象。
+    pick: paths,
   };
-  return persist;
 };
 
 export default piniaPersistConfig;

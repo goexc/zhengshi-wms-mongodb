@@ -33,9 +33,28 @@ func NewDepartureLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Departu
 func (l *DepartureLogic) Departure(req *types.OutboundOrderDepartureRequest) (resp *types.BaseResponse, err error) {
 	resp = new(types.BaseResponse)
 
+	session, err := l.svcCtx.DBClient.StartSession()
+	if err != nil {
+		fmt.Printf("[Error]出库单[%s]创建出库事务：%s\n", req.Code, err.Error())
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "服务器内部错误"
+		return resp, nil
+	}
+	defer session.EndSession(l.ctx)
+
+	dbCtx := mongo.NewSessionContext(l.ctx, session)
+	if err = session.StartTransaction(); err != nil {
+		fmt.Printf("[Error]出库单[%s]开启出库事务：%s\n", req.Code, err.Error())
+		resp.Code = http.StatusInternalServerError
+		resp.Msg = "服务器内部错误"
+		return resp, nil
+	}
+
+	defer session.AbortTransaction(dbCtx)
+
 	//1.查询出库单
 	//1.1 查询出库单
-	singleRes := l.svcCtx.OutboundOrderModel.FindOne(l.ctx, bson.M{"code": req.Code})
+	singleRes := l.svcCtx.OutboundOrderModel.FindOne(dbCtx, bson.M{"code": req.Code})
 	switch singleRes.Err() {
 	case nil: //出库单存在
 	case mongo.ErrNoDocuments: //出库单不存在
@@ -77,7 +96,7 @@ func (l *DepartureLogic) Departure(req *types.OutboundOrderDepartureRequest) (re
 	var carrier model.Carrier
 	if len(req.CarrierId) > 0 {
 		carrierId, _ := primitive.ObjectIDFromHex(req.CarrierId)
-		singleRes = l.svcCtx.CarrierModel.FindOne(l.ctx, bson.M{"_id": carrierId})
+		singleRes = l.svcCtx.CarrierModel.FindOne(dbCtx, bson.M{"_id": carrierId})
 		switch singleRes.Err() {
 		case nil:
 			if err = singleRes.Decode(&carrier); err != nil {
@@ -100,23 +119,6 @@ func (l *DepartureLogic) Departure(req *types.OutboundOrderDepartureRequest) (re
 	}
 
 	fmt.Println("承运商：", carrier.Name)
-
-	session, err := l.svcCtx.DBClient.StartSession()
-	if err != nil {
-		fmt.Printf("[Error]出库单[%s]创建出库事务：%s\n", req.Code, err.Error())
-		resp.Code = http.StatusInternalServerError
-		resp.Msg = "服务器内部错误"
-		return resp, nil
-	}
-	defer session.EndSession(l.ctx)
-
-	dbCtx := mongo.NewSessionContext(l.ctx, session)
-	if err = session.StartTransaction(); err != nil {
-		fmt.Printf("[Error]出库单[%s]开启出库事务：%s\n", req.Code, err.Error())
-		resp.Code = http.StatusInternalServerError
-		resp.Msg = "服务器内部错误"
-		return resp, nil
-	}
 
 	//2.查询发货单物料，后续用于维护客户首次交付记录
 	cur, err := l.svcCtx.OutboundMaterialModel.Find(dbCtx, bson.M{"order_code": strings.TrimSpace(req.Code)})
@@ -150,7 +152,7 @@ func (l *DepartureLogic) Departure(req *types.OutboundOrderDepartureRequest) (re
 			"departure_time": req.DepartureTime,
 		},
 	}
-	updateRes, err := l.svcCtx.OutboundOrderModel.UpdateOne(dbCtx, bson.M{"_id": order.Id, "status": order.Status}, update)
+	updateRes, err := l.svcCtx.OutboundOrderModel.UpdateOne(dbCtx, outboundStateFilter(order), update)
 	if err != nil {
 		_ = session.AbortTransaction(dbCtx)
 		fmt.Printf("[Error]更新出库单[%s]状态(已出库)：%s\n", req.Code, err.Error())

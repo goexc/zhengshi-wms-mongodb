@@ -8,7 +8,7 @@ import {
 } from "@/api/outbound/types.ts";
 import {Inventory, InventoryListRequest, InventoryListResponse} from "@/api/inventory/types.ts";
 import {reqInventoryList} from "@/api/inventory";
-import {ElMessage, ElTable, FormInstance, FormRules} from "element-plus";
+import {ElMessage, FormInstance, FormRules} from "element-plus";
 import {reqConfirmOutboundOrder, reqOutboundOrderMaterials} from "@/api/outbound";
 import {reactive} from "vue";
 import {TimeFormat} from "@/utils/time.ts";
@@ -67,9 +67,6 @@ let getInventorys = async () => {
   }
 }
 
-let materialTableRef = ref<InstanceType<typeof ElTable>>()
-let inventoryTableRef = ref<InstanceType<typeof ElTable>>()
-
 //当前选中的物料id
 let materialId = ref<string>('')
 
@@ -80,7 +77,9 @@ let selectedMaterials = ref<{ id: string, index: number }[]>([])
 let currentMaterialShipmentQuantity=ref(0)
 
 //切换物料
-let handleMaterialChange = async (item: OutboundOrderMaterial) => {
+let handleMaterialChange = async (item: OutboundOrderMaterial | null) => {
+  if (!item) return
+
   //1.请求物料列表
   form.value.material_id = item.material_id
   //2.当前选中物料的发货数量
@@ -230,7 +229,6 @@ let submit = async () => {
     </el-form>
     <div style="display: flex">
       <el-table
-          ref="materialTableRef"
           border
           size="default"
           style="flex: 1.1;"
@@ -262,7 +260,6 @@ let submit = async () => {
       <!--  间隔  -->
       <div style="flex: 0.1"></div>
       <el-table
-          ref="inventoryTableRef"
           border
           stripe
           height="700px"

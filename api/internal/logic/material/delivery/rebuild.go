@@ -34,17 +34,12 @@ const (
 
 // RebuildCustomerMaterialDeliveries 从已有出库单重建客户物料首次交付记录。
 func RebuildCustomerMaterialDeliveries(ctx context.Context, svcCtx *svc.ServiceContext, progress ...RebuildProgressFunc) (int, int, error) {
-	orderFilter := bson.M{
-		"customer_id":    bson.M{"$ne": ""},
-		"departure_time": bson.M{"$gt": int64(0)},
-		"status":         bson.M{"$in": []string{"已出库", "已签收"}},
-		"$or": []bson.M{
-			{"type_code": bson.M{"$in": []string{quoteCode.OutboundTypeCodeSales, quoteCode.OutboundTypeCodeSample, quoteCode.OutboundTypeCodeGift}}},
-			{"type": bson.M{"$in": []string{"销售出库", "样品出库", "赠品出库"}}},
-		},
+	versions, err := readDeliveryProjectionVersions(ctx, svcCtx)
+	if err != nil {
+		return 0, 0, err
 	}
 	orderOpts := options.Find().SetSort(bson.D{{"departure_time", 1}, {"code", 1}})
-	orderCur, err := svcCtx.OutboundOrderModel.Find(ctx, orderFilter, orderOpts)
+	orderCur, err := svcCtx.OutboundOrderModel.Find(ctx, customerDeliveryOrderFilter(), orderOpts)
 	if err != nil {
 		return 0, 0, fmt.Errorf("查询客户交付出库单失败:%w", err)
 	}
@@ -83,67 +78,44 @@ func RebuildCustomerMaterialDeliveries(ctx context.Context, svcCtx *svc.ServiceC
 		reportRebuildProgress(progress, orderCount, len(summaries))
 	}
 
-	for _, summary := range summaries {
-		record := summary.record
-		filter := bson.M{"customer_id": record.CustomerId, "material_id": record.MaterialId}
-		if err = resetRevalidatedDeliveryQuoteState(ctx, svcCtx, filter, now); err != nil {
-			return orderCount, len(summaries), fmt.Errorf("重置客户[%s]物料[%s]失效首次交付记录失败:%w", record.CustomerId, record.MaterialId, err)
-		}
-		update := bson.M{
-			"$set": bson.M{
-				"customer_name":             record.CustomerName,
-				"material_name":             record.MaterialName,
-				"material_model":            record.MaterialModel,
-				"material_specification":    record.MaterialSpecification,
-				"material_unit":             record.MaterialUnit,
-				"first_delivery_time":       record.FirstDeliveryTime,
-				"first_delivery_order_code": record.FirstDeliveryOrderCode,
-				"first_delivery_quantity":   record.FirstDeliveryQuantity,
-				"first_delivery_price":      record.FirstDeliveryPrice,
-				"last_delivery_time":        record.LastDeliveryTime,
-				"delivery_count":            record.DeliveryCount,
-				"source_valid":              true,
-				"source_invalid_reason":     "",
-				"updated_at":                now,
-			},
-			"$setOnInsert": bson.M{
-				"quote_status": quoteCode.QuoteStatusUnquoted,
-				"created_at":   now,
-			},
-		}
-		if _, err = svcCtx.CustomerMaterialDeliveryModel.UpdateOne(ctx, filter, update, options.Update().SetUpsert(true)); err != nil {
-			return orderCount, 0, fmt.Errorf("回填客户[%s]物料[%s]首次交付记录失败:%w", record.CustomerId, record.MaterialId, err)
-		}
-	}
-
-	if err = cleanupStaleCustomerMaterialDeliveries(ctx, svcCtx, summaries, now); err != nil {
+	if err = publishRebuildSummaries(ctx, svcCtx, versions, summaries, globalFirstDeliveries, now); err != nil {
 		return orderCount, len(summaries), err
 	}
 
-	missingQuoteStatusFilter := bson.M{
+	return orderCount, len(summaries), nil
+}
+
+func customerDeliveryOrderFilter() bson.M {
+	return bson.M{
+		"customer_id": bson.M{"$ne": ""}, "departure_time": bson.M{"$gt": int64(0)},
+		"status": bson.M{"$in": []string{"已出库", "已签收"}}, "is_deleted": bson.M{"$ne": true},
 		"$or": []bson.M{
-			{"quote_status": bson.M{"$exists": false}},
-			{"quote_status": ""},
+			{"type_code": bson.M{"$in": []string{quoteCode.OutboundTypeCodeSales, quoteCode.OutboundTypeCodeSample, quoteCode.OutboundTypeCodeGift}}},
+			{"type": bson.M{"$in": []string{"销售出库", "样品出库", "赠品出库"}}},
 		},
 	}
-	if _, err = svcCtx.CustomerMaterialDeliveryModel.UpdateMany(ctx, missingQuoteStatusFilter, bson.M{"$set": bson.M{"quote_status": quoteCode.QuoteStatusUnquoted, "updated_at": now}}); err != nil {
-		return orderCount, len(summaries), fmt.Errorf("修复空报价状态失败:%w", err)
-	}
+}
 
-	for _, first := range globalFirstDeliveries {
-		update := bson.M{
-			"$set": bson.M{
-				"first_delivery_time":       first.time,
-				"first_delivery_order_code": first.orderCode,
-				"updated_at":                now,
-			},
-		}
-		if _, err = svcCtx.MaterialModel.UpdateByID(ctx, first.materialId, update); err != nil {
-			return orderCount, len(summaries), fmt.Errorf("回填物料[%s]全局首次交付时间失败:%w", first.materialId.Hex(), err)
-		}
+func upsertDeliverySummary(ctx context.Context, svcCtx *svc.ServiceContext, record model.CustomerMaterialDelivery, now int64) error {
+	filter := bson.M{"customer_id": record.CustomerId, "material_id": record.MaterialId}
+	if err := resetRevalidatedDeliveryQuoteState(ctx, svcCtx, filter, now); err != nil {
+		return err
 	}
-
-	return orderCount, len(summaries), nil
+	update := bson.M{
+		"$set": bson.M{
+			"customer_name": record.CustomerName, "material_name": record.MaterialName,
+			"material_model": record.MaterialModel, "material_specification": record.MaterialSpecification,
+			"material_unit": record.MaterialUnit, "first_delivery_time": record.FirstDeliveryTime,
+			"first_delivery_order_code": record.FirstDeliveryOrderCode, "first_delivery_quantity": record.FirstDeliveryQuantity,
+			"first_delivery_price": record.FirstDeliveryPrice, "last_delivery_time": record.LastDeliveryTime,
+			"delivery_count": record.DeliveryCount, "source_valid": true, "source_invalid_reason": "", "updated_at": now,
+		},
+		"$setOnInsert": bson.M{"quote_status": quoteCode.QuoteStatusUnquoted, "created_at": now},
+	}
+	if _, err := svcCtx.CustomerMaterialDeliveryModel.UpdateOne(ctx, filter, update, options.Update().SetUpsert(true)); err != nil {
+		return fmt.Errorf("回填客户[%s]物料[%s]首次交付记录失败:%w", record.CustomerId, record.MaterialId, err)
+	}
+	return nil
 }
 
 func resetRevalidatedDeliveryQuoteState(ctx context.Context, svcCtx *svc.ServiceContext, filter bson.M, now int64) error {
@@ -167,8 +139,12 @@ func resetRevalidatedDeliveryQuoteState(ctx context.Context, svcCtx *svc.Service
 	return err
 }
 
-func cleanupStaleCustomerMaterialDeliveries(ctx context.Context, svcCtx *svc.ServiceContext, summaries map[string]rebuildSummary, now int64) error {
-	cur, err := svcCtx.CustomerMaterialDeliveryModel.Find(ctx, bson.M{})
+func cleanupStaleCustomerMaterialDeliveries(ctx context.Context, svcCtx *svc.ServiceContext, summaries map[string]rebuildSummary, now int64, invalidateAllSources bool, filters ...bson.M) error {
+	filter := bson.M{}
+	if len(filters) > 0 {
+		filter = filters[0]
+	}
+	cur, err := svcCtx.CustomerMaterialDeliveryModel.Find(ctx, filter)
 	if err != nil {
 		return fmt.Errorf("query customer material delivery history failed:%w", err)
 	}
@@ -199,6 +175,15 @@ func cleanupStaleCustomerMaterialDeliveries(ctx context.Context, svcCtx *svc.Ser
 	}
 	for _, record := range staleRecords {
 		hasQuotes := quotedDeliveries[record.Id.Hex()]
+		// A projection can still be referenced by legacy delivery-only prices
+		// even when no quote document or quote summary exists. Invalidate those
+		// references before either deleting or retaining the stale projection.
+		_, err = svcCtx.MaterialPriceModel.UpdateMany(ctx, bson.M{
+			"source_delivery_id": record.Id.Hex(), "source_quote_id": bson.M{"$in": []interface{}{"", nil}},
+		}, bson.M{"$set": bson.M{"source_valid": false, "source_invalid_reason": quoteCode.SourceInvalidReasonRebuildChanged}})
+		if err != nil {
+			return err
+		}
 		if shouldDeleteStaleCustomerMaterialDelivery(record) && !hasQuotes {
 			if _, err = svcCtx.CustomerMaterialDeliveryModel.DeleteOne(ctx, bson.M{"_id": record.Id}); err != nil {
 				return fmt.Errorf("delete stale customer[%s] material[%s] delivery record failed:%w", record.CustomerId, record.MaterialId, err)
@@ -213,8 +198,10 @@ func cleanupStaleCustomerMaterialDeliveries(ctx context.Context, svcCtx *svc.Ser
 		if _, err = svcCtx.CustomerMaterialDeliveryModel.UpdateByID(ctx, record.Id, update); err != nil {
 			return fmt.Errorf("mark stale customer[%s] material[%s] delivery record invalid failed:%w", record.CustomerId, record.MaterialId, err)
 		}
-		if err = invalidateDeliveryQuotesAndPrices(ctx, svcCtx, record.Id.Hex(), now); err != nil {
-			return err
+		if invalidateAllSources {
+			if err = invalidateDeliveryQuotesAndPrices(ctx, svcCtx, record.Id.Hex(), now); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -286,7 +273,13 @@ func invalidateDeliveryQuotesAndPrices(ctx context.Context, svcCtx *svc.ServiceC
 		return fmt.Errorf("标记首次交付记录[%s]关联报价单失效失败:%w", deliveryId, err)
 	}
 
-	priceFilters := []bson.M{{"source_delivery_id": deliveryId}}
+	// An explicit quote reference identifies the price more precisely than a
+	// legacy delivery reference. Never invalidate an unrelated quote's price
+	// solely because an old source_delivery_id remains on the same document.
+	priceFilters := []bson.M{{
+		"source_delivery_id": deliveryId,
+		"source_quote_id":    bson.M{"$in": []interface{}{"", nil}},
+	}}
 	if len(quoteIds) > 0 {
 		priceFilters = append(priceFilters, bson.M{"source_quote_id": bson.M{"$in": quoteIds}})
 	}
@@ -315,64 +308,74 @@ func processRebuildOrderBatch(ctx context.Context, svcCtx *svc.ServiceContext, o
 	}
 
 	for _, order := range orders {
-		materialMap := materialByOrder[order.Code]
-		for _, material := range materialMap {
-			materialObjectId, e := primitive.ObjectIDFromHex(material.MaterialId)
-			if e != nil {
-				return fmt.Errorf("出库单[%s]物料id[%s]格式错误:%w", order.Code, material.MaterialId, e)
-			}
+		if err = accumulateDeliveryOrder(order, materialByOrder[order.Code], summaries, globalFirstDeliveries, now); err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
-			key := customerMaterialDeliveryKey(order.CustomerId, material.MaterialId)
-			summary, ok := summaries[key]
-			if !ok {
-				summary.record = model.CustomerMaterialDelivery{
-					CustomerId:             order.CustomerId,
-					CustomerName:           order.CustomerName,
-					MaterialId:             material.MaterialId,
-					MaterialName:           material.Name,
-					MaterialModel:          material.Model,
-					MaterialSpecification:  material.Specification,
-					MaterialUnit:           material.Unit,
-					FirstDeliveryTime:      order.DepartureTime,
-					FirstDeliveryOrderCode: order.Code,
-					FirstDeliveryQuantity:  material.Quantity,
-					FirstDeliveryPrice:     material.Price,
-					LastDeliveryTime:       order.DepartureTime,
-					DeliveryCount:          1,
-					CreatedAt:              now,
-					UpdatedAt:              now,
-				}
-			} else {
-				summary.record.CustomerName = order.CustomerName
-				summary.record.MaterialName = material.Name
-				summary.record.MaterialModel = material.Model
-				summary.record.MaterialSpecification = material.Specification
-				summary.record.MaterialUnit = material.Unit
-				summary.record.DeliveryCount++
-				summary.record.UpdatedAt = now
-				if order.DepartureTime < summary.record.FirstDeliveryTime {
-					summary.record.FirstDeliveryTime = order.DepartureTime
-					summary.record.FirstDeliveryOrderCode = order.Code
-					summary.record.FirstDeliveryQuantity = material.Quantity
-					summary.record.FirstDeliveryPrice = material.Price
-				}
-				if order.DepartureTime > summary.record.LastDeliveryTime {
-					summary.record.LastDeliveryTime = order.DepartureTime
-				}
-			}
-			summaries[key] = summary
+func accumulateDeliveryOrder(order model.OutboundOrder, materialMap map[string]model.OutboundOrderMaterial, summaries map[string]rebuildSummary, globalFirstDeliveries map[string]materialFirstDelivery, now int64) error {
+	for _, material := range materialMap {
+		materialObjectId, e := primitive.ObjectIDFromHex(material.MaterialId)
+		if e != nil {
+			return fmt.Errorf("出库单[%s]物料id[%s]格式错误:%w", order.Code, material.MaterialId, e)
+		}
 
-			global, exists := globalFirstDeliveries[material.MaterialId]
-			if !exists || order.DepartureTime < global.time {
-				globalFirstDeliveries[material.MaterialId] = materialFirstDelivery{
-					materialId: materialObjectId,
-					time:       order.DepartureTime,
-					orderCode:  order.Code,
-				}
+		key := customerMaterialDeliveryKey(order.CustomerId, material.MaterialId)
+		summary, ok := summaries[key]
+		if !ok {
+			summary.record = model.CustomerMaterialDelivery{
+				CustomerId:             order.CustomerId,
+				CustomerName:           order.CustomerName,
+				MaterialId:             material.MaterialId,
+				MaterialName:           material.Name,
+				MaterialModel:          material.Model,
+				MaterialSpecification:  material.Specification,
+				MaterialUnit:           material.Unit,
+				FirstDeliveryTime:      order.DepartureTime,
+				FirstDeliveryOrderCode: order.Code,
+				FirstDeliveryQuantity:  material.Quantity,
+				FirstDeliveryPrice:     material.Price,
+				LastDeliveryTime:       order.DepartureTime,
+				DeliveryCount:          1,
+				CreatedAt:              now,
+				UpdatedAt:              now,
+			}
+		} else {
+			summary.record.CustomerName = order.CustomerName
+			summary.record.MaterialName = material.Name
+			summary.record.MaterialModel = material.Model
+			summary.record.MaterialSpecification = material.Specification
+			summary.record.MaterialUnit = material.Unit
+			summary.record.DeliveryCount++
+			summary.record.UpdatedAt = now
+			if earlierDelivery(order.DepartureTime, order.Code, summary.record.FirstDeliveryTime, summary.record.FirstDeliveryOrderCode) {
+				summary.record.FirstDeliveryTime = order.DepartureTime
+				summary.record.FirstDeliveryOrderCode = order.Code
+				summary.record.FirstDeliveryQuantity = material.Quantity
+				summary.record.FirstDeliveryPrice = material.Price
+			}
+			if order.DepartureTime > summary.record.LastDeliveryTime {
+				summary.record.LastDeliveryTime = order.DepartureTime
+			}
+		}
+		summaries[key] = summary
+
+		global, exists := globalFirstDeliveries[material.MaterialId]
+		if !exists || earlierDelivery(order.DepartureTime, order.Code, global.time, global.orderCode) {
+			globalFirstDeliveries[material.MaterialId] = materialFirstDelivery{
+				materialId: materialObjectId,
+				time:       order.DepartureTime,
+				orderCode:  order.Code,
 			}
 		}
 	}
 	return nil
+}
+
+func earlierDelivery(time int64, code string, previousTime int64, previousCode string) bool {
+	return time < previousTime || (time == previousTime && code < previousCode)
 }
 
 func customerMaterialDeliveryKey(customerId, materialId string) string {
@@ -401,23 +404,35 @@ func outboundMaterialsByOrders(ctx context.Context, svcCtx *svc.ServiceContext, 
 		if err = cur.Decode(&material); err != nil {
 			return nil, fmt.Errorf("解析出库单物料失败:%w", err)
 		}
-		if _, ok := result[material.OrderCode]; !ok {
-			result[material.OrderCode] = make(map[string]model.OutboundOrderMaterial)
-		}
-		if existing, ok := result[material.OrderCode][material.MaterialId]; ok {
-			existing.Quantity += material.Quantity
-			if existing.Price <= 0 && material.Price > 0 {
-				existing.Price = material.Price
-			}
-			result[material.OrderCode][material.MaterialId] = existing
-			continue
-		}
-		result[material.OrderCode][material.MaterialId] = material
+		addDeliveryMaterial(result, material)
 	}
 	if err = cur.Err(); err != nil {
 		return nil, fmt.Errorf("遍历出库单物料失败:%w", err)
 	}
 	return result, nil
+}
+
+func groupDeliveryMaterials(materials []model.OutboundOrderMaterial) map[string]map[string]model.OutboundOrderMaterial {
+	result := make(map[string]map[string]model.OutboundOrderMaterial)
+	for _, material := range materials {
+		addDeliveryMaterial(result, material)
+	}
+	return result
+}
+
+func addDeliveryMaterial(result map[string]map[string]model.OutboundOrderMaterial, material model.OutboundOrderMaterial) {
+	if _, ok := result[material.OrderCode]; !ok {
+		result[material.OrderCode] = make(map[string]model.OutboundOrderMaterial)
+	}
+	if existing, ok := result[material.OrderCode][material.MaterialId]; ok {
+		existing.Quantity += material.Quantity
+		if existing.Price <= 0 && material.Price > 0 {
+			existing.Price = material.Price
+		}
+		result[material.OrderCode][material.MaterialId] = existing
+		return
+	}
+	result[material.OrderCode][material.MaterialId] = material
 }
 
 func reportRebuildProgress(progress []RebuildProgressFunc, orderCount, deliveryCount int) {

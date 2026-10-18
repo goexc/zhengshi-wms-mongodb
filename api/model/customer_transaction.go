@@ -19,8 +19,10 @@ type CustomerTransaction struct {
 	SourceId              string             `json:"source_id" bson:"source_id"`                             //来源单据 id
 	SourceCode            string             `json:"source_code" bson:"source_code"`                         //来源单据编号
 	IdempotencyKey        string             `json:"idempotency_key" bson:"idempotency_key"`                 //幂等键，唯一索引使用 ASCII 内容
+	RequestHash           string             `json:"-" bson:"request_hash,omitempty"`                        //手工录入请求指纹，未知结果重试时验证原始内容
 	OriginalTransactionId string             `json:"original_transaction_id" bson:"original_transaction_id"` //调整或冲销时关联的原流水
 	CustomerId            string             `json:"customer_id" bson:"customer_id"`                         //客户id
+	AcceptanceId          string             `json:"acceptance_id,omitempty" bson:"acceptance_id,omitempty"` //承兑兑付排他关联
 	CustomerName          string             `json:"customer_name" bson:"customer_name"`                     //客户名称
 	Amount                float64            `json:"amount" bson:"amount"`                                   //交易金额
 	Annex                 string             `json:"annex" bson:"annex"`                                     //附件
