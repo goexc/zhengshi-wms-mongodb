@@ -108,23 +108,7 @@ func (l *AddLogic) Add(req *types.Menu) (resp *types.BaseResponse, err error) {
 	}
 
 	//3.添加菜单
-	menu := model.Menu{
-		Type:       req.Type,
-		Name:       req.Name,
-		Path:       req.Path,
-		ParentId:   req.ParentId,
-		SortId:     req.SortId,
-		Component:  req.Component,
-		Icon:       req.Meta.Icon,
-		Transition: req.Meta.Transition,
-		Hidden:     req.Meta.Hidden,
-		Fixed:      req.Meta.Fixed,
-		IsFull:     req.Meta.IsFull,
-		Perms:      req.Meta.Perms,
-		Remark:     req.Remark,
-		CreatedAt:  time.Now().Unix(),
-		UpdatedAt:  time.Now().Unix(),
-	}
+	menu := newMenuRecord(req, time.Now().Unix())
 	_, err = l.svcCtx.MenuModel.InsertOne(l.ctx, &menu)
 	if err != nil {
 		fmt.Printf("[Error]新增菜单入库：%s\n", err.Error())

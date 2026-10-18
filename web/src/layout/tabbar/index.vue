@@ -6,6 +6,7 @@ import {ref} from "vue";
 import useSettingStore from "@/store/modules/setting.ts";
 import {reqLogout} from "@/api/user";
 import {ElMessage} from "element-plus";
+import {getNavigationTitle} from "@/utils/menu.ts";
 
 defineOptions({
   name: "LayoutTabBar"
@@ -100,7 +101,7 @@ const changeColor = () => {
       </el-icon>
       <el-breadcrumb separator="/" separator-icon="ArrowRight">
         <el-breadcrumb-item v-for="(r, index) in route.matched" v-show="r.name!='layout'" :to="r.path" :key="index">
-          {{ r.meta.title }}
+          {{ getNavigationTitle(r) }}
         </el-breadcrumb-item>
       </el-breadcrumb>
     </div>

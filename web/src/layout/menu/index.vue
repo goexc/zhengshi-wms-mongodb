@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { getNavigationTitle } from "@/utils/menu.ts";
 //获取父组件传递过来的全部路由数组
 defineProps(['menus'])
 
@@ -18,7 +19,7 @@ defineOptions({
           <component :is="menu.meta.icon"></component>
         </el-icon>
         <template #title>
-          <span>{{ menu.name }}</span>
+          <span>{{ getNavigationTitle(menu) }}</span>
         </template>
       </el-menu-item>
 
@@ -28,7 +29,7 @@ defineOptions({
           <component :is="menu.children[0].meta.icon"></component>
         </el-icon>
         <template #title>
-          <span>{{ menu.children[0].name }}</span>
+          <span>{{ getNavigationTitle(menu.children[0]) }}</span>
         </template>
       </el-menu-item>
       <!--  有多个子路由  -->
@@ -37,7 +38,7 @@ defineOptions({
           <el-icon>
             <component :is="menu.meta.icon"></component>
           </el-icon>
-          <span>{{ menu.name }}</span>
+          <span>{{ getNavigationTitle(menu) }}</span>
         </template>
         <!--   递归调用   -->
         <LayoutMenu :menus="menu.children"></LayoutMenu>

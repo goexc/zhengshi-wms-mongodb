@@ -9,6 +9,7 @@ import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import {reqAddOrUpdateMenu, reqRemoveMenu} from "@/api/acl/menu";
 import {ElMessage, FormInstance} from "element-plus";
 import {rules} from "./rules";
+import {getNavigationTitle} from "@/utils/menu";
 
 
 //表格展开属性
@@ -47,6 +48,7 @@ const initMenuForm = () => {
     name: '',
     component: '',
     meta: {
+      title: '',
       icon: 'search',
       hidden: false,
       fixed: true,
@@ -99,7 +101,9 @@ const editMenu = (menu: Menu) => {
   title.value = '修改菜单'
   action.value = 'editMenu'
   visible.value = true
-  Object.assign(menuForm, menu)
+  Object.assign(menuForm, initMenuForm(), menu, {
+    meta: {...initMenuForm().meta, ...menu.meta, title: getNavigationTitle(menu)},
+  })
 }
 
 //提交表单
@@ -298,12 +302,13 @@ const screenType = (t: boolean) => {
         <template #empty>
           <el-empty/>
         </template>
-        <el-table-column prop="name" label="菜单名称" min-width="220px" fixed>
+        <el-table-column prop="meta.title" label="显示标题" min-width="220px" fixed>
           <template #default="{row}">
 <!--            <el-link :icon="row.icon">{{ row.name }}</el-link>-->
-            <el-link>{{ row.name }}</el-link>
+            <el-link>{{ getNavigationTitle(row) }}</el-link>
           </template>
         </el-table-column>
+        <el-table-column prop="name" label="路由名称 / 按钮名称" min-width="180px"/>
         <el-table-column label="图标" align="center">
           <template #default="{row}">
             <el-icon>
@@ -404,8 +409,11 @@ const screenType = (t: boolean) => {
                   <el-radio :label="2">按钮</el-radio>
                 </el-radio-group>
               </el-form-item>
-              <el-form-item label="菜单名称" prop="name">
-                <el-input v-model.trim="menuForm.name" style="width: 360px" placeholder="例如：权限管理"/>
+              <el-form-item :label="menuForm.type === 1 ? '路由名称' : '按钮名称'" prop="name">
+                <el-input v-model.trim="menuForm.name" style="width: 360px" :placeholder="menuForm.type === 1 ? '例如：Finance（路由标识）' : '例如：新增客户'"/>
+              </el-form-item>
+              <el-form-item v-if="menuForm.type === 1" label="显示标题" prop="meta.title">
+                <el-input v-model.trim="menuForm.meta.title" style="width: 360px" maxlength="100" placeholder="例如：客户财务"/>
               </el-form-item>
               <el-form-item label="菜单排序" prop="sort_id">
                 <el-input v-model.number="menuForm.sort_id" style="width: 360px"/>

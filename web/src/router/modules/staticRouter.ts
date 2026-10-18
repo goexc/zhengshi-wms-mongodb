@@ -35,7 +35,7 @@ export const errorRouter = [
     name: "403",
     component: () => import("@/components/ErrorMessage/403.vue"),
     meta: {
-      title: "403页面",
+      title: "无权访问",
     },
   },
   {
@@ -43,7 +43,7 @@ export const errorRouter = [
     name: "404",
     component: () => import("@/components/ErrorMessage/404.vue"),
     meta: {
-      title: "404页面",
+      title: "页面不存在",
     },
   },
   {
@@ -51,12 +51,13 @@ export const errorRouter = [
     name: "500",
     component: () => import("@/components/ErrorMessage/500.vue"),
     meta: {
-      title: "500页面",
+      title: "服务器错误",
     },
   },
   // Resolve refresh page, route warnings
   {
     path: "/:pathMatch(.*)*",
     component: () => import("@/components/ErrorMessage/404.vue"),
+    meta: { title: "页面不存在" },
   },
 ];

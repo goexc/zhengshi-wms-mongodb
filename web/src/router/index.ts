@@ -5,6 +5,7 @@ import {LOGIN_URL, ROUTER_WHITE_LIST} from "@/config";
 import NProgress from "@/config/nprogress";
 import {initDynamicRouter} from "@/router/modules/dynamicRouter.ts";
 import {errorRouter, staticRouter} from "@/router/modules/staticRouter.ts";
+import {getNavigationTitle} from "@/utils/menu.ts";
 
 /**
  * @description 📚 路由参数配置简介
@@ -14,7 +15,7 @@ import {errorRouter, staticRouter} from "@/router/modules/staticRouter.ts";
  * @param component ==> 视图文件路径
  * @param meta ==> 路由菜单元信息
  * @param meta.icon ==> 菜单和面包屑对应的图标
- * @param meta.name ==> 路由标题 (用作 document.title || 菜单的名称)
+ * @param meta.title ==> 路由标题 (用作 document.title || 菜单的名称)
  * @param meta.activeMenu ==> 当前路由为详情页时，需要高亮的菜单
  * @param meta.isLink ==> 路由外链时填写的访问地址
  * @param meta.hidden ==> 是否在菜单中隐藏 (通常列表详情页需要隐藏)
@@ -41,7 +42,8 @@ router.beforeEach(async (to, from) => {
 
   // 2.动态设置标题
   const title = import.meta.env.VITE_TITLE;
-  document.title = to.name ? `${to.name as string} - ${title}` : title;
+  const pageTitle = getNavigationTitle(to);
+  document.title = pageTitle ? `${String(pageTitle)} - ${title}` : title;
 
   // 3.判断是访问登录页，有 Token 就在当前页面，没有 Token 重置路由到登录页
   if (to.path.toLocaleLowerCase() === LOGIN_URL) {

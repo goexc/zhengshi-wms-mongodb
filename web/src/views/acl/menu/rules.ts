@@ -27,6 +27,16 @@ export const rules = reactive<FormRules>({
       trigger: ["blur", "change"],
     },
   ],
+  'meta.title': [
+    {
+      required: true,
+      whitespace: true,
+      max: 100,
+      message: "请填写显示标题，最多100个字",
+      type: "string",
+      trigger: ["blur", "change"],
+    },
+  ],
   'meta.icon': [
     {
       required: true,

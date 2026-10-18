@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import {  getAuthMenuListApi } from "@/api/modules/login";
 import { AuthState } from "@/store/interface";
-import { filterRetiredSupplierMenus, getFlatMenuList } from "@/utils/menu.ts";
+import { prepareNavigationMenus, getFlatMenuList } from "@/utils/menu.ts";
 import {Button, Menu} from "@/api/acl/menu/types.ts";
 // import piniaPersistConfig from "@/config/piniaPersist.ts";
 
@@ -27,8 +27,7 @@ export const useAuthStore = defineStore("zs-auth", {
     // Get AuthMenuList
     async getAuthMenuList() {
       const { data } = await getAuthMenuListApi();
-      this.authMenuList = filterRetiredSupplierMenus(data.menus).sort((a, b) => a.sort_id - b.sort_id);
-      this.authMenuList.forEach(item=>item.children&&item.children.sort((a, b) => a.sort_id - b.sort_id));//对二级菜单进行排序
+      this.authMenuList = prepareNavigationMenus(data.menus);
       this.authButtonList = data.buttons;
     },
     // Set RouteName

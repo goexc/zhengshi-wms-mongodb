@@ -3,7 +3,6 @@ package menu
 import (
 	"api/internal/svc"
 	"api/internal/types"
-	"api/model"
 	"context"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
@@ -87,22 +86,7 @@ func (l *UpdateLogic) Update(req *types.Menu) (resp *types.BaseResponse, err err
 
 	//2.更新菜单信息
 	filter = bson.D{{"_id", id}}
-	menu := model.Menu{
-		Type:       req.Type,
-		Name:       req.Name,
-		Path:       req.Path,
-		ParentId:   req.ParentId,
-		SortId:     req.SortId,
-		Component:  req.Component,
-		Icon:       req.Meta.Icon,
-		Transition: req.Meta.Transition,
-		Hidden:     req.Meta.Hidden,
-		Fixed:      req.Meta.Fixed,
-		IsFull:     req.Meta.IsFull,
-		Perms:      req.Meta.Perms,
-		Remark:     req.Remark,
-		UpdatedAt:  time.Now().Unix(),
-	}
+	menu := menuUpdateFields(req, time.Now().Unix())
 	update := bson.D{
 		{"$set", menu},
 	}
